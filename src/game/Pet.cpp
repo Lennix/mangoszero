@@ -341,6 +341,10 @@ bool Pet::LoadPetFromDB( Player* owner, uint32 petentry, uint32 petnumber, bool 
             ((Player*)owner)->SetGroupUpdateFlag(GROUP_UPDATE_PET);
     }
 
+    // set last used pet number (for use in BG's)
+    if (owner->GetTypeId() == TYPEID_PLAYER && isControlled() && !isTemporarySummoned() && (getPetType() == SUMMON_PET || getPetType() == HUNTER_PET))
+        ((Player*)owner)->SetLastPetNumber(pet_number);
+
     m_loading = false;
 
     SynchronizeLevelWithOwner();
@@ -1879,6 +1883,17 @@ void Pet::ToggleAutocast(uint32 spellid, bool apply)
 {
     if(IsPassiveSpell(spellid))
         return;
+
+	// Sacrifice is not autocastable
+    switch (spellid) {
+		case 7812:
+		case 19438:
+		case 19440:
+		case 19441:
+		case 19442:
+		case 19443:
+			return;
+    }
 
     PetSpellMap::iterator itr = m_spells.find(spellid);
 

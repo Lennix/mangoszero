@@ -52,6 +52,7 @@
 #include "VMapFactory.h"
 #include "MovementGenerator.h"
 #include "CreatureLinkingMgr.h"
+#include "CreatureGroups.h"
 
 #include <math.h>
 #include <stdarg.h>
@@ -565,11 +566,30 @@ void Unit::RemoveSpellbyDamageTaken(AuraType auraType, uint32 damage)
     if(!HasAuraType(auraType))
         return;
 
+    // Spells with SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY should not be removed by dmg
+    bool found = false;
+    AuraList const& mModRoot = GetAurasByType(auraType);
+    for(AuraList::const_iterator itr = mModRoot.begin(); itr != mModRoot.end(); ++itr)
+    {
+        if ((*itr)->GetSpellProto()->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (found)
+        return;
+
+    uint32 dmg_done = damage + GetDamageForAuraType(auraType);
+
     // The chance to dispel an aura depends on the damage taken with respect to the casters level.
     uint32 max_dmg = getLevel() > 8 ? 25 * getLevel() - 150 : 50;
-    float chance = float(damage) / max_dmg * 100.0f;
+    float chance = float(dmg_done) / max_dmg * 100.0f;
     if (roll_chance_f(chance))
         RemoveSpellsCausingAura(auraType);
+    else
+        SetDamageForAuraType(auraType, true, damage);
 }
 
 void Unit::DealDamageMods(Unit *pVictim, uint32 &damage, uint32* absorb)
@@ -622,8 +642,9 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
     if(!damage)
     {
         // Rage from physical damage received .
-        if(cleanDamage && cleanDamage->damage && (damageSchoolMask & SPELL_SCHOOL_MASK_NORMAL) && pVictim->GetTypeId() == TYPEID_PLAYER && (pVictim->getPowerType() == POWER_RAGE))
-            ((Player*)pVictim)->RewardRage(cleanDamage->damage, 0, false);
+        // ?? No dmg done, why reward rage ??
+        //if(cleanDamage && cleanDamage->damage && (damageSchoolMask & SPELL_SCHOOL_MASK_NORMAL) && pVictim->GetTypeId() == TYPEID_PLAYER && (pVictim->getPowerType() == POWER_RAGE))
+        //   ((Player*)pVictim)->RewardRage(cleanDamage->damage, 0, false);
 
         return 0;
     }
@@ -994,10 +1015,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         {
             // Rage from damage received
             if(this != pVictim && pVictim->getPowerType() == POWER_RAGE)
-            {
-                uint32 rage_damage = damage + (cleanDamage ? cleanDamage->damage : 0);
-                ((Player*)pVictim)->RewardRage(rage_damage, 0, false);
-            }
+                ((Player*)pVictim)->RewardRage(damage, 0, false);
 
             // random durability for items (HIT TAKEN)
             if (roll_chance_f(sWorld.getConfig(CONFIG_FLOAT_RATE_DURABILITY_LOSS_DAMAGE)))
@@ -1466,17 +1484,18 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
     // Add melee damage bonus
     damage = MeleeDamageBonusDone(damageInfo->target, damage, damageInfo->attackType);
     damage = damageInfo->target->MeleeDamageBonusTaken(this, damage, damageInfo->attackType);
-    // Calculate armor reduction
-    if(damageInfo->damageSchoolMask<2)
+    // Calculate armor reduction for physical attacks
+    if (damageInfo->damageSchoolMask == SPELL_SCHOOL_MASK_NORMAL)
     {
         damageInfo->damage = CalcArmorReducedDamage(damageInfo->target, damage);
         damageInfo->cleanDamage += damage - damageInfo->damage;
     }
     else
     {
-        damageInfo->damage=damage;
-        damageInfo->cleanDamage += damage - damageInfo->damage;
+        damageInfo->damage = damage;
+        damageInfo->cleanDamage += damage;
     }
+
     damageInfo->hitOutCome = RollMeleeOutcomeAgainst(damageInfo->target, damageInfo->attackType);
 
     // Disable parry or dodge for ranged attack
@@ -1484,6 +1503,16 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
     {
         if (damageInfo->hitOutCome == MELEE_HIT_PARRY) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
         if (damageInfo->hitOutCome == MELEE_HIT_DODGE) damageInfo->hitOutCome = MELEE_HIT_MISS;
+    }
+
+    // Disable parry, dodge, crushing, block and miss for non-physical attacks
+    if (damageInfo->damageSchoolMask != SPELL_SCHOOL_MASK_NORMAL)
+    {
+        if (damageInfo->hitOutCome == MELEE_HIT_PARRY) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
+        if (damageInfo->hitOutCome == MELEE_HIT_DODGE) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
+        if (damageInfo->hitOutCome == MELEE_HIT_CRUSHING) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
+        if (damageInfo->hitOutCome == MELEE_HIT_BLOCK) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
+        if (damageInfo->hitOutCome == MELEE_HIT_MISS) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
     }
 
     switch(damageInfo->hitOutCome)
@@ -1660,6 +1689,13 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
     if (!pVictim->isAlive() || pVictim->IsTaxiFlying() || (pVictim->GetTypeId() == TYPEID_UNIT && ((Creature*)pVictim)->IsInEvadeMode()))
         return;
 
+    // Do not deal damage to Onyxia, when she is Flying during phase 2
+    if (pVictim->GetEntry() == 10184 && ((Creature*)pVictim)->HasSplineFlag(SPLINEFLAG_FLYING) && damageInfo->damageSchoolMask == SPELL_SCHOOL_MASK_NORMAL)
+    {
+        //error_log("Unit::DealMeleeDamage(): %s %s (guid %d) will do not deal damage to Onyxia, because she is flying.", this->GetTypeId() == TYPEID_PLAYER ? "Player" : "Creature", this->GetName(), this->GetObjectGuid());
+        return;
+    }
+
     // Hmmmm dont like this emotes client must by self do all animations
     if (damageInfo->HitInfo&HITINFO_CRITICALHIT)
         pVictim->HandleEmoteCommand(EMOTE_ONESHOT_WOUNDCRITICAL);
@@ -1746,7 +1782,8 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
     if (!(damageInfo->HitInfo & HITINFO_MISS))
     {
         // on weapon hit casts
-        if(GetTypeId() == TYPEID_PLAYER && pVictim->isAlive())
+        if(GetTypeId() == TYPEID_PLAYER && pVictim->isAlive()
+        && ((damageInfo->procEx & PROC_EX_NORMAL_HIT) || (damageInfo->procEx & PROC_EX_CRITICAL_HIT)))
             ((Player*)this)->CastItemCombatSpell(pVictim, damageInfo->attackType);
 
         // victim's damage shield
@@ -2371,6 +2408,9 @@ uint32 Unit::CalculateDamage (WeaponAttackType attType, bool normalized)
 
 float Unit::CalculateLevelPenalty(SpellEntry const* spellProto) const
 {
+	// Not in 1.12
+	return 1.0f;
+
     uint32 spellLevel = spellProto->spellLevel;
     if(spellLevel <= 0)
         return 1.0f;
@@ -3422,7 +3462,12 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
         for (SpellAuraHolderMap::iterator iter = spair.first; iter != spair.second; ++iter)
         {
             SpellAuraHolder *foundHolder = iter->second;
-            if (foundHolder->GetCasterGuid() == holder->GetCasterGuid())
+            if (foundHolder->GetCasterGuid() == holder->GetCasterGuid() ||
+                aurSpellInfo->Id == 22959 ||                                    // Improved Scorch
+                aurSpellInfo->Id == 15258 ||                                    // Shadow Weaving
+                aurSpellInfo->Id == 12579 ||                                    // Winter's Chill
+                (aurSpellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR &&
+                aurSpellInfo->SpellFamilyFlags & UI64LIT(0x00000004000)))       // Sunder Armor
             {
                 // Aura can stack on self -> Stack it;
                 if (aurSpellInfo->StackAmount)
@@ -3465,6 +3510,7 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
                     case SPELL_AURA_PERIODIC_MANA_LEECH:
                     case SPELL_AURA_OBS_MOD_MANA:
                     case SPELL_AURA_POWER_BURN_MANA:
+                    case SPELL_AURA_PERIODIC_HEALTH_FUNNEL:
                         break;
                     case SPELL_AURA_PERIODIC_ENERGIZE:      // all or self or clear non-stackable
                     default:                                // not allow
@@ -4869,6 +4915,10 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
     if(GetTypeId()==TYPEID_PLAYER && IsMounted())
         return false;
 
+	// Units cannot attack when polymorphed or feared
+    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED) || HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
+        return false;
+
     // nobody can attack GM in GM-mode
     if(victim->GetTypeId()==TYPEID_PLAYER)
     {
@@ -5288,6 +5338,9 @@ Unit* Unit::SelectMagnetTarget(Unit *victim, Spell* spell, SpellEffectIndex eff)
     // Magic case
     if (spell && (spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_NONE || spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC))
     {
+        if (spell->m_spellInfo->Attributes & SPELL_ATTR_ABILITY || spell->m_spellInfo->AttributesEx & SPELL_ATTR_EX_CANT_BE_REDIRECTED)
+            return victim;
+
         Unit::AuraList const& magnetAuras = victim->GetAurasByType(SPELL_AURA_SPELL_MAGNET);
         for(Unit::AuraList::const_iterator itr = magnetAuras.begin(); itr != magnetAuras.end(); ++itr)
         {
@@ -5419,7 +5472,7 @@ uint32 Unit::SpellDamageBonusDone(Unit *pVictim, SpellEntry const *spellProto, u
 
     uint32 creatureTypeMask = pVictim->GetCreatureTypeMask();
     // Add flat bonus from spell damage versus
-    DoneTotal += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_FLAT_SPELL_DAMAGE_VERSUS, creatureTypeMask);
+    int32 DoneAdvertisedBenefit = GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_FLAT_SPELL_DAMAGE_VERSUS, creatureTypeMask);
     AuraList const& mDamageDoneVersus = GetAurasByType(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS);
     for(AuraList::const_iterator i = mDamageDoneVersus.begin();i != mDamageDoneVersus.end(); ++i)
         if(creatureTypeMask & uint32((*i)->GetModifier()->m_miscvalue))
@@ -5458,7 +5511,7 @@ uint32 Unit::SpellDamageBonusDone(Unit *pVictim, SpellEntry const *spellProto, u
     }
 
     // Done fixed damage bonus auras
-    int32 DoneAdvertisedBenefit = SpellBaseDamageBonusDone(GetSpellSchoolMask(spellProto));
+    DoneAdvertisedBenefit += SpellBaseDamageBonusDone(GetSpellSchoolMask(spellProto));
 
     // Pets just add their bonus damage to their spell damage
     // note that their spell damage is just gain of their own auras
@@ -5514,6 +5567,50 @@ uint32 Unit::SpellDamageBonusTaken(Unit *pCaster, SpellEntry const *spellProto, 
     TakenTotal = SpellBonusWithCoeffs(spellProto, TakenTotal, TakenAdvertisedBenefit, 0, damagetype, false);
 
     float tmpDamage = (int32(pdamage) + TakenTotal * int32(stack)) * TakenTotalMod;
+    if (A && A->GetModifier()) //Apply Judgement of the Crusader bonus after other calculations are done	
+	{	
+	   A->GetModifier()->m_amount = saveAuraMod;	
+	   float coeff = 0.0f;	
+	switch (spellProto->SpellIconID) 	
+    {	
+      case 25:    	
+        if (spellProto->SpellVisual == 5622)    //Seal of Righteousness proc: 10% of maximum applied	
+          coeff = 0.1f;	
+        else                    //Judgement of Righteousness: 50% of maximum applied	
+          coeff = 0.5f;	
+        break;
+      case 292:                    //Exorcism: 43% of maximum applied	
+      case 302:                    //Hammer of Wrath: 43% of maximum applied	
+        coeff = 0.43f;	
+        break;	
+      case 156:                             	
+        if (spellProto->SpellVisual == 3400)
+        {
+          if (damagetype == DOT)        //Holy Fire DoT: 26% of maximum applied
+          coeff = 0.26f;	
+          else                  //Holy Fire Initial Damage: 32% of maximum applied  	
+          coeff = 0.32f;
+        }
+        else                    //Holy Shock: 43% of maximum applied	
+        coeff = 0.43f;	
+        break;	
+      case 51:                    //Consecration: 33% of maximum applied	
+        coeff = 0.33f;
+        break;	
+      case 158:                    //Holy Wrath: 19% of maximum applied
+        coeff = 0.19f;	
+        break;
+      case 237:                    //Smite: 32% of maximum applied	
+      case 1874:                  //Holy Nova: 32% of maximum applied
+        coeff = 0.32f;
+        break;
+      default:	
+       break;	
+    }
+    if (coeff > 0)
+      tmpDamage += tmpDamage*coeff > saveAuraMod ? saveAuraMod : tmpDamage*coeff;	
+  }
+
 
     if (A && A->GetModifier()) // Apply Judgement of the Crusader bonus after other calculations are done
     {
@@ -5610,6 +5707,9 @@ int32 Unit::SpellBaseDamageBonusTaken(SpellSchoolMask schoolMask)
 
 bool Unit::IsSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolMask schoolMask, WeaponAttackType attackType)
 {
+    if (GetObjectGuid().IsCreature())
+        return false;
+
     // not critting spell
     if((spellProto->AttributesEx2 & SPELL_ATTR_EX2_CANT_CRIT))
         return false;
@@ -6402,6 +6502,9 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy)
         if (GetMap()->IsDungeon() && (pCreature->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_AGGRO_ZONE) && enemy && enemy->IsControlledByPlayer())
             pCreature->SetInCombatWithZone();
 
+        if (pCreature->GetFormation())
+            pCreature->GetFormation()->MemberAttackStart(pCreature, enemy);
+
         if (InstanceData* mapInstance = GetInstanceData())
             mapInstance->OnCreatureEnterCombat(pCreature);
 
@@ -7181,14 +7284,13 @@ void Unit::TauntApply(Unit* taunter)
 
     if (target && target == taunter)
         return;
+	if (!HasAuraType(SPELL_AURA_MOD_FEAR) && !HasAuraType(SPELL_AURA_MOD_CONFUSE))	
+	{
+		SetInFront(taunter);
 
-    if (!HasAuraType(SPELL_AURA_MOD_FEAR) && !HasAuraType(SPELL_AURA_MOD_CONFUSE))
-    {
-    SetInFront(taunter);
-
-    if (((Creature*)this)->AI())
-        ((Creature*)this)->AI()->AttackStart(taunter);
-    }
+		if (((Creature*)this)->AI())
+			((Creature*)this)->AI()->AttackStart(taunter);
+	}
 
     m_ThreatManager.tauntApply(taunter);
 }
@@ -7289,9 +7391,9 @@ bool Unit::SelectHostileTarget()
         target = m_ThreatManager.getHostileTarget();
 
     if (target)
-    {
-        if (!hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_DIED) &&
-            !HasAuraType(SPELL_AURA_MOD_FEAR) && !HasAuraType(SPELL_AURA_MOD_CONFUSE))
+    {        
+        if (!hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_DIED)	
+		&& !HasAuraType(SPELL_AURA_MOD_FEAR) && !HasAuraType(SPELL_AURA_MOD_CONFUSE)) //Prevent unit from attacking while feared/confused 
         {
             SetInFront(target);
             ((Creature*)this)->AI()->AttackStart(target);
@@ -8552,6 +8654,8 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         }
     }
 
+    SetDamageForAuraType(SPELL_AURA_MOD_FEAR, apply);
+
     if (GetTypeId() == TYPEID_PLAYER)
         ((Player*)this)->SetClientControl(this, !apply);
 }
@@ -9244,6 +9348,32 @@ bool Unit::CheckAndIncreaseCastCounter()
 
     ++m_castCounter;
     return true;
+}
+
+uint32 Unit::GetDamageForAuraType(AuraType auraType)
+{
+    DamageForAuraTypeMap::iterator itr = m_DamageForAuraTypes.find(auraType);
+    if (itr != m_DamageForAuraTypes.end())
+        return itr->second;
+
+    return NULL;
+}
+
+void Unit::SetDamageForAuraType(AuraType auraType, bool apply, uint32 damage)
+{
+    if (apply)
+    {
+        DamageForAuraTypeMap::iterator itr = m_DamageForAuraTypes.find(auraType);
+        if (itr == m_DamageForAuraTypes.end())
+        {
+            m_DamageForAuraTypes[auraType] = damage;
+            return;
+        }
+
+        itr->second += damage;
+    }
+    else
+        m_DamageForAuraTypes.erase(auraType);
 }
 
 SpellAuraHolder* Unit::GetSpellAuraHolder (uint32 spellid) const

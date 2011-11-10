@@ -180,13 +180,13 @@ namespace MaNGOS
 
         inline float CalculateRpDecay(float rpEarning,float RP)
         {
-            float Decay = floor( (0.2f * RP) + 0.5f);
+            float Decay = floor( (0.4f * RP) + 0.5f);
             float Delta = rpEarning - Decay;
             if (Delta < 0) {
                Delta = Delta / 2;
             }
-            if (Delta < -2500) {
-               Delta = -2500;
+            if (Delta < -5000) {
+               Delta = -5000;
             }
             return RP + Delta;
         }
@@ -210,7 +210,7 @@ namespace MaNGOS
 
         inline float HonorableKillPoints( Player *killer, Player *victim, uint32 groupsize)
         {
-            if (!killer || !victim || !groupsize)
+            if (!killer || !victim || !groupsize || (groupsize > 0 && groupsize < 1))
                 return 0.0;
 
             uint32 today = sWorld.GetDateToday();
@@ -313,7 +313,8 @@ namespace MaNGOS
             if(u->GetTypeId()==TYPEID_UNIT && ((Creature*)u)->IsElite())
                 xp_gain *= 2;
 
-            return (uint32)(xp_gain*sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
+            //return (uint32)(xp_gain*sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
+			return (uint32)(xp_gain*pl->GetRates());
         }
 
         inline float xp_in_group_rate(uint32 count, bool isRaid)

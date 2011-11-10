@@ -875,6 +875,87 @@ void ObjectMgr::LoadCreatureModelInfo()
     sLog.outString();
 }
 
+bool ObjectMgr::CheckCreatureLinkedRespawn(uint32 guid, uint32 linkedGuid) const
+{
+    const CreatureData* const slave = GetCreatureData(guid);
+    const CreatureData* const master = GetCreatureData(linkedGuid);
+
+    if (!slave || !master) // they must have a corresponding entry in db
+    {
+        sLog.outError("LinkedRespawn: Creature '%u' linking to '%u' which doesn't exist", guid, linkedGuid);
+        return false;
+    }
+
+    const MapEntry* const map = sMapStore.LookupEntry(master->mapid);
+
+    if (master->mapid != slave->mapid        // link only to same map
+        && (!map || map->Instanceable()))   // or to unistanced world
+    {
+        sLog.outError("LinkedRespawn: Creature '%u' linking to '%u' on an unpermitted map", guid, linkedGuid);
+        return false;
+    }
+
+    return true;
+}
+
+void ObjectMgr::LoadCreatureLinkedRespawn()
+{
+    mCreatureLinkedRespawnMap.clear();
+    QueryResult* result = WorldDatabase.Query("SELECT guid, linkedGuid FROM creature_linked_respawn ORDER BY guid ASC");
+
+    if (!result)
+    {
+        BarGoLink bar(1);
+
+        bar.step();
+
+        sLog.outString("");
+        sLog.outErrorDb(">> Loaded 0 linked respawns. DB table `creature_linked_respawn` is empty.");
+        return;
+    }
+
+    BarGoLink bar(result->GetRowCount());
+
+    do
+    {
+        Field* fields = result->Fetch();
+        bar.step();
+
+        uint32 guid = fields[0].GetUInt32();
+        uint32 linkedGuid = fields[1].GetUInt32();
+
+        if (CheckCreatureLinkedRespawn(guid, linkedGuid))
+            mCreatureLinkedRespawnMap[guid] = linkedGuid;
+
+    } while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString(">> Loaded %u linked respawns", mCreatureLinkedRespawnMap.size());
+}
+
+bool ObjectMgr::SetCreatureLinkedRespawn(uint32 guid, uint32 linkedGuid)
+{
+    if (!guid)
+        return false;
+
+    if (!linkedGuid) // we're removing the linking
+    {
+        mCreatureLinkedRespawnMap.erase(guid);
+        WorldDatabase.PExecute("DELETE FROM creature_linked_respawn WHERE guid = '%u'",guid);
+        return true;
+    }
+
+    if (CheckCreatureLinkedRespawn(guid,linkedGuid)) // we add/change linking
+    {
+        mCreatureLinkedRespawnMap[guid] = linkedGuid;
+        WorldDatabase.PExecute("REPLACE INTO creature_linked_respawn (guid,linkedGuid) VALUES ('%u','%u')",guid,linkedGuid);
+        return true;
+    }
+    return false;
+}
+
 void ObjectMgr::LoadCreatures()
 {
     uint32 count = 0;
@@ -1040,6 +1121,97 @@ void ObjectMgr::RemoveCreatureFromGrid(uint32 guid, CreatureData const* data)
 
     CellObjectGuids& cell_guids = mMapObjectGuids[data->mapid][cell_id];
     cell_guids.creatures.erase(guid);
+}
+
+uint32 ObjectMgr::AddGOData(uint32 entry, uint32 mapId, float x, float y, float z, float o, uint32 spawntimedelay, float rotation0, float rotation1, float rotation2, float rotation3)
+{
+    GameObjectInfo const* goinfo = GetGameObjectInfo(entry);
+    Map* map = const_cast<Map*>(sMapMgr.FindMap(mapId));
+
+    if (!goinfo || !map)
+        return 0;
+
+    uint32 guid = map->GenerateLocalLowGuid(HIGHGUID_GAMEOBJECT);
+    GameObjectData& data = NewGOData(guid);
+    data.id             = entry;
+    data.mapid          = mapId;
+    data.posX           = x;
+    data.posY           = y;
+    data.posZ           = z;
+    data.orientation    = o;
+    data.rotation0      = rotation0;
+    data.rotation1      = rotation1;
+    data.rotation2      = rotation2;
+    data.rotation3      = rotation3;
+    data.spawntimesecs  = spawntimedelay;
+    data.animprogress   = 100;
+    data.go_state       = GO_STATE_READY;
+    data.artKit         = goinfo->type == GAMEOBJECT_TYPE_CAPTURE_POINT ? 21 : 0;
+    data.dbData = false;
+
+    AddGameobjectToGrid(guid, &data);
+
+    // Spawn if necessary (loaded grids only)
+    // We use spawn coords to spawn
+    if (!map->Instanceable() && map->IsLoaded(x, y))
+    {
+        GameObject* go = new GameObject;
+        if (!go->LoadFromDB(guid, map))
+        {
+            sLog.outError("AddGOData: cannot add gameobject entry %u to map", entry);
+            delete go;
+            return 0;
+        }
+        map->Add(go);
+    }
+
+    return guid;
+}
+
+uint32 ObjectMgr::AddCreData(uint32 entry, Team team, uint32 mapId, float x, float y, float z, float o, uint32 spawntimedelay)
+{
+    CreatureInfo const* cInfo = GetCreatureTemplate(entry);
+    Map* map = const_cast<Map*>(sMapMgr.FindMap(mapId));
+
+    if (!cInfo || !map)
+        return 0;
+
+    uint32 guid = map->GenerateLocalLowGuid(HIGHGUID_UNIT);
+    CreatureData& data = NewOrExistCreatureData(guid);
+    data.id = entry;
+    data.mapid = mapId;
+    data.modelid_override = 0;
+    data.equipmentId = cInfo->equipmentId;
+    data.posX = x;
+    data.posY = y;
+    data.posZ = z;
+    data.orientation = o;
+    data.spawntimesecs = spawntimedelay;
+    data.spawndist = 0;
+    data.currentwaypoint = 0;
+    data.curhealth = cInfo->maxhealth;
+    data.curmana = cInfo->maxmana;
+    data.is_dead = false;
+    data.movementType = cInfo->MovementType;
+    data.dbData = false;
+
+    AddCreatureToGrid(guid, &data);
+
+    // Spawn if necessary (loaded grids only)
+    // We use spawn coords to spawn
+    if (!map->Instanceable() && !map->IsRemovalGrid(x, y))
+    {
+        Creature* creature = new Creature;
+        if (!creature->LoadFromDB(guid, map))
+        {
+            sLog.outError("AddCreature: cannot add creature entry %u to map", entry);
+            delete creature;
+            return 0;
+        }
+        map->Add(creature);
+    }
+
+    return guid;
 }
 
 void ObjectMgr::LoadGameobjects()
@@ -4824,6 +4996,53 @@ bool ObjectMgr::AddGraveYardLink(uint32 id, uint32 zoneId, Team team, bool inDB)
     }
 
     return true;
+}
+
+void ObjectMgr::RemoveGraveYardLink(uint32 id, uint32 zoneId, Team team, bool inDB)
+{
+    GraveYardMap::iterator graveLow  = mGraveYardMap.lower_bound(zoneId);
+    GraveYardMap::iterator graveUp   = mGraveYardMap.upper_bound(zoneId);
+    if (graveLow == graveUp)
+    {
+        //sLog.outErrorDb("Table `game_graveyard_zone` incomplete: Zone %u Team %u does not have a linked graveyard.",zoneId,team);
+        return;
+    }
+
+    bool found = false;
+
+    GraveYardMap::iterator itr;
+
+    for(itr = graveLow; itr != graveUp; ++itr)
+    {
+        GraveYardData & data = itr->second;
+
+        // skip not matching safezone id
+        if (data.safeLocId != id)
+            continue;
+
+        // skip enemy faction graveyard at same map (normal area, city, or battleground)
+        // team == 0 case can be at call from .neargrave
+        if (data.team != TEAM_NONE && team != TEAM_NONE && data.team != team)
+            continue;
+
+        found = true;
+        break;
+    }
+
+    // no match, return
+    if (!found)
+        return;
+
+    // remove from links
+    mGraveYardMap.erase(itr);
+
+    // remove link from DB
+    if (inDB)
+    {
+        WorldDatabase.PExecute("DELETE FROM game_graveyard_zone WHERE id = '%u' AND ghost_zone = '%u' AND faction = '%u'", id, zoneId, uint32(team));
+    }
+
+    return;
 }
 
 void ObjectMgr::LoadAreaTriggerTeleports()

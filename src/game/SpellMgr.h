@@ -64,7 +64,7 @@ enum SpellSpecific
     SPELL_POSITIVE_SHOUT    = 12,
     SPELL_JUDGEMENT         = 13,
     SPELL_BATTLE_ELIXIR     = 14,
-    SPELL_GUARDIAN_ELIXIR   = 15,
+    SPELL_ZANZA_ELIXIR      = 15,
     SPELL_FLASK_ELIXIR      = 16,
     //SPELL_PRESENCE          = 17,                         // used in 3.x
     //SPELL_HAND              = 18,                         // used in 3.x
@@ -361,7 +361,7 @@ inline bool IsDispelSpell(SpellEntry const *spellInfo)
 
 inline bool isSpellBreakStealth(SpellEntry const* spellInfo)
 {
-    return !(spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_BREAK_STEALTH);
+    return ((spellInfo->AttributesEx & SPELL_ATTR_EX_STEALTH) ? false : !(spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_BREAK_STEALTH));
 }
 
 inline bool IsAutoRepeatRangedSpell(SpellEntry const* spellInfo)
@@ -573,6 +573,7 @@ struct SpellBonusEntry
 typedef UNORDERED_MAP<uint32, SpellProcEventEntry> SpellProcEventMap;
 typedef UNORDERED_MAP<uint32, SpellBonusEntry>     SpellBonusMap;
 
+#define ELIXIR_ZANZA_MASK     0x02
 #define ELIXIR_FLASK_MASK     0x03                          // 2 bit mask for batter compatibility with more recent client version, flaks must have both bits set
 #define ELIXIR_WELL_FED       0x10                          // Some foods have SPELLFAMILY_POTION
 
@@ -585,6 +586,7 @@ struct SpellThreatEntry
 
 typedef std::map<uint32, uint8> SpellElixirMap;
 typedef std::map<uint32, float> SpellProcItemEnchantMap;
+typedef std::map<uint32, uint32> SpellRequireAreaMap;
 typedef std::map<uint32, SpellThreatEntry> SpellThreatMap;
 
 // Spell script target related declarations (accessed using SpellMgr functions)
@@ -802,6 +804,8 @@ class SpellMgr
             // flasks must have all bits set from ELIXIR_FLASK_MASK
             if((mask & ELIXIR_FLASK_MASK)==ELIXIR_FLASK_MASK)
                 return SPELL_FLASK_ELIXIR;
+			else if (mask & ELIXIR_ZANZA_MASK)
+                return SPELL_ZANZA_ELIXIR;
             else if(mask & ELIXIR_WELL_FED)
                 return SPELL_WELL_FED;
             else
@@ -843,6 +847,16 @@ class SpellMgr
             SpellProcItemEnchantMap::const_iterator itr = mSpellProcItemEnchantMap.find(spellid);
             if(itr==mSpellProcItemEnchantMap.end())
                 return 0.0f;
+
+            return itr->second;
+        }
+
+        // Spell require area
+        uint32 GetSpellRequireArea(uint32 spellid) const
+        {
+            SpellRequireAreaMap::const_iterator itr = mSpellRequireAreaMap.find(spellid);
+            if (itr == mSpellRequireAreaMap.end())
+                return NULL;
 
             return itr->second;
         }
@@ -1056,6 +1070,7 @@ class SpellMgr
         void CheckUsedSpells(char const* table);
 
         // Loading data at server startup
+        void LoadDbcDataCorrections();
         void LoadSpellChains();
         void LoadSpellLearnSkills();
         void LoadSpellLearnSpells();
@@ -1064,6 +1079,7 @@ class SpellMgr
         void LoadSpellElixirs();
         void LoadSpellProcEvents();
         void LoadSpellProcItemEnchant();
+        void LoadSpellRequireArea();
         void LoadSpellBonuses();
         void LoadSpellTargetPositions();
         void LoadSpellThreats();
@@ -1085,6 +1101,7 @@ class SpellMgr
         SpellThreatMap     mSpellThreatMap;
         SpellProcEventMap  mSpellProcEventMap;
         SpellProcItemEnchantMap mSpellProcItemEnchantMap;
+        SpellRequireAreaMap mSpellRequireAreaMap;
         SpellBonusMap      mSpellBonusMap;
         SkillLineAbilityMap mSkillLineAbilityMap;
         SkillRaceClassInfoMap mSkillRaceClassInfoMap;

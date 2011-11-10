@@ -53,6 +53,8 @@
 #include "BattleGround.h"
 #include "BattleGroundAV.h"
 #include "BattleGroundMgr.h"
+#include "OutdoorPvP.h"
+#include "OutdoorPvPMgr.h"
 #include "Chat.h"
 #include "Database/DatabaseImpl.h"
 #include "Spell.h"
@@ -440,6 +442,9 @@ Player::Player (WorldSession *session): Unit(), m_mover(this), m_camera(this), m
     for (int i=0; i<MAX_TIMERS; ++i)
         m_MirrorTimer[i] = DISABLED_MIRROR_TIMER;
 
+    m_LavaActive = false;
+    m_LavaTimer = DISABLED_MIRROR_TIMER;
+
     m_MirrorTimerFlags = UNDERWATER_NONE;
     m_MirrorTimerFlagsLast = UNDERWATER_NONE;
 
@@ -470,6 +475,8 @@ Player::Player (WorldSession *session): Unit(), m_mover(this), m_camera(this), m
     m_ammoDPS = 0.0f;
 
     m_temporaryUnsummonedPetNumber = 0;
+
+    m_lastpetnumber = 0;
 
     ////////////////////Rest System/////////////////////
     time_inn_enter=0;
@@ -650,6 +657,10 @@ bool Player::Create( uint32 guidlow, const std::string& name, uint8 race, uint8 
     m_Last_tick = time(NULL);
     m_Played_time[PLAYED_TIME_TOTAL] = 0;
     m_Played_time[PLAYED_TIME_LEVEL] = 0;
+
+	// rates (get values from config)
+	SetRates(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
+	SetRatesMax(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
 
     // base stats and related field values
     InitStatsForLevel();
@@ -1766,6 +1777,7 @@ void Player::RemoveFromWorld()
         ///- Release charmed creatures, unsummon totems and remove pets/guardians
         UnsummonAllTotems();
         RemoveMiniPet();
+        sOutdoorPvPMgr.HandlePlayerLeaveZone(this, m_zoneUpdateId);
     }
 
     for(int i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
@@ -1796,10 +1808,11 @@ void Player::RewardRage( uint32 damage, uint32 weaponSpeedHitFactor, bool attack
     if(attacker)
     {
         addRage = 2*damage/getLevel();
+        //addRage = (damage/rageconversion)*7.5f;
     }
     else
     {
-        addRage = damage/rageconversion*2.5f;
+        addRage = (damage/rageconversion)*2.5f;
 
         // Berserker Rage effect
         if (HasAura(18499, EFFECT_INDEX_0))
@@ -2194,6 +2207,13 @@ void Player::RemoveFromGroup(Group* group, ObjectGuid guid)
     }
 }
 
+void Player::SetRatesMax(float rates)
+{
+	m_ratesMax = rates;
+	if(GetRates() > m_ratesMax)
+		SetRates(m_ratesMax);
+}
+
 void Player::SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 RestXP)
 {
     WorldPacket data(SMSG_LOG_XPGAIN, 21);
@@ -2368,7 +2388,12 @@ void Player::InitStatsForLevel(bool reapplyMods)
 
     // reset size before reapply auras
     if (getRace() == RACE_TAUREN)
-        SetObjectScale(1.35f);
+    {
+		if(getGender() == GENDER_MALE)
+			SetObjectScale(1.35f);
+		else
+			SetObjectScale(1.25f);
+	}
     else
         SetObjectScale(DEFAULT_OBJECT_SCALE);
 
@@ -4533,13 +4558,12 @@ float Player::GetTotalBaseModValue(BaseModGroup modGroup) const
 
 uint32 Player::GetShieldBlockValue() const
 {
-    float value = (m_auraBaseMod[SHIELD_BLOCK_VALUE][FLAT_MOD] + GetStat(STAT_STRENGTH)/20 - 1)*m_auraBaseMod[SHIELD_BLOCK_VALUE][PCT_MOD];
+    float value = (m_auraBaseMod[SHIELD_BLOCK_VALUE][FLAT_MOD] + GetStat(STAT_STRENGTH)/2 - 1)*m_auraBaseMod[SHIELD_BLOCK_VALUE][PCT_MOD];
 
     value = (value < 0) ? 0 : value;
 
     return uint32(value);
 }
-
 
 static double crit_ratio[MAX_CLASSES][60] = {
     {0.002500, 0.002381, 0.002381, 0.002273, 0.002174, 0.002083, 0.002083, 0.002000, 0.001923, 0.001923, 0.001852, 0.001786, 0.001667, 0.001613, 0.001563, 0.001515, 0.001471, 0.001389, 0.001351, 0.001282, 0.001282, 0.001250, 0.001190, 0.001163, 0.001111, 0.001087, 0.001064, 0.001020, 0.001000, 0.000962, 0.000943, 0.000926, 0.000893, 0.000877, 0.000847, 0.000833, 0.000820, 0.000794, 0.000781, 0.000758, 0.000735, 0.000725, 0.000704, 0.000694, 0.000676, 0.000667, 0.000649, 0.000633, 0.000625, 0.000610, 0.000595, 0.000588, 0.000575, 0.000562, 0.000549, 0.000543, 0.000532, 0.000521, 0.000510, 0.000500},
@@ -4559,32 +4583,32 @@ float Player::GetMeleeCritFromAgility()
 {
     // Table for base crit values
     double crit_base[MAX_CLASSES] = {
-    0.011400, 0.006520, -0.015320, -0.002950, 0.031830, 0.200000, 0.016750, 0.034575, 0.020000, 0.200000, 0.009610
-};
+    0.011400, 0.006520, -0.015320, -0.002950, 0.031830, 0.200000, 0.016750, 0.034575, 0.020000, 0.200000, 0.009610};
 
     uint32 level = getLevel();
     uint32 pclass = getClass();
 
     if (level>GT_MAX_LEVEL) level = GT_MAX_LEVEL;
-        return (crit_base[pclass-1] + crit_ratio[pclass-1][level-1]*(GetStat(STAT_AGILITY)-GetCreateStat(STAT_AGILITY)))*100.0f + 5.0f;
+        
+	return (crit_base[pclass-1] + crit_ratio[pclass-1][level-1]*(GetStat(STAT_AGILITY)-GetCreateStat(STAT_AGILITY)))*100.0f + 5.0f;
 }
 
 float Player::GetDodgeFromAgility()
 {
-    // Slightly different to the TBC one to make sure lvl 60 characters get the right amount of dodge%
-    // (14.5 agi for 1% crit for rogues, 26.5 for hunters, 20 for all other classes)
-    float crit_to_dodge[MAX_CLASSES] = {
-         1.00f,      // Warrior
-         0.99f,      // Paladin
-         2.00f,      // Hunter
-         2.00f,      // Rogue
-         1.00f,      // Priest
-         1.00f,      // DK?
-         0.99f,      // Shaman
-         1.00f,      // Mage
-         1.00f,      // Warlock
+    //Slightly different to the TBC one to make sure lvl 60 characters get the right amount of dodge%
+    // (14.5 agi for 1% crit for rogues, 26.5 for hunters, 20 for all other classes)	
+    float crit_to_dodge[MAX_CLASSES] = {	
+         1.00f,      // Warrior	
+         0.99f,      // Paladin	
+         2.00f,      // Hunter	
+         2.00f,      // Rogue	
+         1.00f,      // Priest	
+         1.00f,      // DK?	
+         0.99f,      // Shaman	
+         1.00f,      // Mage	
+         1.00f,      // Warlock	
          0.00f,      // ??
-         1.00f       // Druid
+         1.00f       // Druid	
     };
 
     // Table for base dodge values
@@ -4602,9 +4626,9 @@ float Player::GetDodgeFromAgility()
         -0.0187f    // Druid
     };
 
-    uint32 level = getLevel();
-    uint32 pclass = getClass();
-
+	uint32 level = getLevel();
+    uint32 pclass = getClass();	
+	
     if (level>GT_MAX_LEVEL) level = GT_MAX_LEVEL;
 
     // Dodge per agility for most classes equal crit per agility (but for some classes need apply some multiplier)
@@ -6061,6 +6085,8 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
 
     if(m_zoneUpdateId != newZone)
     {
+        sOutdoorPvPMgr.HandlePlayerLeaveZone(this, m_zoneUpdateId);
+        sOutdoorPvPMgr.HandlePlayerEnterZone(this, newZone);
         SendInitWorldStates(newZone);                       // only if really enters to new zone, not just area change, works strange...
 
         if (sWorld.getConfig(CONFIG_BOOL_WEATHER))
@@ -6170,6 +6196,16 @@ void Player::CheckDuelDistance(time_t currTime)
             DuelComplete(DUEL_FLED);
         }
     }
+}
+
+OutdoorPvP* Player::GetOutdoorPvP() const
+{
+    return sOutdoorPvPMgr.GetOutdoorPvPToZoneId(GetZoneId());
+}
+
+bool Player::IsOutdoorPvPActive()
+{
+    return isAlive() && !HasInvisibilityAura() && !HasStealthAura() && (IsPvP() || sWorld.IsPvPRealm()) && !HasMovementFlag(MOVEFLAG_FLYING) && !IsTaxiFlying();
 }
 
 void Player::DuelComplete(DuelCompleteType type)
@@ -6638,22 +6674,7 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType)
         {
             uint32 proc_spell_id = pEnchant->spellid[s];
 
-            // Flametongue Weapon (Passive), Ranks (used not existed equip spell id in pre-3.x spell.dbc)
-            if (pEnchant->type[s] == ITEM_ENCHANTMENT_TYPE_EQUIP_SPELL)
-            {
-                switch (proc_spell_id)
-                {
-                    case 10400: proc_spell_id =  8026; break; // Rank 1
-                    case 15567: proc_spell_id =  8028; break; // Rank 2
-                    case 15568: proc_spell_id =  8029; break; // Rank 3
-                    case 15569: proc_spell_id = 10445; break; // Rank 4
-                    case 16311: proc_spell_id = 16343; break; // Rank 5
-                    case 16312: proc_spell_id = 16344; break; // Rank 6
-                    default:
-                        continue;
-                }
-            }
-            else if (pEnchant->type[s] != ITEM_ENCHANTMENT_TYPE_COMBAT_SPELL)
+            if (pEnchant->type[s] != ITEM_ENCHANTMENT_TYPE_COMBAT_SPELL)
                 continue;
 
             SpellEntry const *spellInfo = sSpellStore.LookupEntry(proc_spell_id);
@@ -7537,7 +7558,9 @@ void Player::SendInitWorldStates(uint32 zoneid)
 {
     // data depends on zoneid/mapid...
     BattleGround* bg = GetBattleGround();
+    uint16 NumberOfFields = 0;
     uint32 mapid = GetMapId();
+    OutdoorPvP* pvp = sOutdoorPvPMgr.GetOutdoorPvPToZoneId(zoneid);
 
     DEBUG_LOG("Sending SMSG_INIT_WORLD_STATES to Map:%u, Zone: %u", mapid, zoneid);
 
@@ -7574,6 +7597,25 @@ void Player::SendInitWorldStates(uint32 zoneid)
             break;
     }
 
+    switch(zoneid)
+    {
+        case 139:
+            NumberOfFields = 39;
+            break;
+        case 1377:
+            NumberOfFields = 13;
+            break;
+        case 3277:
+            NumberOfFields = 14;
+            break;
+        case 3358:
+            NumberOfFields = 38;
+            break;
+        default:
+            NumberOfFields = 1;
+            break;
+    }
+
     uint32 count = 0;                                       // count of world states in packet
 
     if (defZone)
@@ -7589,11 +7631,11 @@ void Player::SendInitWorldStates(uint32 zoneid)
     }
     else
     {
-        WorldPacket data(SMSG_INIT_WORLD_STATES, (4+4+2+6));
+        WorldPacket data(SMSG_INIT_WORLD_STATES, (4+4+2+(NumberOfFields*8)));
         data << uint32(mapid);                              // mapid
         data << uint32(zoneid);                             // zone id
         size_t count_pos = data.wpos();
-        data << uint16(0);                                  // count of uint32 blocks, placeholder
+        data << uint16(NumberOfFields);                     // count of uint32 blocks, placeholder
         // common fields
         FillInitialWorldState(data, count, 0x8d8, 0x0);     // 2264 1
         FillInitialWorldState(data, count, 0x8d7, 0x0);     // 2263 2
@@ -7614,12 +7656,33 @@ void Player::SendInitWorldStates(uint32 zoneid)
             case 1537:
             case 2257:
                 break;
-            case 139:                                           // EPL
-                FillInitialWorldState(data,count, EPL_world_states);
-                break;
-            case 1377:                                          // Silithus
-                FillInitialWorldState(data,count, SIL_world_states);
-                break;
+            case 139: // EPL
+            {
+                if (pvp && pvp->GetTypeId() == OUTDOOR_PVP_EP)
+                    pvp->FillInitialWorldStates(data);
+                else
+                    FillInitialWorldState(data,count, EPL_world_states);
+            }
+            break;
+            case 1377: // Silithus
+            {
+                if (pvp && pvp->GetTypeId() == OUTDOOR_PVP_SI)
+                    pvp->FillInitialWorldStates(data);
+                else
+                {
+                    // states are always shown
+                    data << uint32(2313) << uint32(0x0); // 7 ally silityst gathered
+                    data << uint32(2314) << uint32(0x0); // 8 horde silityst gathered
+                    data << uint32(2317) << uint32(0x0); // 9 max silithyst
+                }
+
+                // dunno about these... aq opening event maybe?
+                data << uint32(2322) << uint32(0x0); // 10 sandworm N
+                data << uint32(2323) << uint32(0x0); // 11 sandworm S
+                data << uint32(2324) << uint32(0x0); // 12 sandworm SW
+                data << uint32(2325) << uint32(0x0); // 13 sandworm E
+            }
+            break;
             case 2597:                                          // AV
                 if (bg && bg->GetTypeID() == BATTLEGROUND_AV)
                     bg->FillInitialWorldStates(data, count);
@@ -11094,27 +11157,6 @@ void Player::ApplyEnchantment(Item *item, EnchantmentSlot slot, bool apply, bool
                     break;
                 case ITEM_ENCHANTMENT_TYPE_EQUIP_SPELL:
                 {
-
-                    // Flametongue Weapon (Passive), Ranks (used not existed equip spell id in pre-3.x spell.dbc)
-                    // See Player::CastItemCombatSpell for workaround implementation
-                    if (enchant_spell_id && apply)
-                    {
-                        switch (enchant_spell_id)
-                        {
-                            case 10400:                     // Rank 1
-                            case 15567:                     // Rank 2
-                            case 15568:                     // Rank 3
-                            case 15569:                     // Rank 4
-                            case 16311:                     // Rank 5
-                            case 16312:                     // Rank 6
-                            case 16313:                     // Rank 7
-                                enchant_spell_id = 0;
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-
                     if (enchant_spell_id)
                     {
                         if (apply)
@@ -12264,7 +12306,8 @@ void Player::RewardQuest(Quest const *pQuest, uint32 reward, Object* questGiver,
     QuestStatusData& q_status = mQuestStatus[quest_id];
 
     // Not give XP in case already completed once repeatable quest
-    uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue(this)*sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
+    //uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue(this)*sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
+	uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue( this )*GetRates());
 
     if (getLevel() < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
         GiveXP(XP , NULL);
@@ -12389,7 +12432,8 @@ bool Player::SatisfyQuestSkill(Quest const* qInfo, bool msg) const
 
 bool Player::SatisfyQuestLevel(Quest const* qInfo, bool msg) const
 {
-    if (getLevel() < qInfo->GetMinLevel())
+    if (getLevel() < qInfo->GetMinLevel() ||
+        (qInfo->HasSpecialFlag(QUEST_SPECIAL_FLAG_MAX_LEVEL_LIMIT) && getLevel() > qInfo->GetQuestLevel()))
     {
         if (msg)
             SendCanTakeQuestResponse(INVALIDREASON_DONT_HAVE_REQ);
@@ -13497,8 +13541,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
     //"honor_highest_rank, honor_standing, stored_honor_rating, stored_dishonorablekills, stored_honorable_kills,"
     // 43               44
     //"watchedFaction,  drunk,"
-    // 45      46      47      48      49      50      51             52              53      54
-    //"health, power1, power2, power3, power4, power5, exploredZones, equipmentCache, ammoId, actionBars  FROM characters WHERE guid = '%u'", GUID_LOPART(m_guid));
+    // 45      46      47      48      49      50      51             52              53      54          55     56
+    //"health, power1, power2, power3, power4, power5, exploredZones, equipmentCache, ammoId, actionBars, rates, ratesMax  FROM characters WHERE guid = '%u'", GUID_LOPART(m_guid));
     QueryResult *result = holder->GetResult(PLAYER_LOGIN_QUERY_LOADFROM);
 
     if(!result)
@@ -13573,6 +13617,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
 
     // Action bars state
     SetByteValue(PLAYER_FIELD_BYTES, 2, fields[54].GetUInt8());
+
+	SetRates(fields[55].GetFloat());
+	SetRatesMax(fields[56].GetFloat());
 
     // cleanup inventory related item value fields (its will be filled correctly in _LoadInventory)
     for(uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
@@ -14999,7 +15046,7 @@ void Player::SaveToDB()
         "death_expire_time, taxi_path, "
         "honor_highest_rank, honor_standing, stored_honor_rating , stored_dishonorable_kills, stored_honorable_kills, "
         "watchedFaction, drunk, health, power1, power2, power3, "
-        "power4, power5, exploredZones, equipmentCache, ammoId, actionBars) "
+        "power4, power5, exploredZones, equipmentCache, ammoId, actionBars, rates, ratesMax) "
         "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
         "?, ?, ?, ?, ?, "
         "?, ?, ?, "
@@ -15008,7 +15055,7 @@ void Player::SaveToDB()
         "?, ?, "
         "?, ?, ?, ?, ?, "
         "?, ?, ?, ?, ?, ?, "
-        "?, ?, ?, ?, ?, ?) ");
+        "?, ?, ?, ?, ?, ?, ?,?) ");
 
     uberInsert.addUInt32(GetGUIDLow());
     uberInsert.addUInt32(GetSession()->GetAccountId());
@@ -15116,6 +15163,10 @@ void Player::SaveToDB()
     uberInsert.addUInt32(GetUInt32Value(PLAYER_AMMO_ID));
 
     uberInsert.addUInt32(uint32(GetByteValue(PLAYER_FIELD_BYTES, 2)));
+
+	uberInsert.addFloat(GetRates());
+
+	uberInsert.addFloat(GetRatesMax());
 
     uberInsert.Execute();
 
@@ -17767,6 +17818,10 @@ bool Player::IsSpellFitByClassAndRace(uint32 spell_id, uint32* pReqlevel /*= NUL
     uint32 racemask  = getRaceMask();
     uint32 classmask = getClassMask();
 
+    // exception to filter out TH axes/maces for shaman
+    if (!isGameMaster() && getClass() == CLASS_SHAMAN && (spell_id == 197 || spell_id == 199))
+        return false;
+
     SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBounds(spell_id);
     if (bounds.first==bounds.second)
         return true;
@@ -17880,6 +17935,39 @@ void Player::SummonIfPossible(bool agree)
     // expire and auto declined
     if(m_summon_expire < time(NULL))
         return;
+
+    // We should have check requirements for instance enter
+    if (AreaTrigger const* pAt = sObjectMgr.GetMapEntranceTrigger(m_summon_mapid))
+    {
+        uint32 missingLevel = 0;
+        if (getLevel() < pAt->requiredLevel && !sWorld.getConfig(CONFIG_BOOL_INSTANCE_IGNORE_LEVEL))
+            missingLevel = pAt->requiredLevel;
+
+        uint32 missingItem = 0;
+        if (pAt->requiredItem)
+        {
+            if (!HasItemCount(pAt->requiredItem, 1) &&
+                (!pAt->requiredItem2 || !HasItemCount(pAt->requiredItem2, 1)))
+                missingItem = pAt->requiredItem;
+        }
+        else if (pAt->requiredItem2 && !HasItemCount(pAt->requiredItem2, 1))
+            missingItem = pAt->requiredItem2;
+
+        uint32 missingQuest = 0;
+        if (pAt->requiredQuest && !GetQuestRewardStatus(pAt->requiredQuest))
+            missingQuest = pAt->requiredQuest;
+
+        if (missingLevel || missingItem || missingQuest)
+        {
+            if (missingItem)
+                GetSession()->SendAreaTriggerMessage(GetSession()->GetMangosString(LANG_LEVEL_MINREQUIRED_AND_ITEM), pAt->requiredLevel, sObjectMgr.GetItemPrototype(missingItem)->Name1);
+            else if (missingQuest)
+                GetSession()->SendAreaTriggerMessage("%s", pAt->requiredFailedText.c_str());
+            else if (missingLevel)
+                GetSession()->SendAreaTriggerMessage(GetSession()->GetMangosString(LANG_LEVEL_MINREQUIRED), missingLevel);
+            return;
+        }
+    }
 
     // stop taxi flight at summon
     if(IsTaxiFlying())

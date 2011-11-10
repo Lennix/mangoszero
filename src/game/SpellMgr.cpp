@@ -115,7 +115,7 @@ uint32 GetSpellCastTime(SpellEntry const* spellInfo, Spell const* spell)
         if (Player* modOwner = spell->GetCaster()->GetSpellModOwner())
             modOwner->ApplySpellMod(spellInfo->Id, SPELLMOD_CASTING_TIME, castTime, spell);
 
-        if (!(spellInfo->Attributes & (SPELL_ATTR_UNK4|SPELL_ATTR_TRADESPELL)))
+        if (!(spellInfo->Attributes & (SPELL_ATTR_ABILITY|SPELL_ATTR_TRADESPELL)))
             castTime = int32(castTime * spell->GetCaster()->GetFloatValue(UNIT_MOD_CAST_SPEED));
         else
         {
@@ -559,16 +559,13 @@ bool IsSingleFromSpellSpecificPerTarget(SpellSpecific spellSpec1,SpellSpecific s
         case SPELL_ELEMENTAL_SHIELD:
         case SPELL_MAGE_POLYMORPH:
         case SPELL_WELL_FED:
+		case SPELL_ZANZA_ELIXIR:
             return spellSpec1==spellSpec2;
         case SPELL_BATTLE_ELIXIR:
             return spellSpec2==SPELL_BATTLE_ELIXIR
                 || spellSpec2==SPELL_FLASK_ELIXIR;
-        case SPELL_GUARDIAN_ELIXIR:
-            return spellSpec2==SPELL_GUARDIAN_ELIXIR
-                || spellSpec2==SPELL_FLASK_ELIXIR;
         case SPELL_FLASK_ELIXIR:
             return spellSpec2==SPELL_BATTLE_ELIXIR
-                || spellSpec2==SPELL_GUARDIAN_ELIXIR
                 || spellSpec2==SPELL_FLASK_ELIXIR;
         case SPELL_FOOD:
             return spellSpec2==SPELL_FOOD
@@ -641,6 +638,24 @@ bool IsExplicitNegativeTarget(uint32 targetA)
 
 bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
 {
+	switch(spellproto->Id)
+    {
+        case 1008:                                          // Aplify magic (Rank 1)
+        case 8455:                                          // Aplify magic (Rank 2)
+        case 10169:                                         // Aplify magic (Rank 3)
+        case 10170:                                         // Aplify magic (Rank 4)
+        case 19714:                                         // Deaden Magic
+        case 20553:                                         // Golemagg's Trust
+        case 20619:                                         // Magic Reflection
+        case 21075:                                         // Damage Shield
+            return true;
+        case 23205:                                         // Temptress' Kiss
+        case 28282:                                         // Ashbringer
+            return false;
+        default:
+            break;
+    }
+
     switch(spellproto->Effect[effIndex])
     {
         case SPELL_EFFECT_DUMMY:
@@ -671,6 +686,8 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
                     {
                         case 13139:                         // net-o-matic special effect
                         case 23445:                         // evil twin
+						case 23182:                         // Mark of Frost
+                        case 25040:                         // Mark of Nature
                         case 35679:                         // Protectorate Demolitionist
                         case 38637:                         // Nether Exhaustion (red)
                         case 38638:                         // Nether Exhaustion (green)
@@ -749,6 +766,7 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
                     if(spellproto->Id == 24740)             // Wisp Costume
                         return true;
                     return false;
+				case SPELL_AURA_AURAS_VISIBLE:
                 case SPELL_AURA_MOD_ROOT:
                 case SPELL_AURA_MOD_SILENCE:
                 case SPELL_AURA_GHOST:
@@ -1377,6 +1395,52 @@ void SpellMgr::LoadSpellProcItemEnchant()
     sLog.outString( ">> Loaded %u proc item enchant definitions", count );
 }
 
+void SpellMgr::LoadSpellRequireArea()
+{
+    mSpellRequireAreaMap.clear();                       // need for reload case
+
+    QueryResult* result = WorldDatabase.Query("SELECT entry, area FROM spell_require_area");
+    if (!result)
+    {
+
+        BarGoLink bar(1);
+
+        bar.step();
+
+        sLog.outString();
+        sLog.outString(">> Loaded 0 spell area requirements. DB table `spell_require_area` is empty.");
+        return;
+    }
+
+    BarGoLink bar((int)result->GetRowCount());
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        bar.step();
+
+        uint32 entry = fields[0].GetUInt32();
+        uint32 area = fields[1].GetUInt32();
+
+        SpellEntry const* spellInfo = sSpellStore.LookupEntry(entry);
+
+        if (!spellInfo)
+        {
+            sLog.outErrorDb("Spell %u listed in `spell_require_area` does not exist", entry);
+            continue;
+        }
+
+        mSpellRequireAreaMap[entry] = area;
+
+    } while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString(">> Loaded %u spell area requirements definitions", mSpellRequireAreaMap.size());
+}
+
 struct DoSpellBonuses
 {
     DoSpellBonuses(SpellBonusMap& _spellBonusMap, SpellBonusEntry const& _spellBonus) : spellBonusMap(_spellBonusMap), spellBonus(_spellBonus) {}
@@ -1390,7 +1454,8 @@ void SpellMgr::LoadSpellBonuses()
 {
     mSpellBonusMap.clear();                             // need for reload case
     uint32 count = 0;
-    //                                                0      1             2          3
+
+	//                                                0      1             2          3
     QueryResult *result = WorldDatabase.Query("SELECT entry, direct_bonus, dot_bonus, ap_bonus, ap_dot_bonus FROM spell_bonus_data");
     if (!result)
     {
@@ -1841,6 +1906,41 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                         (spellInfo_2->Id == 8326 && spellInfo_1->Id == 20584))
                          return false;
 
+					// Stoneform (Racial)
+                    if ((spellInfo_1->Id == 20594 && spellInfo_2->Id == 20612) ||
+                        (spellInfo_2->Id == 20594 && spellInfo_1->Id == 20612))
+                         return false;
+
+                    // Blood Siphon
+                    if ((spellInfo_1->Id == 24322 && spellInfo_2->Id == 24324) ||
+                        (spellInfo_2->Id == 24322 && spellInfo_1->Id == 24324))
+                         return false;
+
+                    // Mark of Nature dummies
+                    if ((spellInfo_1->Id == 25040 && spellInfo_2->Id == 25042) ||
+                        (spellInfo_2->Id == 25040 && spellInfo_1->Id == 25042))
+                         return false;
+
+                    if ((spellInfo_1->Id == 25040 && spellInfo_2->Id == 25043) ||
+                        (spellInfo_2->Id == 25040 && spellInfo_1->Id == 25043))
+                         return false;
+
+                    // Mark of Nature and Aura of Nature
+                    if ((spellInfo_1->Id == 25042 && spellInfo_2->Id == 25043) ||
+                        (spellInfo_2->Id == 25042 && spellInfo_1->Id == 25043))
+                         return false;
+
+                    // Mark of Frost dummies
+                    if ((spellInfo_1->Id == 23182 && spellInfo_2->Id == 23183) ||
+                        (spellInfo_2->Id == 23182 && spellInfo_1->Id == 23183))
+                         return false;
+
+                    // Ancestral Healing and Inspiration
+                    if (spellInfo_1->EffectMiscValue[EFFECT_INDEX_0] == 1 && spellInfo_2->EffectMiscValue[EFFECT_INDEX_0] == 1 && (
+                        (spellInfo_1->SpellIconID == 200 && spellInfo_2->SpellIconID == 1463) ||
+                        (spellInfo_2->SpellIconID == 200 && spellInfo_1->SpellIconID == 1463)))
+                         return true;
+
                     break;
                 }
                 case SPELLFAMILY_MAGE:
@@ -1856,6 +1956,14 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
 
                     // Improved Hamstring -> Hamstring (multi-family check)
                     if ((spellInfo_2->SpellFamilyFlags & UI64LIT(0x2)) && spellInfo_1->Id == 23694)
+                        return false;
+
+                    break;
+                }
+				case SPELLFAMILY_PRIEST:
+                {
+                    // Divine Spirit / Prayer of Spirit and Blessed Sunfruit Juice
+                    if (spellInfo_1->Id == 18141 && spellInfo_2->SpellVisual == 193)
                         return false;
 
                     break;
@@ -1876,6 +1984,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 {
                     // Garrote-Silence -> Garrote (multi-family check)
                     if (spellInfo_1->SpellIconID == 498 && spellInfo_1->SpellVisual == 0 && spellInfo_2->SpellIconID == 498)
+                        return false;
+
+                    // Improved Sprint && Sprint
+                    if (spellInfo_1->SpellIconID == 516 && spellInfo_2->SpellIconID == 516 || spellInfo_1->Id == 30918 && spellInfo_2->SpellFamilyFlags & UI64LIT(0x40))
                         return false;
 
                     break;
@@ -1979,6 +2091,18 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 if ((spellInfo_1->SpellIconID == 456 && spellInfo_2->SpellIconID == 2006) ||
                     (spellInfo_2->SpellIconID == 456 && spellInfo_1->SpellIconID == 2006))
                     return false;
+
+				// Berserker Stance and Lord General's Sword
+                if ((spellInfo_1->Id == 2458 && spellInfo_2->Id == 15602) ||
+                    (spellInfo_2->Id == 2458 && spellInfo_1->Id == 15602))
+                    return false;
+            }
+
+            // Sunder Armor and Expose Armor
+            if (spellInfo_2->SpellFamilyName == SPELLFAMILY_ROGUE)
+            {
+                if (spellInfo_1->SpellFamilyFlags & UI64LIT(0x00000004000) && spellInfo_2->SpellFamilyFlags & UI64LIT(0x00000080000))
+                    return true;
             }
 
             // Hamstring -> Improved Hamstring (multi-family check)
@@ -1998,13 +2122,17 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
             if (spellInfo_2->SpellFamilyName == SPELLFAMILY_PRIEST)
             {
                 //Devouring Plague and Shadow Vulnerability
-                if (((spellInfo_1->SpellFamilyFlags & UI64LIT(0x2000000)) && (spellInfo_2->SpellFamilyFlags & UI64LIT(0x800000000))) ||
-                    ((spellInfo_2->SpellFamilyFlags & UI64LIT(0x2000000)) && (spellInfo_1->SpellFamilyFlags & UI64LIT(0x800000000))))
+                if (((spellInfo_1->SpellFamilyFlags & UI64LIT(0x2000000)) && (spellInfo_2->SpellFamilyFlags & UI64LIT(0x004000000))) ||
+                    ((spellInfo_2->SpellFamilyFlags & UI64LIT(0x2000000)) && (spellInfo_1->SpellFamilyFlags & UI64LIT(0x004000000))))
                     return false;
 
                 //StarShards and Shadow Word: Pain
                 if (((spellInfo_1->SpellFamilyFlags & UI64LIT(0x200000)) && (spellInfo_2->SpellFamilyFlags & UI64LIT(0x8000))) ||
                     ((spellInfo_2->SpellFamilyFlags & UI64LIT(0x200000)) && (spellInfo_1->SpellFamilyFlags & UI64LIT(0x8000))))
+                    return false;
+
+                // Divine Spirit / Prayer of Spirit and Blessed Sunfruit Juice
+                if (spellInfo_1->SpellVisual == 193 && spellInfo_2->Id == 18141)
                     return false;
             }
             break;
@@ -2054,10 +2182,22 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     return false;
             }
 
+            // Sunder Armor and Expose Armor
+            if (spellInfo_2->SpellFamilyName == SPELLFAMILY_WARRIOR)
+            {
+                if (spellInfo_1->SpellFamilyFlags & UI64LIT(0x00000080000) && spellInfo_2->SpellFamilyFlags & UI64LIT(0x00000004000))
+                    return true;
+            }
+
             // Garrote -> Garrote-Silence (multi-family check)
             if (spellInfo_1->SpellIconID == 498 && spellInfo_2->SpellIconID == 498 && spellInfo_2->SpellVisual == 0)
                 return false;
-            break;
+            
+            // Sprint & Improved Sprint
+            if (spellInfo_1->SpellFamilyFlags & UI64LIT(0x40) && spellInfo_1->Id == 30918)
+                return false;
+		
+			break;
         case SPELLFAMILY_HUNTER:
             if (spellInfo_2->SpellFamilyName == SPELLFAMILY_HUNTER)
             {
@@ -3348,6 +3488,11 @@ void SpellMgr::LoadSpellAreas()
 
 SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spellInfo, uint32 map_id, uint32 zone_id, uint32 area_id, Player const* player)
 {
+    uint32 reqArea = GetSpellRequireArea(spellInfo->Id);
+
+    if (reqArea > 0 && reqArea != zone_id && reqArea != area_id)
+         return SPELL_FAILED_REQUIRES_AREA;
+
     // DB base check (if non empty then must fit at least single for allow)
     SpellAreaMapBounds saBounds = GetSpellAreaMapBounds(spellInfo->Id);
     if (saBounds.first != saBounds.second)
@@ -3379,9 +3524,6 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spell
             return map_id == 30 && bg
                 && bg->GetStatus() != STATUS_WAIT_JOIN ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
         }
-        case 23333:                                         // Warsong Flag
-        case 23335:                                         // Silverwing Flag
-            return map_id == 489 && player && player->InBattleGround() ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
         case 2584:                                          // Waiting to Resurrect
         {
             return player && player->InBattleGround() ? SPELL_CAST_OK : SPELL_FAILED_ONLY_BATTLEGROUNDS;
@@ -3716,6 +3858,9 @@ DiminishingGroup GetDiminishingReturnsGroupForSpell(SpellEntry const* spellproto
             // Blind
             else if (spellproto->SpellFamilyFlags & UI64LIT(0x00001000000))
                 return DIMINISHING_BLIND;
+            // Crippling poison
+            else if (spellproto->SpellIconID == 163)
+                return DIMINISHING_LIMITONLY;
             break;
         }
         case SPELLFAMILY_HUNTER:
@@ -3723,6 +3868,9 @@ DiminishingGroup GetDiminishingReturnsGroupForSpell(SpellEntry const* spellproto
             // Freezing trap
             if (spellproto->SpellFamilyFlags & UI64LIT(0x00000000008))
                 return DIMINISHING_FREEZE;
+            // Wyvern Sting
+            else if (spellproto->SpellFamilyFlags & UI64LIT(0x0000100000000000))
+                return DIMINISHING_LIMITONLY;
             break;
         }
         case SPELLFAMILY_WARLOCK:
@@ -3739,6 +3887,13 @@ DiminishingGroup GetDiminishingReturnsGroupForSpell(SpellEntry const* spellproto
         {
             // Hamstring - limit duration to 10s in PvP
             if (spellproto->SpellFamilyFlags & UI64LIT(0x00000000002))
+                return DIMINISHING_LIMITONLY;
+            break;
+        }
+        case SPELLFAMILY_SHAMAN:
+        {
+            // Frost Shock - limit duration in PvP
+            if (spellproto->SpellFamilyFlags & UI64LIT(0x00080000000))
                 return DIMINISHING_LIMITONLY;
             break;
         }
@@ -4033,4 +4188,37 @@ void SpellMgr::LoadFacingCasterFlags()
 
     sLog.outString();
     sLog.outString(">> Loaded %u facing caster flags", count);
+}
+
+void SpellMgr::LoadDbcDataCorrections()
+{
+    SpellEntry* spellInfo = NULL;
+    for (uint32 i = 0; i < sSpellStore.GetNumRows(); ++i)
+    {
+        spellInfo = (SpellEntry*)sSpellStore.LookupEntry(i);
+        if (!spellInfo)
+            continue;
+
+        switch (spellInfo->Id)
+        {
+            case 13419: // Enchant Cloak - Minor Agility
+                spellInfo->EquippedItemClass = 4;
+                spellInfo->EquippedItemSubClassMask = 31;
+                break;
+            case 17941: // Shadow Trance
+            case 22008: // Netherwind Focus
+                spellInfo->procCharges = 1;
+                break;
+            case 23269: // Holy Blast
+                spellInfo->AttributesEx |= SPELL_ATTR_EX_NO_THREAT;
+                spellInfo->AttributesEx |= SPELL_ATTR_EX_NO_INITIAL_AGGRO;
+                break;
+            case 28200: // Ascendance (Talisman of Ascendance trinket)
+                spellInfo->procCharges = 6;
+                break;
+        }
+    }
+
+    sLog.outString(">> Loading spell dbc data corrections.");
+    sLog.outString();
 }

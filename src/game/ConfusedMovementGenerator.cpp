@@ -22,6 +22,7 @@
 #include "MapManager.h"
 #include "Opcodes.h"
 #include "DestinationHolderImp.h"
+#include "VMapFactory.h"
 
 template<class T>
 void
@@ -40,31 +41,48 @@ ConfusedMovementGenerator<T>::Initialize(T &unit)
     bool is_water_ok, is_land_ok;
     _InitSpecific(unit, is_water_ok, is_land_ok);
 
-    for(unsigned int idx=0; idx < MAX_CONF_WAYPOINTS+1; ++idx)
+    for (uint8 idx = 0; idx <= MAX_CONF_WAYPOINTS; ++idx)
     {
-        const float wanderX=wander_distance*rand_norm_f() - wander_distance/2;
-        const float wanderY=wander_distance*rand_norm_f() - wander_distance/2;
+        float wanderX = x + wander_distance*(float)rand_norm() - wander_distance/2;
+        float wanderY = y + wander_distance*(float)rand_norm() - wander_distance/2;
+        MaNGOS::NormalizeMapCoord(wanderX);
+        MaNGOS::NormalizeMapCoord(wanderY);
 
-        i_waypoints[idx][0] = x + wanderX;
-        i_waypoints[idx][1] = y + wanderY;
+        float new_z = map->GetHeight(wanderX, wanderY, z, true);
+        if (new_z > INVALID_HEIGHT && unit.IsWithinLOS(wanderX, wanderY, new_z))
+        {
+            // Don't move in water if we're not already in
+            // Don't move on land if we're not already on it either
+            bool is_water_now = map->IsInWater(x, y, z);
+            bool is_water_next = map->IsInWater(wanderX, wanderY, new_z);
+            if ((is_water_now && !is_water_next && !is_land_ok) || (!is_water_now && is_water_next && !is_water_ok))
+            {
+                i_waypoints[idx][0] = idx > 0 ? i_waypoints[idx-1][0] : x; // Back to previous location
+                i_waypoints[idx][1] = idx > 0 ? i_waypoints[idx-1][1] : y;
+                i_waypoints[idx][2] = idx > 0 ? i_waypoints[idx-1][2] : z;
+                continue;
+            }
 
-        // prevent invalid coordinates generation
-        MaNGOS::NormalizeMapCoord(i_waypoints[idx][0]);
-        MaNGOS::NormalizeMapCoord(i_waypoints[idx][1]);
-
-        bool is_water = map->IsInWater(i_waypoints[idx][0],i_waypoints[idx][1],z);
-        // if generated wrong path just ignore
-        if ((is_water && !is_water_ok) || (!is_water && !is_land_ok))
+            // Taken from FleeingMovementGenerator
+            if (!(new_z - z) || wander_distance / fabs(new_z - z) > 1.0f)
+            {
+                i_waypoints[idx][0] = wanderX;
+                i_waypoints[idx][1] = wanderY;
+                i_waypoints[idx][2] = new_z;
+                continue;
+            }
+        }
+        else    // Back to previous location
         {
             i_waypoints[idx][0] = idx > 0 ? i_waypoints[idx-1][0] : x;
             i_waypoints[idx][1] = idx > 0 ? i_waypoints[idx-1][1] : y;
+            i_waypoints[idx][2] = idx > 0 ? i_waypoints[idx-1][2] : z;
+            continue;
         }
-
-        unit.UpdateAllowedPositionZ(i_waypoints[idx][0],i_waypoints[idx][1],z);
-        i_waypoints[idx][2] =  z;
     }
 
     unit.StopMoving();
+    unit.CastStop();
     unit.addUnitState(UNIT_STAT_CONFUSED|UNIT_STAT_CONFUSED_MOVE);
 }
 

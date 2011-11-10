@@ -844,6 +844,12 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
 
             break;
         }
+        case ACTION_T_SET_SCHOOL_IMUNITY:
+        {
+            if (action.immunity.schoolMask)
+                m_creature->ApplySpellImmune(0, IMMUNITY_DAMAGE, action.immunity.schoolMask, action.immunity.apply);
+            break;
+        }
     }
 }
 

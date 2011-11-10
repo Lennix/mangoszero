@@ -354,61 +354,59 @@ void BattleGroundWS::EventPlayerClickedOnFlag(Player *Source, GameObject* target
         Source->CastSpell(Source, BG_WS_SPELL_WARSONG_FLAG, true);
     }
 
-    //Alliance flag on ground(not in base) (returned or picked up again from ground!)
-    if (GetFlagState(ALLIANCE) == BG_WS_FLAG_STATE_ON_GROUND && Source->IsWithinDistInMap(target_obj, 10))
-    {
-        if (Source->GetTeam() == ALLIANCE)
-        {
-            message_id = LANG_BG_WS_RETURNED_AF;
-            type = CHAT_MSG_BG_SYSTEM_ALLIANCE;
-            UpdateFlagState(HORDE, BG_WS_FLAG_STATE_WAIT_RESPAWN);
-            RespawnFlag(ALLIANCE, false);
-            PlaySoundToAll(BG_WS_SOUND_FLAG_RETURNED);
-            UpdatePlayerScore(Source, SCORE_FLAG_RETURNS, 1);
-        }
-        else
-        {
-            message_id = LANG_BG_WS_PICKEDUP_AF;
-            type = CHAT_MSG_BG_SYSTEM_HORDE;
-            PlaySoundToAll(BG_WS_SOUND_ALLIANCE_FLAG_PICKED_UP);
-            SpawnEvent(WS_EVENT_FLAG_A, 0, false);
-            SetAllianceFlagPicker(Source->GetObjectGuid());
-            Source->CastSpell(Source, BG_WS_SPELL_SILVERWING_FLAG, true);
-            m_FlagState[BG_TEAM_ALLIANCE] = BG_WS_FLAG_STATE_ON_PLAYER;
-            UpdateFlagState(HORDE, BG_WS_FLAG_STATE_ON_PLAYER);
-            UpdateWorldState(BG_WS_FLAG_UNK_ALLIANCE, 1);
-        }
-        //called in HandleGameObjectUseOpcode:
-        //target_obj->Delete();
-    }
-
-    //Horde flag on ground(not in base) (returned or picked up again)
-    if (GetFlagState(HORDE) == BG_WS_FLAG_STATE_ON_GROUND && Source->IsWithinDistInMap(target_obj, 10))
-    {
-        if (Source->GetTeam() == HORDE)
-        {
-            message_id = LANG_BG_WS_RETURNED_HF;
-            type = CHAT_MSG_BG_SYSTEM_HORDE;
-            UpdateFlagState(ALLIANCE, BG_WS_FLAG_STATE_WAIT_RESPAWN);
-            RespawnFlag(HORDE, false);
-            PlaySoundToAll(BG_WS_SOUND_FLAG_RETURNED);
-            UpdatePlayerScore(Source, SCORE_FLAG_RETURNS, 1);
-        }
-        else
-        {
-            message_id = LANG_BG_WS_PICKEDUP_HF;
-            type = CHAT_MSG_BG_SYSTEM_ALLIANCE;
-            PlaySoundToAll(BG_WS_SOUND_HORDE_FLAG_PICKED_UP);
-            SpawnEvent(WS_EVENT_FLAG_H, 0, false);
-            SetHordeFlagPicker(Source->GetObjectGuid());
-            Source->CastSpell(Source, BG_WS_SPELL_WARSONG_FLAG, true);
-            m_FlagState[BG_TEAM_HORDE] = BG_WS_FLAG_STATE_ON_PLAYER;
-            UpdateFlagState(ALLIANCE, BG_WS_FLAG_STATE_ON_PLAYER);
-            UpdateWorldState(BG_WS_FLAG_UNK_HORDE, 1);
-        }
-        //called in HandleGameObjectUseOpcode:
-        //target_obj->Delete();
-    }
+	if(message_id == 0) // There really was a flag drop
+	{
+		// Lets check which flag was clicked and decide what to do
+		GameObject *obj = GetBgMap()->GetGameObject(GetDroppedFlagGuid(Source->GetTeam()));
+		if(obj == target_obj) // Player clicked on his own flag
+		{
+			if (Source->GetTeam() == ALLIANCE)
+			{
+				message_id = LANG_BG_WS_RETURNED_AF;
+				type = CHAT_MSG_BG_SYSTEM_ALLIANCE;
+				UpdateFlagState(HORDE, BG_WS_FLAG_STATE_WAIT_RESPAWN);
+				RespawnFlag(ALLIANCE, false);
+				PlaySoundToAll(BG_WS_SOUND_FLAG_RETURNED);
+				UpdatePlayerScore(Source, SCORE_FLAG_RETURNS, 1);
+			}
+			else
+			{
+				message_id = LANG_BG_WS_RETURNED_HF;
+				type = CHAT_MSG_BG_SYSTEM_HORDE;
+				UpdateFlagState(ALLIANCE, BG_WS_FLAG_STATE_WAIT_RESPAWN);
+				RespawnFlag(HORDE, false);
+				PlaySoundToAll(BG_WS_SOUND_FLAG_RETURNED);
+				UpdatePlayerScore(Source, SCORE_FLAG_RETURNS, 1);
+			}
+		}
+		else
+		{	// He clicked on the enemy flag
+			if (Source->GetTeam() == ALLIANCE)
+			{
+				message_id = LANG_BG_WS_PICKEDUP_HF;
+				type = CHAT_MSG_BG_SYSTEM_ALLIANCE;
+				PlaySoundToAll(BG_WS_SOUND_HORDE_FLAG_PICKED_UP);
+				SpawnEvent(WS_EVENT_FLAG_H, 0, false);
+				SetHordeFlagPicker(Source->GetObjectGuid());
+				Source->CastSpell(Source, BG_WS_SPELL_WARSONG_FLAG, true);
+				m_FlagState[BG_TEAM_HORDE] = BG_WS_FLAG_STATE_ON_PLAYER;
+				UpdateFlagState(ALLIANCE, BG_WS_FLAG_STATE_ON_PLAYER);
+				UpdateWorldState(BG_WS_FLAG_UNK_HORDE, 1);
+			}
+			else
+			{
+				message_id = LANG_BG_WS_PICKEDUP_AF;
+				type = CHAT_MSG_BG_SYSTEM_HORDE;
+				PlaySoundToAll(BG_WS_SOUND_ALLIANCE_FLAG_PICKED_UP);
+				SpawnEvent(WS_EVENT_FLAG_A, 0, false);
+				SetAllianceFlagPicker(Source->GetObjectGuid());
+				Source->CastSpell(Source, BG_WS_SPELL_SILVERWING_FLAG, true);
+				m_FlagState[BG_TEAM_ALLIANCE] = BG_WS_FLAG_STATE_ON_PLAYER;
+				UpdateFlagState(HORDE, BG_WS_FLAG_STATE_ON_PLAYER);
+				UpdateWorldState(BG_WS_FLAG_UNK_ALLIANCE, 1);
+			}
+		}
+	}
 
     if (!message_id)
         return;

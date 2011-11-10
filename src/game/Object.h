@@ -65,6 +65,7 @@ class Map;
 class UpdateMask;
 class InstanceData;
 class TerrainInfo;
+class ZoneScript;
 
 typedef UNORDERED_MAP<Player*, UpdateData> UpdateDataMapType;
 
@@ -189,6 +190,14 @@ class MANGOS_DLL_SPEC Object
         {
             MANGOS_ASSERT( index < m_valuesCount || PrintIndexError( index , false ) );
             return m_floatValues[ index ];
+        }
+
+        void SetBoundingValue(uint8 t, float v)
+        {
+            if (t == 0)
+                m_floatValues[UNIT_FIELD_COMBATREACH] = v;
+            else if (t == 1)
+                m_floatValues[UNIT_FIELD_BOUNDINGRADIUS] = v;
         }
 
         uint8 GetByteValue( uint16 index, uint8 offset) const
@@ -560,11 +569,15 @@ class MANGOS_DLL_SPEC WorldObject : public Object
 
         void SetMap(Map * map);
         Map * GetMap() const { MANGOS_ASSERT(m_currMap); return m_currMap; }
+        Map* FindMap() const { return m_currMap; }
         //used to check all object's GetMap() calls when object is not in world!
         void ResetMap() { m_currMap = NULL; }
 
         //obtain terrain data for map where this object belong...
         TerrainInfo const* GetTerrain() const;
+
+        void SetZoneScript();
+        ZoneScript* GetZoneScript() const { return m_zoneScript; }
 
         void AddToClientUpdateList();
         void RemoveFromClientUpdateList();
@@ -588,6 +601,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         void SetLocationMapId(uint32 _mapId) { m_mapId = _mapId; }
         void SetLocationInstanceId(uint32 _instanceId) { m_InstanceId = _instanceId; }
 
+        ZoneScript* m_zoneScript;
         std::string m_name;
 
     private:

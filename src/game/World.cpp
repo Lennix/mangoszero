@@ -51,6 +51,7 @@
 #include "Policies/SingletonImp.h"
 #include "BattleGroundMgr.h"
 #include "Language.h"
+#include "OutdoorPvPMgr.h"
 #include "TemporarySummon.h"
 #include "VMapFactory.h"
 #include "MoveMap.h"
@@ -65,6 +66,7 @@
 #include "Util.h"
 #include "CharacterDatabaseCleaner.h"
 #include "CreatureLinkingMgr.h"
+#include "CreatureGroups.h"
 
 INSTANTIATE_SINGLETON_1( World );
 
@@ -661,6 +663,7 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_QUEST_IGNORE_RAID, "Quests.IgnoreRaid", false);
 
+    setConfig(CONFIG_BOOL_VMAP_TOTEM, "vmap.totem", true);
     setConfig(CONFIG_BOOL_DETECT_POS_COLLISION, "DetectPosCollision", true);
 
     setConfig(CONFIG_BOOL_RESTRICTED_LFG_CHANNEL,      "Channel.RestrictedLfg", true);
@@ -880,6 +883,9 @@ void World::SetInitialWorldSettings()
     DetectDBCLang();
     sObjectMgr.SetDBCLocaleIndex(GetDefaultDbcLocale());    // Get once for all the locale index of DBC language (console/broadcasts)
 
+    sLog.outString( "Loading Spell Corections...");
+    sSpellMgr.LoadDbcDataCorrections();
+
     sLog.outString( "Loading Script Names...");
     sScriptMgr.LoadScriptNames();
 
@@ -939,6 +945,9 @@ void World::SetInitialWorldSettings()
     sLog.outString( "Loading Spell Proc Item Enchant..." );
     sSpellMgr.LoadSpellProcItemEnchant();                   // must be after LoadSpellChains
 
+    sLog.outString( "Loading Spell Area requirements..." );
+    sSpellMgr.LoadSpellRequireArea();
+
     sLog.outString( "Loading Aggro Spells Definitions...");
     sSpellMgr.LoadSpellThreats();
 
@@ -986,6 +995,9 @@ void World::SetInitialWorldSettings()
 
     sLog.outString( "Loading Creature Data..." );
     sObjectMgr.LoadCreatures();
+
+    sLog.outString("Loading Creature Linked Respawn...");
+    sObjectMgr.LoadCreatureLinkedRespawn();                     // must be after LoadCreatures()
 
     sLog.outString( "Loading Creature Addon Data..." );
     sLog.outString();
@@ -1127,6 +1139,9 @@ void World::SetInitialWorldSettings()
     sLog.outString();
     sWaypointMgr.Load();
 
+	sLog.outString( "Loading Creature Formations..." );
+    sFormationMgr.LoadCreatureFormations();
+
     ///- Loading localization data
     sLog.outString( "Loading Localization strings..." );
     sObjectMgr.LoadCreatureLocales();                       // must be after CreatureInfo loading
@@ -1265,6 +1280,10 @@ void World::SetInitialWorldSettings()
     //Not sure if this can be moved up in the sequence (with static data loading) as it uses MapManager
     sLog.outString( "Loading Transports..." );
     sMapMgr.LoadTransports();
+
+    ///- Initialize outdoor pvp
+    sLog.outString( "Starting Outdoor PvP System" );
+    sOutdoorPvPMgr.InitOutdoorPvP();
 
     sLog.outString("Deleting expired bans..." );
     LoginDatabase.Execute("DELETE FROM ip_banned WHERE unbandate<=UNIX_TIMESTAMP() AND unbandate<>bandate");
@@ -1407,6 +1426,7 @@ void World::Update(uint32 diff)
     ///- Update objects (maps, transport, creatures,...)
     sMapMgr.Update(diff);
     sBattleGroundMgr.Update(diff);
+    sOutdoorPvPMgr.Update(diff);
 
     ///- Delete all characters which have been deleted X days before
     if (m_timers[WUPDATE_DELETECHARS].Passed())

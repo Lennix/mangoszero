@@ -68,6 +68,9 @@ class MANGOS_DLL_SPEC InstanceData
         //Called when a gameobject is created
         virtual void OnObjectCreate(GameObject *) {}
 
+        // Call when gameobject is used
+        virtual void OnObjectUse(GameObject*) {}
+
         //called on creature creation
         virtual void OnCreatureCreate(Creature * /*creature*/) {}
 

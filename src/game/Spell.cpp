@@ -609,6 +609,10 @@ void Spell::prepareDataForTriggerSystem()
     {
         switch (m_spellInfo->SpellFamilyName)
         {
+            case SPELLFAMILY_GENERIC:
+                if (m_spellInfo->Id == 13897)   // Fiery Weapon
+                    m_canTrigger = true;
+                break;
             case SPELLFAMILY_MAGE:
                 // Arcane Missiles / Blizzard triggers need do it
                 if (m_spellInfo->IsFitToFamilyMask(UI64LIT(0x0000000000200080)))
@@ -631,6 +635,13 @@ void Spell::prepareDataForTriggerSystem()
                 break;
             default:
                 break;
+        }
+
+        if (m_triggeredByAuraSpell)
+        {
+            if (m_triggeredByAuraSpell->SpellFamilyName == SPELLFAMILY_PALADIN &&       // Seal of Command
+                m_triggeredByAuraSpell->SpellFamilyFlags & UI64LIT(0x0000000002000000))
+                m_canTrigger = true;
         }
     }
 
@@ -918,8 +929,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
             if(real_caster && real_caster != unit)
             {
                 // can cause back attack (if detected)
-                if (!(m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_NO_INITIAL_AGGRO) && !IsPositiveSpell(m_spellInfo->Id) &&
-                    m_caster->isVisibleForOrDetect(unit, unit, false))
+                if (!(m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_NO_INITIAL_AGGRO) && !(m_spellInfo->AttributesEx & SPELL_ATTR_EX_NO_INITIAL_AGGRO) &&
+                    !IsPositiveSpell(m_spellInfo->Id) && m_caster->isVisibleForOrDetect(unit, unit, false))
                 {
                     if (!unit->isInCombat() && unit->GetTypeId() != TYPEID_PLAYER && ((Creature*)unit)->AI())
                         ((Creature*)unit)->AI()->AttackedBy(real_caster);
@@ -1106,8 +1117,9 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
                 unit->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
 
             // can cause back attack (if detected), stealth removed at Spell::cast if spell break it
-            if (!(m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_NO_INITIAL_AGGRO) && !IsPositiveSpell(m_spellInfo->Id) &&
-                m_caster->isVisibleForOrDetect(unit, unit, false) && (m_spellInfo->SpellFamilyName != 6 || m_spellInfo->SpellIconID != 1487))    // Extra Check for Priest Spell Mind Soothe
+			if (!(m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_NO_INITIAL_AGGRO)  && !(m_spellInfo->AttributesEx & SPELL_ATTR_EX_NO_INITIAL_AGGRO)
+				&& !IsPositiveSpell(m_spellInfo->Id) && m_caster->isVisibleForOrDetect(unit, unit, false)
+				&& (m_spellInfo->SpellFamilyName != 6 || m_spellInfo->SpellIconID != 1487)) //Extra check for priest spell Mind Soothe
             {
                 // use speedup check to avoid re-remove after above lines
                 if (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_BREAK_STEALTH)
@@ -2259,6 +2271,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 case SPELL_EFFECT_SUMMON_OBJECT_WILD:
                 case SPELL_EFFECT_SELF_RESURRECT:
                 case SPELL_EFFECT_REPUTATION:
+                case SPELL_EFFECT_REPUTATION_2:
                 case SPELL_EFFECT_ADD_HONOR:
                 case SPELL_EFFECT_SEND_TAXI:
                     if (m_targets.getUnitTarget())
@@ -2616,7 +2629,7 @@ void Spell::cast(bool skipCheck)
         case SPELLFAMILY_PRIEST:
         {
             // Power Word: Shield
-            if(m_spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST && m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000000001))
+            if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST && m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000000001) && m_spellInfo->Id != 27779)
                 AddPrecastSpell(6788);                      // Weakened Soul
 
             switch(m_spellInfo->Id)
@@ -2804,6 +2817,28 @@ uint64 Spell::handle_delayed(uint64 t_offset)
 
 void Spell::_handle_immediate_phase()
 {
+	// Remove Stealth on Spell:Cast instead of Spell:Prepare
+    if ( m_caster->getClass() == CLASS_ROGUE && !m_IsTriggeredSpell && isSpellBreakStealth(m_spellInfo) )
+    {
+		int chance = 0;
+		// Improved Sap on Sap
+		switch(m_spellInfo->Id) {
+			case 6770:
+			case 2070:
+			case 11297:
+				if(m_caster->HasAura(14095)) // Rank 3
+					chance = 90;
+				else if(m_caster->HasAura(14094)) // Rank 2
+					chance = 60;
+				else if(m_caster->HasAura(14076)) // Rank 1
+					chance = 30;
+				break;
+			default: break;
+		}
+		if(chance == 0 || !roll_chance_i(chance))
+			m_caster->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
+	}
+
     // handle some immediate features of the spell here
     HandleThreatSpells();
 
@@ -3124,13 +3159,7 @@ void Spell::SendCastResult(Player* caster, SpellEntry const* spellInfo, SpellCas
                 data << uint32(spellInfo->RequiresSpellFocus);
                 break;
             case SPELL_FAILED_REQUIRES_AREA:
-            /* [-ZERO]    // hardcode areas limitation case
-                switch(spellInfo->Id)
-                {
-                    default:                                    // default case
-                        data << uint32(spellInfo->AreaId);
-                        break;
-                } */
+                data << uint32(sSpellMgr.GetSpellRequireArea(spellInfo->Id));
                 break;
             case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
                 data << uint32(spellInfo->EquippedItemClass);
@@ -4738,8 +4767,19 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (!target || ((Player*)m_caster) == target || !target->IsInSameRaidWith((Player*)m_caster))
                     return SPELL_FAILED_BAD_TARGETS;
 
-                if( m_caster->GetMap() && !m_caster->GetMap()->GetPlayer(target->GetObjectGuid()) && (m_caster->GetMapId() > 1 || target->GetMapId() > 1) )
-                    return SPELL_FAILED_TARGET_NOT_IN_INSTANCE;
+                // check if our map is dungeon
+                if( sMapStore.LookupEntry(m_caster->GetMapId())->IsDungeon() )
+                {
+                    // Caster instance and target instance
+                    InstanceTemplate const* instanceCaster = ObjectMgr::GetInstanceTemplate(m_caster->GetMapId());
+                    InstanceTemplate const* instanceTarget = ObjectMgr::GetInstanceTemplate(target->GetMapId());
+                    if(!instanceCaster || !instanceTarget || m_caster->GetMapId() != target->GetMapId())
+                        return SPELL_FAILED_TARGET_NOT_IN_INSTANCE;
+                    if ( instanceCaster->levelMin > target->getLevel() )
+                        return SPELL_FAILED_LOWLEVEL;
+                    if ( instanceCaster->levelMax && instanceCaster->levelMax < target->getLevel() )
+                        return SPELL_FAILED_HIGHLEVEL;
+                }
                 break;
             }
             case SPELL_EFFECT_LEAP:
@@ -4796,7 +4836,8 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (m_targets.getUnitTarget()->GetCharmerGuid())
                     return SPELL_FAILED_CHARMED;
 
-                if (int32(m_targets.getUnitTarget()->getLevel()) > CalculateDamage(SpellEffectIndex(i),m_targets.getUnitTarget()))
+                if (int32(m_targets.getUnitTarget()->getLevel()) > CalculateDamage(SpellEffectIndex(i),m_targets.getUnitTarget())
+					|| int32(m_targets.getUnitTarget()->getLevel()) > 62)
                     return SPELL_FAILED_HIGHLEVEL;
 
                 break;
@@ -4821,7 +4862,8 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (m_targets.getUnitTarget()->GetCharmerGuid())
                     return SPELL_FAILED_CHARMED;
 
-                if (int32(m_targets.getUnitTarget()->getLevel()) > CalculateDamage(SpellEffectIndex(i),m_targets.getUnitTarget()))
+                if (int32(m_targets.getUnitTarget()->getLevel()) > CalculateDamage(SpellEffectIndex(i),m_targets.getUnitTarget())
+					|| int32(m_targets.getUnitTarget()->getLevel()) > 62)
                     return SPELL_FAILED_HIGHLEVEL;
 
                 break;
@@ -4887,6 +4929,18 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                 if(m_targets.getUnitTarget()->getPowerType() != POWER_MANA)
                     return SPELL_FAILED_BAD_TARGETS;
+
+                break;
+            }
+            case SPELL_AURA_SCHOOL_ABSORB:
+            {
+                if (!m_targets.getUnitTarget())
+                    return SPELL_FAILED_BAD_IMPLICIT_TARGETS;
+
+                Unit::AuraList const &mAbsorbAuras = m_targets.getUnitTarget()->GetAurasByType(SPELL_AURA_SCHOOL_ABSORB);
+                for(Unit::AuraList::const_iterator i = mAbsorbAuras.begin(); i != mAbsorbAuras.end(); ++i)
+                    if (m_spellInfo->EffectBasePoints[EFFECT_INDEX_0] <= (*i)->GetModifier()->m_amount && (*i)->GetEffIndex() == 0)
+                        return SPELL_FAILED_MORE_POWERFUL_SPELL_ACTIVE;
 
                 break;
             }
@@ -5204,7 +5258,7 @@ SpellCastResult Spell::CheckRange(bool strict)
     {
         float dist = m_caster->GetDistance(m_targets.getGOTarget());
 
-        if(dist > max_range)
+        if (dist > max_range)
             return SPELL_FAILED_OUT_OF_RANGE;
     }
 
@@ -5344,6 +5398,9 @@ SpellCastResult Spell::CheckItems()
     // cast item checks
     if(m_CastItem)
     {
+		if (m_CastItem->GetSlot() == NULL_SLOT)
+			return SPELL_FAILED_ITEM_GONE;
+
         if (m_CastItem->IsInTrade())
             return SPELL_FAILED_ITEM_GONE;
 
@@ -5856,6 +5913,10 @@ bool Spell::CheckTarget( Unit* target, SpellEffectIndex eff )
         if(((Player*)target)->isGameMaster() && !IsPositiveSpell(m_spellInfo->Id))
             return false;
     }
+
+    // Make spell 22247 used by Suppression Devices in BWL not hit stealthed targets and limit range
+    if (m_spellInfo->Id == 22247 && (target->HasStealthAura() || m_caster->GetDistance(target) > 15.0f))
+        return false;
 
     // Check targets for LOS visibility (except spells without range limitations )
     switch(m_spellInfo->Effect[eff])

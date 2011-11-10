@@ -2126,3 +2126,25 @@ bool ChatHandler::HandleSetViewCommand(char* /*args*/)
 
     return true;
 }
+
+bool ChatHandler::HandleRatesMaxCommand(char* args)
+{
+    // Get player
+    Player* target;
+    ObjectGuid target_guid;
+    std::string target_name;
+	float rates;
+	bool fRet = false;
+    if (ExtractPlayerTarget(&args, &target, &target_guid, &target_name))
+	{
+		if(target->IsInWorld())
+		{
+			if (ExtractFloat(&args, rates))
+			{
+				target->SetRatesMax(rates);
+				fRet = true;
+			}
+		}
+	}
+	return fRet;
+}

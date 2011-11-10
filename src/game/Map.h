@@ -55,6 +55,7 @@ class DungeonPersistentState;
 class BattleGroundPersistentState;
 struct ScriptInfo;
 class BattleGround;
+class CreatureGroup;
 class GridMap;
 
 // GCC have alternative #pragma pack(N) syntax and old gcc version not support pack(push,N), also any gcc version not support it at some platform
@@ -84,6 +85,8 @@ struct WorldTemplate
     uint32 map;                                             // non-instance map
     uint32 script_id;
 };
+
+typedef std::map<uint32/*leaderDBGUID*/, CreatureGroup*>        CreatureGroupHolderType;
 
 #if defined( __GNUC__ )
 #pragma pack()
@@ -251,6 +254,8 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
 
         // Get Holder for Creature Linking
         CreatureLinkingHolder* GetCreatureLinkingHolder() { return &m_creatureLinkingHolder; }
+
+		CreatureGroupHolderType CreatureGroupHolder;
 
     private:
         void LoadMapAndVMap(int gx, int gy);

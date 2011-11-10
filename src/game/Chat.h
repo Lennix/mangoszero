@@ -132,6 +132,10 @@ class MANGOS_DLL_SPEC ChatHandler
         void CheckIntegrity(ChatCommand *table, ChatCommand *parentCommand);
         ChatCommand* getCommandTable();
 
+		// Rates
+		bool HandleRatesCommand(char* args);
+		bool HandleRatesMaxCommand(char* args);
+
         bool HandleAccountCommand(char* args);
         bool HandleAccountCharactersCommand(char* args);
         bool HandleAccountCreateCommand(char* args);
@@ -373,6 +377,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleReloadBattleEventCommand(char* args);
         bool HandleReloadCreatureQuestRelationsCommand(char* args);
         bool HandleReloadCreatureQuestInvRelationsCommand(char* args);
+        bool HandleReloadCreatureLinkedRespawnCommand(char* args);
         bool HandleReloadDbScriptStringCommand(char* args);
         bool HandleReloadGameGraveyardZoneCommand(char* args);
         bool HandleReloadGameObjectScriptsCommand(char* args);
@@ -426,6 +431,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleReloadSpellLearnSpellCommand(char* args);
         bool HandleReloadSpellProcEventCommand(char* args);
         bool HandleReloadSpellProcItemEnchantCommand(char* args);
+        bool HandleReloadSpellRequireAreaCommand(char* args);
         bool HandleReloadSpellScriptTargetCommand(char* args);
         bool HandleReloadSpellScriptsCommand(char* args);
         bool HandleReloadSpellTargetPositionCommand(char* args);

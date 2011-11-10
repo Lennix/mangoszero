@@ -345,6 +345,7 @@ class MANGOS_DLL_SPEC Aura
         void HandleSchoolAbsorb(bool apply, bool Real);
         void HandlePreventFleeing(bool apply, bool Real);
         void HandleManaShield(bool apply, bool Real);
+        void HandleAuraReflectSpellsSchool(bool apply, bool Real);
 
         virtual ~Aura();
 

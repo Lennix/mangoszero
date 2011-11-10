@@ -158,6 +158,7 @@ bool ChatHandler::HandleReloadAllSpellCommand(char* /*args*/)
     HandleReloadSpellProcEventCommand((char*)"a");
     HandleReloadSpellBonusesCommand((char*)"a");
     HandleReloadSpellProcItemEnchantCommand((char*)"a");
+    HandleReloadSpellRequireAreaCommand((char*)"a");
     HandleReloadSpellScriptTargetCommand((char*)"a");
     HandleReloadSpellTargetPositionCommand((char*)"a");
     HandleReloadSpellThreatsCommand((char*)"a");
@@ -243,6 +244,14 @@ bool ChatHandler::HandleReloadCreatureQuestInvRelationsCommand(char* /*args*/)
     sLog.outString( "Loading Quests Relations... (`creature_involvedrelation`)" );
     sObjectMgr.LoadCreatureInvolvedRelations();
     SendGlobalSysMessage("DB table `creature_involvedrelation` (creature quest takers) reloaded.");
+    return true;
+}
+
+bool ChatHandler::HandleReloadCreatureLinkedRespawnCommand(char * /*args*/)
+{
+    sLog.outString("Loading Linked Respawns... (`creature_linked_respawn`)");
+    sObjectMgr.LoadCreatureLinkedRespawn();
+    SendGlobalSysMessage("DB table `creature_linked_respawn` (creature linked respawns) reloaded.");
     return true;
 }
 
@@ -565,6 +574,14 @@ bool ChatHandler::HandleReloadSpellProcItemEnchantCommand(char* /*args*/)
     sLog.outString( "Re-Loading Spell Proc Item Enchant..." );
     sSpellMgr.LoadSpellProcItemEnchant();
     SendGlobalSysMessage("DB table `spell_proc_item_enchant` (item enchantment ppm) reloaded.");
+    return true;
+}
+
+bool ChatHandler::HandleReloadSpellRequireAreaCommand(char* /*args*/)
+{
+    sLog.outString( "Re-Loading Spell Require Area..." );
+    sSpellMgr.LoadSpellRequireArea();
+    SendGlobalSysMessage("DB table `spell_require_area` (spell cast area requirements) reloaded.");
     return true;
 }
 

@@ -493,6 +493,7 @@ bool Master::_StartDB()
 
     ///- Initialise the login database
     sLog.outString("Login Database total connections: %i", nConnections + 1);
+
     if(!LoginDatabase.Initialize(dbstring.c_str(), nConnections))
     {
         sLog.outError("Cannot connect to login database %s",dbstring.c_str());

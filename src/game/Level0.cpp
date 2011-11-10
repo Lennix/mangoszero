@@ -293,3 +293,26 @@ bool ChatHandler::HandleServerMotdCommand(char* /*args*/)
     PSendSysMessage(LANG_MOTD_CURRENT, sWorld.GetMotd());
     return true;
 }
+
+bool ChatHandler::HandleRatesCommand(char* args)
+{
+	if(!*args)
+		PSendSysMessage("Your current rates: %f. You may choose between 0 and %f",m_session->GetPlayer()->GetRates(), m_session->GetPlayer()->GetRatesMax());
+	else
+	{
+		float rate = (float)atof(args);
+
+		//if(rate < 0.0f || rate > sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL))
+		if(rate < 0.0f || rate > m_session->GetPlayer()->GetRatesMax())
+		{
+			PSendSysMessage("Please choose rates between 0 and %f", m_session->GetPlayer()->GetRatesMax());
+			return false;
+		}
+		m_session->GetPlayer()->SetRates(rate);
+
+		PSendSysMessage("Rates changed to %f",rate);
+	}
+
+	return true;
+
+}

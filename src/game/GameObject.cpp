@@ -37,6 +37,7 @@
 #include "MapPersistentStateMgr.h"
 #include "BattleGround.h"
 #include "BattleGroundAV.h"
+#include "OutdoorPvPMgr.h"
 #include "Util.h"
 #include "ScriptMgr.h"
 
@@ -55,6 +56,7 @@ GameObject::GameObject() : WorldObject(),
     m_useTimes = 0;
     m_spellId = 0;
     m_cooldownTime = 0;
+    m_goData = NULL;
 }
 
 GameObject::~GameObject()
@@ -65,7 +67,12 @@ void GameObject::AddToWorld()
 {
     ///- Register the gameobject for guid lookup
     if(!IsInWorld())
+    {
+        if (m_zoneScript)
+            m_zoneScript->OnGameObjectCreate(this, true);
+
         GetMap()->GetObjectsStore().insert<GameObject>(GetObjectGuid(), (GameObject*)this);
+    }
 
     Object::AddToWorld();
 }
@@ -75,6 +82,9 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if(IsInWorld())
     {
+        if (m_zoneScript)
+            m_zoneScript->OnGameObjectCreate(this, false);
+
         // Remove GO from owner
         if (ObjectGuid owner_guid = GetOwnerGuid())
         {
@@ -93,7 +103,7 @@ void GameObject::RemoveFromWorld()
     Object::RemoveFromWorld();
 }
 
-bool GameObject::Create(uint32 guidlow, uint32 name_id, Map *map, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 animprogress, GOState go_state)
+bool GameObject::Create(uint32 guidlow, uint32 name_id, Map *map, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 animprogress, GOState go_state, uint32 artKit)
 {
     MANGOS_ASSERT(map);
     Relocate(x,y,z,ang);
@@ -147,11 +157,15 @@ bool GameObject::Create(uint32 guidlow, uint32 name_id, Map *map, float x, float
 
     SetGoAnimProgress(animprogress);
 
+    SetUInt32Value (GAMEOBJECT_ARTKIT, artKit);
+
     //Notify the map's instance data.
     //Only works if you create the object in it, not if it is moves to that map.
     //Normally non-players do not teleport to other maps.
     if (InstanceData* iData = map->GetInstanceData())
         iData->OnObjectCreate(this);
+
+    SetZoneScript();
 
     return true;
 }
@@ -605,6 +619,8 @@ bool GameObject::LoadFromDB(uint32 guid, Map *map)
         }
     }
 
+    m_goData = data;
+
     return true;
 }
 
@@ -683,7 +699,7 @@ Unit* GameObject::GetOwner() const
 
 void GameObject::SaveRespawnTime()
 {
-    if(m_respawnTime > time(NULL) && m_spawnedByDefault)
+    if (m_goData && m_goData->dbData && m_respawnTime > time(NULL) && m_spawnedByDefault)
         GetMap()->GetPersistentState()->SaveGORespawnTime(GetGUIDLow(), m_respawnTime);
 }
 
@@ -896,6 +912,29 @@ void GameObject::ResetDoorOrButton()
     m_cooldownTime = 0;
 }
 
+void GameObject::SetGoArtKit(uint8 kit)
+{
+    SetUInt32Value(GAMEOBJECT_ARTKIT, kit);
+    GameObjectData* data = const_cast<GameObjectData*>(sObjectMgr.GetGOData(GetGUIDLow()));
+    if(data)
+        data->artKit = kit;
+}
+
+void GameObject::SetGoArtKit(uint8 artkit, GameObject* go, uint32 lowguid)
+{
+    const GameObjectData* data = NULL;
+    if(go)
+    {
+        go->SetGoArtKit(artkit);
+        data = go->GetGOData();
+    }
+    else if(lowguid)
+        data = sObjectMgr.GetGOData(lowguid);
+
+    if(data)
+        const_cast<GameObjectData*>(data)->artKit = artkit;
+}
+
 void GameObject::UseDoorOrButton(uint32 time_to_restore, bool alternative /* = false */)
 {
     if(m_lootState != GO_READY)
@@ -929,6 +968,9 @@ void GameObject::Use(Unit* user)
     Unit* spellCaster = user;
     uint32 spellId = 0;
     bool triggered = false;
+
+    if (InstanceData* mapInstance = GetInstanceData())
+        mapInstance->OnObjectUse(this);
 
     if (user->GetTypeId() == TYPEID_PLAYER && sScriptMgr.OnGameObjectUse((Player*)user, this))
         return;
@@ -1384,6 +1426,9 @@ void GameObject::Use(Unit* user)
         }
         case GAMEOBJECT_TYPE_MEETINGSTONE:                  //23
         {
+            // Meeting Stones should not work at patch 1.12.1
+            return;
+
             GameObjectInfo const* info = GetGOInfo();
 
             if (user->GetTypeId() != TYPEID_PLAYER)
