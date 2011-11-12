@@ -25,6 +25,7 @@
 #include "Player.h"
 #include "ObjectAccessor.h"
 #include "UnitEvents.h"
+#include "CreatureLinkingMgr.h"
 
 //==============================================================
 //================= ThreatCalcHelper ===========================
@@ -418,6 +419,9 @@ void ThreatManager::addThreatDirectly(Unit* pVictim, float threat)
         hostileReference->addThreat(threat);                // now we add the real threat
         if(pVictim->GetTypeId() == TYPEID_PLAYER && ((Player*)pVictim)->isGameMaster())
             hostileReference->setOnlineOfflineState(false); // GM is always offline
+
+		if (sCreatureLinkingMgr.IsLinkedEventTrigger((Creature*)getOwner()))
+            getOwner()->GetMap()->GetCreatureLinkingHolder()->DoCreatureLinkingEvent(LINKING_EVENT_AGGRO, (Creature*)getOwner(), pVictim);
     }
 }
 
