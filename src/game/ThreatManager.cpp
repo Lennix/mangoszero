@@ -420,7 +420,7 @@ void ThreatManager::addThreatDirectly(Unit* pVictim, float threat)
         if(pVictim->GetTypeId() == TYPEID_PLAYER && ((Player*)pVictim)->isGameMaster())
             hostileReference->setOnlineOfflineState(false); // GM is always offline
 
-		if (sCreatureLinkingMgr.IsLinkedEventTrigger((Creature*)getOwner()))
+        if (sCreatureLinkingMgr.IsLinkedEventTrigger((Creature*)getOwner()))
             getOwner()->GetMap()->GetCreatureLinkingHolder()->DoCreatureLinkingEvent(LINKING_EVENT_AGGRO, (Creature*)getOwner(), pVictim);
     }
 }
