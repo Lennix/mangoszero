@@ -909,9 +909,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         m_damage += target->damage;
     }
 
-    if (missInfo==SPELL_MISS_NONE)                          // In case spell hit target, do all effect on that target
-        DoSpellHitOnUnit(unit, mask);
-    else if (missInfo == SPELL_MISS_REFLECT)                // In case spell reflect from target, do all effect on caster (if hit)
+    if (missInfo == SPELL_MISS_REFLECT)                // In case spell reflect from target, do all effect on caster (if hit)
     {
         if (target->reflectResult == SPELL_MISS_NONE)       // If reflected spell hit caster -> do all effect on him
         {
@@ -919,7 +917,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
             unitTarget = m_caster;
         }
     }
-    else                                                    // in 1.12.1 we need explicit miss info
+    else if (missInfo != SPELL_MISS_NONE)                   // in 1.12.1 we need explicit miss info
     {
         if (real_caster)
             real_caster->SendSpellMiss(unit, m_spellInfo->Id, missInfo);
@@ -947,6 +945,11 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // Do healing and triggers
     if (m_healing)
     {
+        // Is there any way heal does not hit are rolling chanes?
+        if (missInfo == SPELL_MISS_NONE)
+            DoSpellHitOnUnit(unit, mask);
+
+
         bool crit = real_caster && real_caster->IsSpellCrit(unitTarget, m_spellInfo, m_spellSchoolMask);
         uint32 addhealth = m_healing;
         if (crit)
@@ -1006,6 +1009,13 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
         caster->DealDamageMods(damageInfo.target, damageInfo.damage, &damageInfo.absorb);
 
+        // Full resist might have happened before
+        if (damageInfo.resist == m_damage)
+            missInfo = SPELL_MISS_RESIST;
+
+        if (missInfo == SPELL_MISS_NONE)
+            DoSpellHitOnUnit(unit, mask);
+
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
 
@@ -1044,6 +1054,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // Passive spell hits/misses or active spells only misses (only triggers if proc flags set)
     else if (procAttacker || procVictim)
     {
+        // Any way this cannot hit before rolling chances?
+        if (missInfo == SPELL_MISS_NONE)
+            DoSpellHitOnUnit(unit, mask);
+
         // Fill base damage struct (unitTarget - is real spell target)
         SpellNonMeleeDamage damageInfo(caster, unitTarget, m_spellInfo->Id, GetFirstSchoolInMask(m_spellSchoolMask));
         procEx = createProcExtendMask(&damageInfo, missInfo);
