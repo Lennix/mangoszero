@@ -4528,43 +4528,23 @@ void Spell::EffectLeapForward(SpellEffectIndex eff_idx)
 
         // before caster
         float fx, fy, fz;
-
-        //unitTarget->GetClosePoint(fx, fy, fz, unitTarget->GetObjectBoundingRadius(), dis);
-
         float ox, oy, oz;
         unitTarget->GetPosition(ox, oy, oz);
 
-        fx = ox + dis * cos(m_caster->GetOrientation());
-        fy = oy + dis * sin(m_caster->GetOrientation());
-        fz = m_caster->GetTerrain()->GetHeight(fx, fy, oz + 8.0f, true);
-
         // standing on an edge to prevent caster from blinking over the edge
-        for (int i = 0; i < dis; i++)
-		{
-            if (fz <= INVALID_HEIGHT && fz < (oz - 8.0f) && fz <= (oz + 8.0f))
-            {
-                fx = ox + (dis - i - 1) * cos(m_caster->GetOrientation());
-                fy = oy + (dis - i - 1) * sin(m_caster->GetOrientation());
-                fz = m_caster->GetTerrain()->GetHeight(fx, fy, oz + 8.0f, true);
-            } 
-			else 
+        for(int i = 0; i < dis; i++)
+        {
+            fx = ox + (dis - i - 1) * cos(m_caster->GetOrientation());
+            fy = oy + (dis - i - 1) * sin(m_caster->GetOrientation());
+            fz = m_caster->GetTerrain()->GetHeight(fx, fy, oz + 8.0f, true);
+
+            if (!(fz <= INVALID_HEIGHT && fz < (oz - 8.0f) && fz <= (oz + 8.0f)))
                 break;
         }
-
-        //while (fz <= INVALID_HEIGHT && fz < (oz - 8.0f) && fz <= (oz + 8.0f))
-        //{
-        //	fx = ox + dis * cos(m_caster->GetOrientation());
-        //	fy = oy + dis * sin(m_caster->GetOrientation());
-        //	// fz = m_caster->GetTerrain()->GetHeight(fx, fy, m_caster->GetPositionZ(), true);
-        //	fz = m_caster->GetTerrain()->GetHeight(fx, fy, oz + 8.0f, true);
-
-        //	dis -= 1.0f;
-        //	if(dis <= 0)
-        //		dis = 0;
-        //}
-
-        float fx2, fy2, fz2;                                // getObjectHitPos overwrite last args in any result case
-        if(VMAP::VMapFactory::createOrGetVMapManager()->getObjectHitPos(unitTarget->GetMapId(), ox,oy,oz+0.5f, fx,fy,fz+0.5f,fx2,fy2,fz2, -0.5f))
+        
+        // getObjectHitPos overwrite last args in any result case
+        float fx2, fy2, fz2;                                
+        if (VMAP::VMapFactory::createOrGetVMapManager()->getObjectHitPos(unitTarget->GetMapId(), ox,oy,oz+0.5f, fx,fy,fz+0.5f,fx2,fy2,fz2, -0.5f))
         {
             fx = fx2;
             fy = fy2;
@@ -4573,7 +4553,7 @@ void Spell::EffectLeapForward(SpellEffectIndex eff_idx)
         }
 
         // prevent caster from blinking to ground from more then 8y in air
-        if(fz <= (oz - 8.0f))
+        if (fz <= (oz - 8.0f))
             fz = oz;
         fz += 0.5f;
 
