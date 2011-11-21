@@ -553,7 +553,7 @@ class Spell
         void HandleDelayedSpellLaunch(TargetInfo *target);
         void InitializeDamageMultipliers();
         void ResetEffectDamageAndHeal();
-        void DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected = false);
+        void DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected = false, int firstIndex = 0, int lastIndex = MAX_EFFECT_INDEX);
         void DoAllEffectOnTarget(GOTargetInfo *target);
         void DoAllEffectOnTarget(ItemTargetInfo *target);
         bool IsAliveUnitPresentInTargetList();

@@ -911,7 +911,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
     if (missInfo == SPELL_MISS_NONE)                        // In case spell hit target, do all effect on that target
         if (m_spellInfo->speed == 0)                        // DoSpellHitOnUnit needed for speed = 0 to calculate dmg
-            DoSpellHitOnUnit(unit, mask);
+            DoSpellHitOnUnit(unit, mask, false, 0, 1);      // Only Handle the first effect
     else if (missInfo == SPELL_MISS_REFLECT)                // In case spell reflect from target, do all effect on caster (if hit)
     {
         if (target->reflectResult == SPELL_MISS_NONE)       // If reflected spell hit caster -> do all effect on him
@@ -948,6 +948,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // Do healing and triggers
     if (m_healing)
     {
+        DoSpellHitOnUnit(unit, mask, false, 1, 3);
+
         bool crit = real_caster && real_caster->IsSpellCrit(unitTarget, m_spellInfo, m_spellSchoolMask);
         uint32 addhealth = m_healing;
         if (crit)
@@ -1015,8 +1017,13 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
             target->missCondition = SPELL_MISS_RESIST;
         }
 
-        if (m_spellInfo->speed > 0 && missInfo == SPELL_MISS_NONE)
-            DoSpellHitOnUnit(unit, mask);
+        if (missInfo == SPELL_MISS_NONE)
+        {
+            if (m_spellInfo->speed > 0)
+                DoSpellHitOnUnit(unit, mask);
+            else
+                DoSpellHitOnUnit(unit, mask, false, 1, 3); // Do the last hits
+        }
 
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
@@ -1056,8 +1063,20 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // Passive spell hits/misses or active spells only misses (only triggers if proc flags set)
     else if (procAttacker || procVictim)
     {
+        DoSpellHitOnUnit(unit, mask, false, 1, 3);
+
         // Fill base damage struct (unitTarget - is real spell target)
         SpellNonMeleeDamage damageInfo(caster, unitTarget, m_spellInfo->Id, GetFirstSchoolInMask(m_spellSchoolMask));
+
+        if (m_damage)
+        {
+            caster->CalculateSpellDamage(&damageInfo, m_damage, m_spellInfo, m_attackType);
+            unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
+            caster->DealDamageMods(damageInfo.target, damageInfo.damage, &damageInfo.absorb);
+            // Send log damage message to client
+            caster->SendSpellNonMeleeDamageLog(&damageInfo);
+        }
+
         procEx = createProcExtendMask(&damageInfo, missInfo);
         // Do triggers for unit (reflect triggers passed on hit phase for correct drop charge)
         if (m_canTrigger && missInfo != SPELL_MISS_REFLECT)
@@ -1082,10 +1101,12 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         ((Creature*)m_caster)->AI()->SpellHitTarget(unit, m_spellInfo);
 }
 
-void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
+void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected, int firstIndex, int lastIndex)
 {
     if (!unit || !effectMask)
         return;
+
+    bool rollEffectChances = false;
 
     Unit* realCaster = GetAffectiveCaster();
 
@@ -1150,6 +1171,8 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
                 unit->SetInCombatWith(realCaster);
                 realCaster->SetInCombatWith(unit);
 
+                rollEffectChances = true;
+
                 if (Player *attackedPlayer = unit->GetCharmerOrOwnerPlayerOrPlayerItself())
                     realCaster->SetContestedPvP(attackedPlayer);
             }
@@ -1200,10 +1223,13 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
     else
         m_spellAuraHolder = NULL;
 
-    for(int effectNumber = 0; effectNumber < MAX_EFFECT_INDEX; ++effectNumber)
+    for(int effectNumber = firstIndex; effectNumber < lastIndex; ++effectNumber)
     {
         if (effectMask & (1 << effectNumber))
         {
+            if (effectNumber > 0 && rollEffectChances && unit->RollSpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo)) == 1.0f) // Secondary effects
+                continue;
+
             HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
             if ( m_applyMultiplierMask & (1 << effectNumber) )
             {

@@ -1875,6 +1875,42 @@ uint32 Unit::CalcArmorReducedDamage(Unit* pVictim, const uint32 damage)
     return (newdamage > 1) ? newdamage : 1;
 }
 
+float Unit::RollSpellEffectResist(Unit *pCaster, SpellSchoolMask schoolMask)
+{
+    if (!pCaster || !isAlive())
+        return 0.0f;
+
+    // Magic damage, check for resists
+    if ((schoolMask & SPELL_SCHOOL_MASK_NORMAL)==0)
+    {
+        // Get base victim resistance for school
+        float tmpvalue2 = (float)GetResistance(GetFirstSchoolInMask(schoolMask));
+        // Ignore resistance by self SPELL_AURA_MOD_TARGET_RESISTANCE aura
+        tmpvalue2 += (float)pCaster->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_TARGET_RESISTANCE, schoolMask);
+
+        tmpvalue2 *= (float)(0.15f / getLevel());
+        if (tmpvalue2 < 0.0f)
+            tmpvalue2 = 0.0f;
+        if (tmpvalue2 > 0.75f)
+            tmpvalue2 = 0.75f;
+        uint32 ran = urand(0, 100);
+        float faq[4] = {24.0f,6.0f,4.0f,6.0f};
+        uint8 m = 0;
+        float Binom = 0.0f;
+        for (uint8 i = 0; i < 4; ++i)
+        {
+            Binom += 2400 *( powf(tmpvalue2, float(i)) * powf( (1-tmpvalue2), float(4-i)))/faq[i];
+            if (ran > Binom )
+                ++m;
+            else
+                break;
+        }
+        return m / 4;
+    }
+    else
+        return 0.0f;
+}
+
 void Unit::CalculateDamageAbsorbAndResist(Unit *pCaster, SpellSchoolMask schoolMask, DamageEffectType damagetype, const uint32 damage, uint32 *absorb, uint32 *resist, bool /*canReflect*/)
 {
     if(!pCaster || !isAlive() || !damage)

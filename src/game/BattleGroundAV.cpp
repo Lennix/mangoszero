@@ -212,6 +212,9 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
 
 void BattleGroundAV::UpdateScore(BattleGroundTeamIndex teamIdx, int32 points )
 {
+	// There are no scores in classic AV
+	return;
+
     // note: to remove reinforcements points must be negative, for adding reinforcements points must be positive
     MANGOS_ASSERT( teamIdx == BG_TEAM_ALLIANCE || teamIdx == BG_TEAM_HORDE);
     m_TeamScores[teamIdx] += points;                      // m_TeamScores is int32 - so no problems here
