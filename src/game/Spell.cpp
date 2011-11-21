@@ -4823,6 +4823,7 @@ SpellCastResult Spell::CheckCast(bool strict)
             case SPELL_EFFECT_LEAP:
             case SPELL_EFFECT_TELEPORT_UNITS_FACE_CASTER:
             {
+                /* Blink should work always
                 float dis = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[i]));
                 float fx = m_caster->GetPositionX() + dis * cos(m_caster->GetOrientation());
                 float fy = m_caster->GetPositionY() + dis * sin(m_caster->GetOrientation());
@@ -4835,6 +4836,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 // Control the caster to not climb or drop when +-fz > 8
                 if(!(fz <= caster_pos_z + 8 && fz >= caster_pos_z - 8))
                     return SPELL_FAILED_TRY_AGAIN;
+                */
 
                 // not allow use this effect at battleground until battleground start
                 if(m_caster->GetTypeId() == TYPEID_PLAYER)
