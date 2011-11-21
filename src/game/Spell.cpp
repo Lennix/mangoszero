@@ -1007,12 +1007,12 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         caster->DealDamageMods(damageInfo.target, damageInfo.damage, &damageInfo.absorb);
 
         // Check for full resist
-		if (damageInfo.resist && !damageInfo.damage)
-		{
-			// Set for current and later checks
+        if (damageInfo.resist && !damageInfo.damage)
+        {
+            // Set for current and later checks
             missInfo = SPELL_MISS_RESIST;
-			target->missCondition = SPELL_MISS_RESIST;
-		}
+            target->missCondition = SPELL_MISS_RESIST;
+        }
 
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
@@ -1201,7 +1201,7 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
         if (effectMask & (1 << effectNumber))
         {
             HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
-			if ( m_applyMultiplierMask & (1 << effectNumber) )
+            if ( m_applyMultiplierMask & (1 << effectNumber) )
             {
                 // Get multiplier
                 float multiplier = m_spellInfo->DmgMultiplier[effectNumber];
@@ -1334,14 +1334,14 @@ void Spell::HandleDelayedSpellLaunch(TargetInfo *target)
         }
 
         if (m_damage > 0)
-		{
+        {
             caster->CalculateSpellDamage(&damageInfo, m_damage, m_spellInfo, m_attackType);
-			// Check for full resist
-			unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
-			// We resisted the full damage
-			if (damageInfo.resist && !damageInfo.damage)
-				target->missCondition = SPELL_MISS_RESIST;
-		}
+            // Check for full resist
+            unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
+            // We resisted the full damage
+            if (damageInfo.resist && !damageInfo.damage)
+                target->missCondition = SPELL_MISS_RESIST;
+        }
     }
 
     target->damage = damageInfo.damage;
