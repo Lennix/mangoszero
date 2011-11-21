@@ -495,6 +495,7 @@ class Spell
         int32 m_damage;                                     // Damage   in effects count here
         int32 m_healing;                                    // Healing in effects count here
         int32 m_healthLeech;                                // Health leech in effects for all targets count here
+        int32 m_resisted;                                   // Resisted from m_damage
 
         //******************************************
         // Spell trigger system
@@ -553,7 +554,7 @@ class Spell
         void HandleDelayedSpellLaunch(TargetInfo *target);
         void InitializeDamageMultipliers();
         void ResetEffectDamageAndHeal();
-        void DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected = false, int firstIndex = 0, int lastIndex = MAX_EFFECT_INDEX);
+        void DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected = false);
         void DoAllEffectOnTarget(GOTargetInfo *target);
         void DoAllEffectOnTarget(ItemTargetInfo *target);
         bool IsAliveUnitPresentInTargetList();

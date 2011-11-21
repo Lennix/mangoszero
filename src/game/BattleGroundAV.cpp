@@ -630,9 +630,10 @@ void BattleGroundAV::FillInitialWorldStates(WorldPacket& data, uint32& count)
     if( m_Nodes[BG_AV_NODES_SNOWFALL_GRAVE].Owner == BG_AV_TEAM_NEUTRAL )   // cause neutral teams aren't handled generic
         FillInitialWorldState(data, count, AV_SNOWFALL_N, 1);
 
+	/* No scores in classic
     FillInitialWorldState(data, count, BG_AV_Alliance_Score, m_TeamScores[BG_TEAM_ALLIANCE]);
     FillInitialWorldState(data, count, BG_AV_Horde_Score,    m_TeamScores[BG_TEAM_HORDE]);
-    if( GetStatus() == STATUS_IN_PROGRESS )                 // only if game is running the teamscores are displayed
+ 	if( GetStatus() == STATUS_IN_PROGRESS )                 // only if game is running the teamscores are displayed
     {
         FillInitialWorldState(data, count, BG_AV_SHOW_A_SCORE, 1);
         FillInitialWorldState(data, count, BG_AV_SHOW_H_SCORE, 1);
@@ -641,7 +642,7 @@ void BattleGroundAV::FillInitialWorldStates(WorldPacket& data, uint32& count)
     {
         FillInitialWorldState(data, count, BG_AV_SHOW_A_SCORE, 0);
         FillInitialWorldState(data, count, BG_AV_SHOW_H_SCORE, 0);
-    }
+    }*/
 
     FillInitialWorldState(data, count, BG_AV_MineWorldStates[BG_AV_NORTH_MINE][m_Mine_Owner[BG_AV_NORTH_MINE]], 1);
     if (m_Mine_Owner[BG_AV_NORTH_MINE] != m_Mine_PrevOwner[BG_AV_NORTH_MINE])

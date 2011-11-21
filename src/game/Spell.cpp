@@ -870,12 +870,14 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     if (!unit)
         return;
 
+    if (m_spellInfo->speed == 0) // Calculate dmg for instant casts
+        HandleDelayedSpellLaunch(target);
+
     // Get original caster (if exist) and calculate damage/healing from him data
     Unit *real_caster = GetAffectiveCaster();
     // FIXME: in case wild GO heal/damage spells will be used target bonuses
     Unit *caster = real_caster ? real_caster : m_caster;
 
-    SpellMissInfo missInfo = target->missCondition;
     // Need init unitTarget by default unit (can changed in code on reflect)
     // Or on missInfo!=SPELL_MISS_NONE unitTarget undefined (but need in trigger subsystem)
     unitTarget = unit;
@@ -892,26 +894,36 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // for example caster bonus or animation,
     // except miss case where will assigned PROC_EX_* flags later
     if (((procAttacker | procVictim) & NEGATIVE_TRIGGER_MASK) &&
-        !(target->effectMask & m_negativeEffectMask) && missInfo == SPELL_MISS_NONE)
+        !(target->effectMask & m_negativeEffectMask) && target->missCondition == SPELL_MISS_NONE)
     {
         procAttacker = PROC_FLAG_NONE;
         procVictim   = PROC_FLAG_NONE;
     }
 
-    if (m_spellInfo->speed > 0)
-    {
-        // mark effects that were already handled in Spell::HandleDelayedSpellLaunch on spell launch as processed
-        for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
-            if (IsEffectHandledOnDelayedSpellLaunch(m_spellInfo, SpellEffectIndex(i)))
-                mask &= ~(1<<i);
+    // mark effects that were already handled in Spell::HandleDelayedSpellLaunch on spell launch as processed
+    for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
+        if (IsEffectHandledOnDelayedSpellLaunch(m_spellInfo, SpellEffectIndex(i)))
+            mask &= ~(1<<i);
 
-        // maybe used in effects that are handled on hit
-        m_damage += target->damage;
+    // Fill base damage struct (unitTarget - is real spell target)
+    SpellNonMeleeDamage damageInfo(caster, unitTarget, m_spellInfo->Id, GetFirstSchoolInMask(m_spellSchoolMask));
+
+    // We have calculated dmg in HandleDelayed, now calc absorbs before proccing effects
+    if (target->damage)
+    {
+        damageInfo.damage = target->damage;
+        damageInfo.HitInfo = target->HitInfo;
+        unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
+        if (!damageInfo.damage && damageInfo.resist)
+            target->missCondition = SPELL_MISS_RESIST;
+
+		m_damage = damageInfo.damage; // Maybe used in effects
     }
 
+    SpellMissInfo missInfo = target->missCondition;
+
     if (missInfo == SPELL_MISS_NONE)                        // In case spell hit target, do all effect on that target
-        if (m_spellInfo->speed == 0)                        // DoSpellHitOnUnit needed for speed = 0 to calculate dmg
-            DoSpellHitOnUnit(unit, mask, false, 0, 1);      // Only Handle the first effect
+        DoSpellHitOnUnit(unit, mask);
     else if (missInfo == SPELL_MISS_REFLECT)                // In case spell reflect from target, do all effect on caster (if hit)
     {
         if (target->reflectResult == SPELL_MISS_NONE)       // If reflected spell hit caster -> do all effect on him
@@ -944,12 +956,18 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         }
     }
 
+    // Add possible additional damage from effects
+    damageInfo.damage = m_damage;
+    if (m_resisted)
+    {
+        damageInfo.resist += m_resisted;
+        damageInfo.damage -= m_resisted;
+    }
+
     // All calculated do it!
     // Do healing and triggers
     if (m_healing)
     {
-        DoSpellHitOnUnit(unit, mask, false, 1, 3);
-
         bool crit = real_caster && real_caster->IsSpellCrit(unitTarget, m_spellInfo, m_spellSchoolMask);
         uint32 addhealth = m_healing;
         if (crit)
@@ -991,39 +1009,9 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
             unitTarget->getHostileRefManager().threatAssist(real_caster, float(gain) * 0.5f * sSpellMgr.GetSpellThreatMultiplier(m_spellInfo), m_spellInfo);
     }
     // Do damage and triggers
-    else if (m_damage)
+    else if (damageInfo.damage)
     {
-        // Fill base damage struct (unitTarget - is real spell target)
-        SpellNonMeleeDamage damageInfo(caster, unitTarget, m_spellInfo->Id, GetFirstSchoolInMask(m_spellSchoolMask));
-
-        if (m_spellInfo->speed > 0)
-        {
-            damageInfo.damage = m_damage;
-            damageInfo.HitInfo = target->HitInfo;
-        }
-        // Add bonuses and fill damageInfo struct
-        else
-            caster->CalculateSpellDamage(&damageInfo, m_damage, m_spellInfo, m_attackType);
-
-        unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
-
         caster->DealDamageMods(damageInfo.target, damageInfo.damage, &damageInfo.absorb);
-
-        // Check for full resist
-        if (damageInfo.resist && !damageInfo.damage)
-        {
-            // Set for current and later checks
-            missInfo = SPELL_MISS_RESIST;
-            target->missCondition = SPELL_MISS_RESIST;
-        }
-
-        if (missInfo == SPELL_MISS_NONE)
-        {
-            if (m_spellInfo->speed > 0)
-                DoSpellHitOnUnit(unit, mask);
-            else
-                DoSpellHitOnUnit(unit, mask, false, 1, 3); // Do the last hits
-        }
 
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
@@ -1063,20 +1051,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // Passive spell hits/misses or active spells only misses (only triggers if proc flags set)
     else if (procAttacker || procVictim)
     {
-        DoSpellHitOnUnit(unit, mask, false, 1, 3);
-
         // Fill base damage struct (unitTarget - is real spell target)
         SpellNonMeleeDamage damageInfo(caster, unitTarget, m_spellInfo->Id, GetFirstSchoolInMask(m_spellSchoolMask));
-
-        if (m_damage)
-        {
-            caster->CalculateSpellDamage(&damageInfo, m_damage, m_spellInfo, m_attackType);
-            unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
-            caster->DealDamageMods(damageInfo.target, damageInfo.damage, &damageInfo.absorb);
-            // Send log damage message to client
-            caster->SendSpellNonMeleeDamageLog(&damageInfo);
-        }
-
         procEx = createProcExtendMask(&damageInfo, missInfo);
         // Do triggers for unit (reflect triggers passed on hit phase for correct drop charge)
         if (m_canTrigger && missInfo != SPELL_MISS_REFLECT)
@@ -1101,7 +1077,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         ((Creature*)m_caster)->AI()->SpellHitTarget(unit, m_spellInfo);
 }
 
-void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected, int firstIndex, int lastIndex)
+void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
 {
     if (!unit || !effectMask)
         return;
@@ -1223,14 +1199,21 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected, in
     else
         m_spellAuraHolder = NULL;
 
-    for(int effectNumber = firstIndex; effectNumber < lastIndex; ++effectNumber)
+    for(int effectNumber = 0; effectNumber < MAX_EFFECT_INDEX; ++effectNumber)
     {
         if (effectMask & (1 << effectNumber))
         {
-            if (effectNumber > 0 && rollEffectChances && unit->RollSpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo)) == 1.0f) // Secondary effects
+            float resistPercent = 0.0f;
+            int32 origDamage = m_damage;
+            if (rollEffectChances)
+                resistPercent = unit->RollSpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo));
+
+            if (resistPercent == 1.0f) // Effect fully resisted
                 continue;
 
             HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
+            if (resistPercent > 0.0f && origDamage != m_damage)
+                m_resisted += (m_damage - origDamage) * resistPercent;
             if ( m_applyMultiplierMask & (1 << effectNumber) )
             {
                 // Get multiplier
@@ -6355,4 +6338,5 @@ void Spell::ResetEffectDamageAndHeal()
 {
     m_damage = 0;
     m_healing = 0;
+    m_resisted = 0;
 }
