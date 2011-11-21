@@ -909,8 +909,9 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         m_damage += target->damage;
     }
 
-    if (missInfo==SPELL_MISS_NONE)                          // In case spell hit target, do all effect on that target
-        DoSpellHitOnUnit(unit, mask);
+    if (missInfo == SPELL_MISS_NONE)                        // In case spell hit target, do all effect on that target
+        if (m_spellInfo->speed == 0)                        // DoSpellHitOnUnit needed for speed = 0 to calculate dmg
+            DoSpellHitOnUnit(unit, mask);
     else if (missInfo == SPELL_MISS_REFLECT)                // In case spell reflect from target, do all effect on caster (if hit)
     {
         if (target->reflectResult == SPELL_MISS_NONE)       // If reflected spell hit caster -> do all effect on him
@@ -1013,6 +1014,9 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
             missInfo = SPELL_MISS_RESIST;
             target->missCondition = SPELL_MISS_RESIST;
         }
+
+        if (m_spellInfo->speed > 0 && missInfo == SPELL_MISS_NONE)
+            DoSpellHitOnUnit(unit, mask);
 
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
@@ -1334,14 +1338,7 @@ void Spell::HandleDelayedSpellLaunch(TargetInfo *target)
         }
 
         if (m_damage > 0)
-        {
             caster->CalculateSpellDamage(&damageInfo, m_damage, m_spellInfo, m_attackType);
-            // Check for full resist
-            unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
-            // We resisted the full damage
-            if (damageInfo.resist && !damageInfo.damage)
-                target->missCondition = SPELL_MISS_RESIST;
-        }
     }
 
     target->damage = damageInfo.damage;
