@@ -495,7 +495,6 @@ class Spell
         int32 m_damage;                                     // Damage   in effects count here
         int32 m_healing;                                    // Healing in effects count here
         int32 m_healthLeech;                                // Health leech in effects for all targets count here
-        int32 m_resisted;                                   // Resisted from m_damage
 
         //******************************************
         // Spell trigger system

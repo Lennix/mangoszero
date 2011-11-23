@@ -1875,6 +1875,33 @@ uint32 Unit::CalcArmorReducedDamage(Unit* pVictim, const uint32 damage)
     return (newdamage > 1) ? newdamage : 1;
 }
 
+bool Unit::RollBinarySpellEffectResist(Unit *pCaster, SpellSchoolMask schoolMask)
+{
+    if (!pCaster || !isAlive())
+        return false;
+
+    // Magic damage, check for resists
+    if ((schoolMask & SPELL_SCHOOL_MASK_NORMAL)==0)
+    {
+        // Get base victim resistance for school
+        float tmpvalue2 = (float)GetResistance(GetFirstSchoolInMask(schoolMask));
+        // Ignore resistance by self SPELL_AURA_MOD_TARGET_RESISTANCE aura
+        tmpvalue2 += (float)pCaster->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_TARGET_RESISTANCE, schoolMask);
+
+        tmpvalue2 *= (float)(0.15f / getLevel());
+        if (tmpvalue2 < 0.0f)
+            tmpvalue2 = 0.0f;
+        if (tmpvalue2 > 0.75f)
+            tmpvalue2 = 0.75f;
+
+        uint32 ran = urand(0, 100);
+
+        return ran > (tmpvalue2*100);
+    }
+    else
+        return false;
+}
+
 float Unit::RollSpellEffectResist(Unit *pCaster, SpellSchoolMask schoolMask)
 {
     if (!pCaster || !isAlive())
@@ -1893,8 +1920,10 @@ float Unit::RollSpellEffectResist(Unit *pCaster, SpellSchoolMask schoolMask)
             tmpvalue2 = 0.0f;
         if (tmpvalue2 > 0.75f)
             tmpvalue2 = 0.75f;
+
         uint32 ran = urand(0, 100);
-        float faq[4] = {24.0f,6.0f,4.0f,6.0f};
+
+		float faq[4] = {24.0f,6.0f,4.0f,6.0f};
         uint8 m = 0;
         float Binom = 0.0f;
         for (uint8 i = 0; i < 4; ++i)

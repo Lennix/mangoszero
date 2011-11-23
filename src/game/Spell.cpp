@@ -917,7 +917,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         if (!damageInfo.damage && damageInfo.resist)
             target->missCondition = SPELL_MISS_RESIST;
 
-		m_damage = damageInfo.damage; // Maybe used in effects
+        m_damage = damageInfo.damage; // Maybe used in effects
     }
 
     SpellMissInfo missInfo = target->missCondition;
@@ -958,13 +958,8 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
     // Add possible additional damage from effects
     damageInfo.damage = m_damage;
-    if (m_resisted)
-    {
-        damageInfo.resist += m_resisted;
-        damageInfo.damage -= m_resisted;
-    }
 
-    // All calculated do it!
+	// All calculated do it!
     // Do healing and triggers
     if (m_healing)
     {
@@ -1203,17 +1198,10 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
     {
         if (effectMask & (1 << effectNumber))
         {
-            float resistPercent = 0.0f;
-            int32 origDamage = m_damage;
-            if (rollEffectChances)
-                resistPercent = unit->RollSpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo));
+			if (rollEffectChances && !unit->RollBinarySpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo)))
+				continue;
 
-            if (resistPercent == 1.0f) // Effect fully resisted
-                continue;
-
-            HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
-            if (resistPercent > 0.0f && origDamage != m_damage)
-                m_resisted += (m_damage - origDamage) * resistPercent;
+			HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
             if ( m_applyMultiplierMask & (1 << effectNumber) )
             {
                 // Get multiplier
@@ -6338,5 +6326,4 @@ void Spell::ResetEffectDamageAndHeal()
 {
     m_damage = 0;
     m_healing = 0;
-    m_resisted = 0;
 }
