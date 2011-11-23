@@ -4522,28 +4522,41 @@ void Spell::EffectLeapForward(SpellEffectIndex eff_idx)
     if (unitTarget->IsTaxiFlying())
         return;
 
-    if (m_spellInfo->rangeIndex == 1)                       //self range
+    if ( m_spellInfo->rangeIndex == 1)                       //self range
     {
+        // max distance of spell
         float dis = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[eff_idx]));
 
-        // before caster
+        // after caster
         float fx, fy, fz;
+
+        // before caster
         float ox, oy, oz;
         unitTarget->GetPosition(ox, oy, oz);
 
-        // standing on an edge to prevent caster from blinking over the edge
-        for(int i = 0; i < dis; i++)
-        {
+        // loop through dis and reduce by 1 if fz is not correct
+        for (int i = 0; i < dis; i++){
+
             fx = ox + (dis - i - 1) * cos(m_caster->GetOrientation());
             fy = oy + (dis - i - 1) * sin(m_caster->GetOrientation());
+            // look from 8y higher to prevent ppl from blinking into lower stages
             fz = m_caster->GetTerrain()->GetHeight(fx, fy, oz + 8.0f, true);
 
-            if (!(fz <= INVALID_HEIGHT && fz < (oz - 8.0f) && fz <= (oz + 8.0f)))
+            // prevent caster from blinking to high or to low and stop him at an edge
+            if (fz >= oz - 8.0f && fz <= oz + 8.0f)
+            {
                 break;
+            } 
+
+            // prevent blink to fail in houses with ceilling lower then 8y + 2y above caster
+            fz = m_caster->GetTerrain()->GetHeight(fx, fy, oz + 2.0f, true);
+            if (fz >= oz - 4.0f && fz <= oz + 4.0f)
+            {
+                break;
+            } 
         }
-        
-        // getObjectHitPos overwrite last args in any result case
-        float fx2, fy2, fz2;                                
+
+        float fx2, fy2, fz2;                                // getObjectHitPos overwrite last args in any result case
         if (VMAP::VMapFactory::createOrGetVMapManager()->getObjectHitPos(unitTarget->GetMapId(), ox,oy,oz+0.5f, fx,fy,fz+0.5f,fx2,fy2,fz2, -0.5f))
         {
             fx = fx2;
@@ -4552,9 +4565,11 @@ void Spell::EffectLeapForward(SpellEffectIndex eff_idx)
             unitTarget->UpdateAllowedPositionZ(fx, fy, fz);
         }
 
-        // prevent caster from blinking to ground from more then 8y in air
-        if (fz <= (oz - 8.0f))
+        // blink in midair causes caster to blink on the same spot
+        if (fz < oz - 8.0f)
             fz = oz;
+
+        // 0.5 tolerance to prevent falling
         fz += 0.5f;
 
         unitTarget->NearTeleportTo(fx, fy, fz, unitTarget->GetOrientation(), unitTarget == m_caster);
