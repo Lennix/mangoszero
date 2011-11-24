@@ -285,6 +285,12 @@ void BattleGroundAV::StartingEventCloseDoors()
 void BattleGroundAV::StartingEventOpenDoors()
 {
     OpenDoorEvent(BG_EVENT_DOOR);
+
+	for (BG_AV_Nodes node = BG_AV_NODES_FIRSTAID_STATION; node < BG_AV_NODES_MAX; ++node)
+    {
+		UpdateWorldState(BG_AV_NodeWorldStates[node][GetWorldStateType(m_Nodes[node].State,m_Nodes[node].Owner)], 1);
+		//UpdateNodeWorldState((BG_AV_Nodes)i);
+    }
 }
 
 void BattleGroundAV::AddPlayer(Player *plr)
@@ -656,7 +662,7 @@ void BattleGroundAV::FillInitialWorldStates(WorldPacket& data, uint32& count)
 void BattleGroundAV::UpdateNodeWorldState(BG_AV_Nodes node)
 {
     UpdateWorldState(BG_AV_NodeWorldStates[node][GetWorldStateType(m_Nodes[node].State,m_Nodes[node].Owner)], 1);
-    if( m_Nodes[node].PrevOwner == BG_AV_TEAM_NEUTRAL )     // currently only snowfall is supported as neutral node
+	if( m_Nodes[node].PrevOwner == BG_AV_TEAM_NEUTRAL )     // currently only snowfall is supported as neutral node
         UpdateWorldState(AV_SNOWFALL_N, 0);
     else
         UpdateWorldState(BG_AV_NodeWorldStates[node][GetWorldStateType(m_Nodes[node].PrevState,m_Nodes[node].PrevOwner)], 0);
@@ -758,7 +764,6 @@ void BattleGroundAV::InitNode(BG_AV_Nodes node, BattleGroundAVTeamIndex teamIdx,
     m_Nodes[node].PrevOwner  = teamIdx;
     m_Nodes[node].State      = POINT_CONTROLLED;
     m_Nodes[node].PrevState  = m_Nodes[node].State;
-    m_Nodes[node].State      = POINT_CONTROLLED;
     m_Nodes[node].Timer      = 0;
     m_Nodes[node].Tower      = tower;
     m_ActiveEvents[node] = teamIdx * BG_AV_MAX_STATES + m_Nodes[node].State;

@@ -209,7 +209,7 @@ enum BattleGroundAVTeamIndex
 {
     BG_AV_TEAM_ALLIANCE        = BG_TEAM_ALLIANCE,
     BG_AV_TEAM_HORDE           = BG_TEAM_HORDE,
-    BG_AV_TEAM_NEUTRAL         = 2,                         // this is the neutral owner of snowfall
+    BG_AV_TEAM_NEUTRAL         = 2                         // this is the neutral owner of snowfall
 };
 
 #define BG_AV_TEAMS_COUNT 3
@@ -251,7 +251,7 @@ const uint32 BG_AV_NodeWorldStates[BG_AV_NODES_MAX][4] = {
     // Frostwolf East
     {1388,1366,1393,1383},
     // Frostwolf West
-    {1387,1365,1392,1382},
+    {1387,1365,1392,1382}
 };
 
 // through the armorscap-quest 4 different gravedefender exist

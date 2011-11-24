@@ -1316,25 +1316,18 @@ void BattleGround::SpawnEvent(uint8 event1, uint8 event2, bool spawn)
 
 void BattleGround::SpawnBGObject(ObjectGuid guid, uint32 respawntime)
 {
-    Map* map = GetBgMap();
-
-    GameObject *obj = map->GetGameObject(guid);
-    if(!obj)
-        return;
-    if (respawntime == 0)
-    {
-        //we need to change state from GO_JUST_DEACTIVATED to GO_READY in case battleground is starting again
-        if (obj->getLootState() == GO_JUST_DEACTIVATED)
-            obj->SetLootState(GO_READY);
-        obj->SetRespawnTime(0);
-        map->Add(obj);
-    }
-    else
-    {
-        map->Add(obj);
-        obj->SetRespawnTime(respawntime);
-        obj->SetLootState(GO_JUST_DEACTIVATED);
-    }
+    if(Map* map = GetBgMap())
+		if(GameObject *obj = map->GetGameObject(guid))
+		{
+			if (respawntime)
+				obj->SetLootState(GO_JUST_DEACTIVATED);
+			else
+				//we need to change state from GO_JUST_DEACTIVATED to GO_READY in case battleground is starting again
+				if (obj->getLootState() == GO_JUST_DEACTIVATED)
+					obj->SetLootState(GO_READY);
+			obj->SetRespawnTime(respawntime);
+			map->Add(obj);
+		}
 }
 
 void BattleGround::SpawnBGCreature(ObjectGuid guid, uint32 respawntime)
