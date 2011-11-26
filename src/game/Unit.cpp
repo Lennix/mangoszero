@@ -1878,7 +1878,7 @@ uint32 Unit::CalcArmorReducedDamage(Unit* pVictim, const uint32 damage)
 bool Unit::RollBinarySpellEffectResist(Unit *pCaster, SpellSchoolMask schoolMask)
 {
     if (!pCaster || !isAlive())
-        return false;
+        return true;
 
     // Magic damage, check for resists
     if ((schoolMask & SPELL_SCHOOL_MASK_NORMAL)==0)
@@ -1899,7 +1899,7 @@ bool Unit::RollBinarySpellEffectResist(Unit *pCaster, SpellSchoolMask schoolMask
         return ran > (tmpvalue2*100);
     }
     else
-        return false;
+        return true;
 }
 
 float Unit::RollSpellEffectResist(Unit *pCaster, SpellSchoolMask schoolMask)
