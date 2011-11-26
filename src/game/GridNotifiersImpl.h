@@ -80,7 +80,7 @@ inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
         {
             // Try to use AI method
             if (c2->AI() && c2->AI()->IsVisible(c1Target) && !c2->IsInEvadeMode())
-                c2->AI()->MoveInLineOfSight(c1Target);
+                c2->AI()->MoveInLineOfSightIgnoringRange(c1Target);
         }
     }
 }

@@ -86,6 +86,8 @@ class MANGOS_DLL_SPEC CreatureAI
          */
         virtual void MoveInLineOfSight(Unit* pWho) {}
 
+        virtual void MoveInLineOfSightIgnoringRange(Unit* pWho) {}
+
         /**
          * Called for reaction at enter to combat if not in combat yet
          * @param pEnemy Unit* of whom the Creature enters combat with, can be NULL

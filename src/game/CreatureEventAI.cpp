@@ -1113,6 +1113,55 @@ void CreatureEventAI::MoveInLineOfSight(Unit *who)
     }
 }
 
+void CreatureEventAI::MoveInLineOfSightIgnoringRange(Unit *who)
+{
+    if (!who)
+        return;
+
+    //Check for OOC LOS Event
+    if (!m_bEmptyList && !m_creature->getVictim())
+    {
+        for (CreatureEventAIList::iterator itr = m_CreatureEventAIList.begin(); itr != m_CreatureEventAIList.end(); ++itr)
+        {
+            if ((*itr).Event.event_type == EVENT_T_OOC_LOS)
+            {
+                //can trigger if closer than fMaxAllowedRange
+                float fMaxAllowedRange = (float)(*itr).Event.ooc_los.maxRange;
+
+                //if range is ok and we are actually in LOS
+                if (m_creature->IsWithinDistInMap(who, fMaxAllowedRange) && m_creature->IsWithinLOSInMap(who))
+                {
+                    //if friendly event&&who is not hostile OR hostile event&&who is hostile
+                    if (((*itr).Event.ooc_los.noHostile && !m_creature->IsHostileTo(who)) ||
+                        ((!(*itr).Event.ooc_los.noHostile) && m_creature->IsHostileTo(who)))
+                        ProcessEvent(*itr, who);
+                }
+            }
+        }
+    }
+
+    if ((m_creature->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_AGGRO) || m_creature->IsNeutralToAll())
+        return;
+
+    if (m_creature->CanInitiateAttack() && who->isTargetableForAttack() &&
+        m_creature->IsHostileTo(who) && who->isInAccessablePlaceFor(m_creature))
+    {
+        if (!m_creature->CanFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
+            return;
+
+        if (!m_creature->getVictim())
+        {
+            AttackStart(who);
+            who->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
+        }
+        else if (m_creature->GetMap()->IsDungeon())
+        {
+            m_creature->AddThreat(who);
+            who->SetInCombatWith(m_creature);
+        }
+    }
+}
+
 void CreatureEventAI::SpellHit(Unit* pUnit, const SpellEntry* pSpell)
 {
 
