@@ -71,6 +71,17 @@ inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
     {
         if (c2->AI() && c2->AI()->IsVisible(c1) && !c2->IsInEvadeMode())
             c2->AI()->MoveInLineOfSight(c1);
+
+        if (c1->getThreatManager().isThreatListEmpty() || c1->getThreatManager().getCurrentVictim() == NULL)
+            return;
+
+        // Lets check if c1 has a current target
+        if(Unit* c1Target = c1->getThreatManager().getCurrentVictim()->getTarget())
+        {
+            // Try to use AI method
+            if (c2->AI() && c2->AI()->IsVisible(c1Target) && !c2->IsInEvadeMode())
+                c2->AI()->MoveInLineOfSight(c1Target);
+        }
     }
 }
 
