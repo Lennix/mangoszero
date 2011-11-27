@@ -78,7 +78,7 @@ inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
         if(Unit* c1Target = c1->getVictim())
         {
             // Try to use AI method
-            if (c2->AI() && !c2->IsInEvadeMode() && c2->IsWithinDistInMap(c1, 12.5f, false))
+            if (c2->AI() && !c2->IsInEvadeMode() && c2->IsWithinLOSInMap(c1) && c2->IsWithinDistInMap(c1, 12.5f, false))
                 c2->AI()->MoveInLineOfSightIgnoringRange(c1Target);
         }
     }
