@@ -2382,12 +2382,18 @@ void Spell::EffectDispel(SpellEffectIndex eff_idx)
             // Base dispel chance
             // TODO: possible chance depend from spell level??
             int32 miss_chance = 0;
+
             // Apply dispel mod from aura caster
             if (Unit *caster = holder->GetCaster())
             {
                 if ( Player* modOwner = caster->GetSpellModOwner() )
                     modOwner->ApplySpellMod(spellInfo->Id, SPELLMOD_RESIST_DISPEL_CHANCE, miss_chance, this);
             }
+
+            // Item Immature Venom Sac should only dispell Mothers Milk (16468)
+            if (m_spellInfo->Id == 16537 && spellInfo->Id != 16468)
+                miss_chance = 100;
+
             // Try dispel
             if (roll_chance_i(miss_chance))
                 fail_list.push_back(spellInfo->Id);
