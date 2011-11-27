@@ -61,25 +61,24 @@ inline void PlayerCreatureRelocationWorker(Player* pl, Creature* c)
 
 inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
 {
+    // Creature which triggered the event
     if (!c1->hasUnitState(UNIT_STAT_LOST_CONTROL))
     {
         if (c1->AI() && c1->AI()->IsVisible(c2) && !c1->IsInEvadeMode())
             c1->AI()->MoveInLineOfSight(c2);
     }
 
+    // Notified creature
     if (!c2->hasUnitState(UNIT_STAT_LOST_CONTROL))
     {
         if (c2->AI() && c2->AI()->IsVisible(c1) && !c2->IsInEvadeMode())
             c2->AI()->MoveInLineOfSight(c1);
 
-        if (c1->getThreatManager().isThreatListEmpty() || c1->getThreatManager().getCurrentVictim() == NULL)
-            return;
-
         // Lets check if c1 has a current target
-        if(Unit* c1Target = c1->getThreatManager().getCurrentVictim()->getTarget())
+        if(Unit* c1Target = c1->getVictim())
         {
             // Try to use AI method
-            if (c2->AI() && c2->AI()->IsVisible(c1Target) && !c2->IsInEvadeMode())
+            if (c2->AI() && !c2->IsInEvadeMode() && c2->IsWithinLOSInMap(c1Target))
                 c2->AI()->MoveInLineOfSightIgnoringRange(c1Target);
         }
     }
@@ -122,7 +121,7 @@ inline void MaNGOS::CreatureRelocationNotifier::Visit(CreatureMapType &m)
     {
         Creature* c = iter->getSource();
         if (c != &i_creature && c->isAlive())
-            CreatureCreatureRelocationWorker(c, &i_creature);
+            CreatureCreatureRelocationWorker(&i_creature, c);
     }
 }
 

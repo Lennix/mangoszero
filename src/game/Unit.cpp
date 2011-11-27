@@ -9464,7 +9464,8 @@ public:
 
     bool Execute(uint64 /*e_time*/, uint32 /*p_time*/)
     {
-        float radius = MAX_CREATURE_ATTACK_RADIUS * sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO);
+        //float radius = MAX_CREATURE_ATTACK_RADIUS * sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO);
+        float radius = sWorld.getConfig(CONFIG_FLOAT_CREATURE_FAMILY_ASSISTANCE_RADIUS);
         if (m_owner.GetTypeId() == TYPEID_PLAYER)
         {
             MaNGOS::PlayerRelocationNotifier notify((Player&)m_owner);

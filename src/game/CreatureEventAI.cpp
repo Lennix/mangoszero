@@ -1146,9 +1146,6 @@ void CreatureEventAI::MoveInLineOfSightIgnoringRange(Unit *who)
     if (m_creature->CanInitiateAttack() && who->isTargetableForAttack() &&
         m_creature->IsHostileTo(who) && who->isInAccessablePlaceFor(m_creature))
     {
-        if (!m_creature->CanFly() && m_creature->GetDistanceZ(who) > CREATURE_Z_ATTACK_RANGE)
-            return;
-
         if (!m_creature->getVictim())
         {
             AttackStart(who);
