@@ -6645,19 +6645,22 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType)
         }
 
         // not allow proc extra attack spell at extra attack
-        if( m_extraAttacks && IsSpellHaveEffect(spellInfo,SPELL_EFFECT_ADD_EXTRA_ATTACKS) )
+        if (m_extraAttacks && IsSpellHaveEffect(spellInfo,SPELL_EFFECT_ADD_EXTRA_ATTACKS))
             return;
 
         float chance = (float)spellInfo->procChance;
 
-        if(spellData.SpellPPMRate)
+        if (spellData.SpellPPMRate)
         {
             uint32 WeaponSpeed = proto->Delay;
             chance = GetPPMProcChance(WeaponSpeed, spellData.SpellPPMRate);
         }
         else if(chance > 100.0f)
         {
-            chance = GetWeaponProcChance();
+            if (sSpellMgr.GetSpellProcEvent(spellData.SpellId) && sSpellMgr.GetSpellProcEvent(spellData.SpellId)->customChance)
+				chance = sSpellMgr.GetSpellProcEvent(spellData.SpellId)->customChance;
+			else
+				chance = GetWeaponProcChance();
         }
 
         if (roll_chance_f(chance))
