@@ -8687,7 +8687,9 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
 
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
 
+        // Reset old movement
         GetMotionMaster()->MovementExpired(false);
+
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
         Unit* caster = IsInWorld() ?  GetMap()->GetUnit(casterGuid) : NULL;
@@ -8697,6 +8699,10 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
     else
     {
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
+
+        // Lets check if we have a fear effect active
+        if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
+            return;
 
         GetMotionMaster()->MovementExpired(false);
 
@@ -8728,13 +8734,20 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
     {
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
+        // Reset old movement
+        GetMotionMaster()->MovementExpired(false);
+
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
         GetMotionMaster()->MoveConfused();
     }
     else
     {
-        RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
+		RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
+
+        // Lets check if we have a fear effect active
+        if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
+            return;
 
         GetMotionMaster()->MovementExpired(false);
 
