@@ -8701,7 +8701,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
 
         // Lets check if we have a fear effect active
-        if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
+        if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED) || HasAuraType(SPELL_AURA_MOD_FEAR))
             return;
 
         GetMotionMaster()->MovementExpired(false);
@@ -8746,7 +8746,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
 		RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
         // Lets check if we have a fear effect active
-        if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
+        if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING) || HasAuraType(SPELL_AURA_MOD_CONFUSE))
             return;
 
         GetMotionMaster()->MovementExpired(false);
