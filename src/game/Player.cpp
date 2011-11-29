@@ -6625,6 +6625,11 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType)
     if (!Target || Target == this )
         return;
 
+    // don't cast item procs on harmstring
+    if (Spell* spell = GetCurrentSpell(CurrentSpellTypes(CURRENT_MELEE_SPELL)))
+        if (spell->m_spellInfo->SpellIconID == 23 && spell->m_spellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR)
+            return;
+
     for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
     {
         _Spell const& spellData = proto->Spells[i];
