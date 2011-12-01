@@ -3459,18 +3459,13 @@ void Spell::SendInterrupted(uint8 result)
 {
     WorldPacket data(SMSG_SPELL_FAILURE, (8+4+1));
     data << m_caster->GetPackGUID();
-	data << uint8(0);
     data << m_spellInfo->Id;
     data << result;
     m_caster->SendMessageToSet(&data, true);
 
-    data.Initialize(SMSG_SPELL_GO, 53);                // guess size
+	data.Initialize(SMSG_SPELL_FAILED_OTHER, (8+4));
     data << m_caster->GetPackGUID();
-    data << m_caster->GetPackGUID();
-    data << uint32(m_spellInfo->Id);                   // spellId
-    data << uint16(CAST_FLAG_UNKNOWN9);                // cast flags
-    WriteSpellGoTargets(&data);
-    data << m_targets;
+    data << m_spellInfo->Id;
     m_caster->SendMessageToSet(&data, true);
 }
 
