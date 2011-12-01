@@ -2647,22 +2647,8 @@ void Aura::HandleModCharm(bool apply, bool Real)
 
         target->CombatStop(true);
 
-        // Exception for Cause Insanity / Will of Hakkar / Chromatic Mutation / Arugal's Curse
-        if ((GetId() == 24327 || GetId() == 24178 || GetId() == 23174 || GetId() == 7621) && target->GetTypeId() == TYPEID_PLAYER)
-        {
-            ((Player*)target)->SetClientControl(target, !apply);
-            target->getHostileRefManager().setOnlineOfflineState(!apply);
-            if (Unit* newTarget = target->SelectRandomUnfriendlyTarget(caster, 50.0f))
-            {
-                target->GetMotionMaster()->MoveChase(newTarget);
-                target->Attack(newTarget, true);
-            }
-        }
-        else
-        {
-            target->DeleteThreatList();
-            target->getHostileRefManager().deleteReferences();
-        }
+        target->DeleteThreatList();
+        target->getHostileRefManager().deleteReferences();
 
         if(target->GetTypeId() == TYPEID_UNIT)
         {
@@ -2739,17 +2725,8 @@ void Aura::HandleModCharm(bool apply, bool Real)
 
         target->CombatStop(true);
 
-        // Exception for Cause Insanity / Will of Hakkar / Chromatic Mutation / Arugal's Curse
-        if ((GetId() == 24327 || GetId() == 24178 || GetId() == 23174 || GetId() == 7621) && target->GetTypeId() == TYPEID_PLAYER)
-        {
-            target->getHostileRefManager().setOnlineOfflineState(!apply);
-            ((Player*)target)->SetClientControl(target, !apply);
-        }
-        else
-        {
-            target->DeleteThreatList();
-            target->getHostileRefManager().deleteReferences();
-        }
+        target->DeleteThreatList();
+        target->getHostileRefManager().deleteReferences();
 
         if(target->GetTypeId() == TYPEID_UNIT)
         {
@@ -2758,6 +2735,9 @@ void Aura::HandleModCharm(bool apply, bool Real)
                 ((Creature*)target)->AI()->AttackedBy(caster);
         }
     }
+
+    if(target->GetTypeId() == TYPEID_PLAYER)
+        ((Player*)target)->SetCharmed(apply, GetCasterGUID(), GetId());
 }
 
 void Aura::HandleModConfuse(bool apply, bool Real)

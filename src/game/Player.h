@@ -1617,6 +1617,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         }
 
         void SetMovement(PlayerMovementType pType);
+        void SetCharmed(bool apply, uint64 castGUID, uint32 spellID);
 
         void JoinedChannel(Channel *c);
         void LeftChannel(Channel *c);
