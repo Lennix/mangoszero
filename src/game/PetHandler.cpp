@@ -224,12 +224,16 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
 
             if (result == SPELL_CAST_OK)
             {
+                unit_target = spell->m_targets.getUnitTarget();
+
+                // Check AutoCast criteria to prevent spell spamming
+                if(!spell->CanAutoCast(unit_target))
+                    return;
+
                 ((Creature*)pet)->AddCreatureSpellCooldown(spellid);
 
                 if (((Creature*)pet)->IsPet())
                     ((Pet*)pet)->CheckLearning(spellid);
-
-                unit_target = spell->m_targets.getUnitTarget();
 
                 // 10% chance to play special pet attack talk, else growl
                 // actually this only seems to happen on special spells, fire shield for imp, torment for voidwalker, but it's stupid to check every spell
