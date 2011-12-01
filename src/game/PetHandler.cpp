@@ -225,6 +225,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
             if (result == SPELL_CAST_OK)
             {
                 ((Creature*)pet)->AddCreatureSpellCooldown(spellid);
+
                 if (((Creature*)pet)->IsPet())
                     ((Pet*)pet)->CheckLearning(spellid);
 

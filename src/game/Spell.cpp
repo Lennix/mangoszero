@@ -6287,7 +6287,13 @@ void Spell::TriggerGlobalCooldown()
 {
     int32 gcd = m_spellInfo->StartRecoveryTime;
     if (!gcd)
-        return;
+	{
+		// Set 1,5 sec gcd if we're controlled (workaround for spell spamming)
+		if (m_caster->GetCharmInfo())
+			gcd = 1500;
+		else
+			return;
+	}
 
     // global cooldown can't leave range 1..1.5 secs (if it it)
     // exist some spells (mostly not player directly casted) that have < 1 sec and > 1.5 sec global cooldowns

@@ -235,7 +235,7 @@ const uint32 ItemQualityColors[MAX_ITEM_QUALITY] = {
 #define SPELL_ATTR_PASSIVE                        0x00000040            // 6 Passive spell
 #define SPELL_ATTR_UNK7                           0x00000080            // 7 can't be linked in chat?
 #define SPELL_ATTR_UNK8                           0x00000100            // 8 hide created item in tooltip (for effect=24)
-#define SPELL_ATTR_UNK9                           0x00000200            // 9
+#define SPELL_ATTR_START_PERIODIC_AT_APPLY        0x00000200            // 9
 #define SPELL_ATTR_ON_NEXT_SWING_2                0x00000400            // 10 on next swing 2
 #define SPELL_ATTR_UNK11                          0x00000800            // 11
 #define SPELL_ATTR_DAYTIME_ONLY                   0x00001000            // 12 only useable at daytime, not set in 2.4.2
