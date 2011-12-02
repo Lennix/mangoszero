@@ -3462,11 +3462,18 @@ void Spell::SendInterrupted(uint8 result)
     data << m_spellInfo->Id;
     data << result;
     m_caster->SendMessageToSet(&data, true);
-
-	data.Initialize(SMSG_SPELL_FAILED_OTHER, (8+4));
+	
+    data.Initialize(SMSG_SPELL_GO, 53);                // guess size
     data << m_caster->GetPackGUID();
-    data << m_spellInfo->Id;
-    m_caster->SendMessageToSet(&data, true);
+	data << m_caster->GetPackGUID();
+	data << uint32(m_spellInfo->Id);                   // spellId
+	data << uint16(CAST_FLAG_UNKNOWN9);                // cast flags
+	// Spell GO targets
+	data << uint8(0);
+	data << uint8(0);
+	SpellCastTargets targets;
+	data << targets;
+    m_caster->SendMessageToSet(&data, false);
 }
 
 void Spell::SendChannelUpdate(uint32 time)
