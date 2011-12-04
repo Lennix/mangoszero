@@ -284,7 +284,28 @@ void LoadDBCStores(const std::string& dataPath)
     {
         SpellEntry const * spell = sSpellStore.LookupEntry(i);
         if(spell && spell->Category)
+        {
             sSpellCategoryStore[spell->Category].insert(i);
+            if(spell->SpellFamilyName == SPELLFAMILY_MAGE)
+            {
+                SpellEntry* notConstSpell = (SpellEntry*)spell;
+                switch(notConstSpell->Id)
+                {
+                    // Frost nova and blast wave all ranks
+                    case 122:
+                    case 865:
+                    case 6131:
+                    case 10230:
+                    case 11113:
+                    case 13018:
+                    case 13019:
+                    case 13020:
+                    case 13021:
+                        notConstSpell->speed = 15.0f;
+                    break;
+                }
+            }
+        }
 
         // DBC not support uint64 fields but SpellEntry have SpellFamilyFlags mapped at 2 uint32 fields
         // uint32 field already converted to bigendian if need, but must be swapped for correct uint64 bigendian view
