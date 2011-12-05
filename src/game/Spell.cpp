@@ -911,6 +911,16 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // We have calculated dmg in HandleDelayed, now calc absorbs before proccing effects
     if (target->damage)
     {
+		damageInfo.damage = target->damage;
+        damageInfo.HitInfo = target->HitInfo;
+        unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
+        if (!damageInfo.damage && damageInfo.resist)
+            target->missCondition = SPELL_MISS_RESIST;
+
+        m_damage = damageInfo.damage; // Maybe used in effects
+    }
+	else
+	{
 		// refund energe and rage on dodge, parry and block
 		if ((target->missCondition == SPELL_MISS_DODGE || 
 			target->missCondition == SPELL_MISS_PARRY || 
@@ -927,15 +937,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 					break;
 			}
 		}
-
-        damageInfo.damage = target->damage;
-        damageInfo.HitInfo = target->HitInfo;
-        unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
-        if (!damageInfo.damage && damageInfo.resist)
-            target->missCondition = SPELL_MISS_RESIST;
-
-        m_damage = damageInfo.damage; // Maybe used in effects
-    }
+	}
 
     SpellMissInfo missInfo = target->missCondition;
 
