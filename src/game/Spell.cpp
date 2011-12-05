@@ -911,6 +911,23 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     // We have calculated dmg in HandleDelayed, now calc absorbs before proccing effects
     if (target->damage)
     {
+		// refund energe and rage on dodge, parry and block
+		if ((target->missCondition == SPELL_MISS_DODGE || 
+			target->missCondition == SPELL_MISS_PARRY || 
+			target->missCondition == SPELL_MISS_BLOCK))
+		{
+			switch(m_spellInfo->SpellFamilyName)
+			{
+				case SPELLFAMILY_WARRIOR:
+					caster->ModifyPower(POWER_RAGE, (int32)((m_spellInfo->manaCost)*0.8f));
+					break;
+				case SPELLFAMILY_ROGUE:
+					if (!NeedsComboPoints(m_spellInfo))
+					caster->ModifyPower(POWER_ENERGY, (int32)((m_spellInfo->manaCost)*0.8f));
+					break;
+			}
+		}
+
         damageInfo.damage = target->damage;
         damageInfo.HitInfo = target->HitInfo;
         unitTarget->CalculateAbsorbResistBlock(caster, &damageInfo, m_spellInfo);
