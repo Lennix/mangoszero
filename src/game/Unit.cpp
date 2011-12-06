@@ -5438,6 +5438,15 @@ void Unit::SendHealSpellLog(Unit *pVictim, uint32 SpellID, uint32 Damage, bool c
     SendMessageToSet(&data, true);
 }
 
+void Unit::SendFlyingAnimation(uint32 uiSpell)
+{
+	if (const SpellEntry* pSpell = sSpellStore.LookupEntry(uiSpell))
+	{
+		Spell *anim = new Spell(this, pSpell, false);
+		anim->SendInterrupted(0);
+	}
+}
+
 void Unit::SendEnergizeSpellLog(Unit *pVictim, uint32 SpellID, uint32 Damage, Powers powertype)
 {
     WorldPacket data(SMSG_SPELLENERGIZELOG, (8+8+4+4+4+1));
