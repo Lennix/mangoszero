@@ -667,6 +667,8 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         // Critter may not die of damage taken, instead expect it to run away (no fighting back)
         // If (this) is TYPEID_PLAYER, (this) will enter combat w/victim, but after some time, automatically leave combat.
         // It is unclear how it should work for other cases.
+		if (GetTypeId() == TYPEID_PLAYER)
+			((Player*)this)->RewardRage(damage, NULL, true); // Warriors should recieve rage from hitting critters
 
         ((Creature*)pVictim)->SetLootRecipient(this);
 
