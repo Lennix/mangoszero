@@ -1742,15 +1742,15 @@ void Spell::EffectHeal(SpellEffectIndex /*eff_idx*/)
 
         int32 addhealth = damage;
 
-		// Flash of Light - Libram of light 
-		if (m_spellInfo->Id == 19993)//SpellVisual == 6623 && m_spellInfo->SpellIconID == 242)
-		{
-			if(Aura *dummy = m_caster->GetDummyAura(28851))
-				addhealth += dummy->GetModifier()->m_amount;
+        // Flash of Light - Libram of light 
+        if (m_spellInfo->Id == 19993)//SpellVisual == 6623 && m_spellInfo->SpellIconID == 242)
+        {
+            if(Aura *dummy = m_caster->GetDummyAura(28851))
+                addhealth += dummy->GetModifier()->m_amount;
 
-			if(Aura *dummy = m_caster->GetDummyAura(28853))
-				addhealth += dummy->GetModifier()->m_amount;
-		}
+            if(Aura *dummy = m_caster->GetDummyAura(28853))
+                addhealth += dummy->GetModifier()->m_amount;
+        }
         // Swiftmend - consumes Regrowth or Rejuvenation
         else if (m_spellInfo->Id == 18562)
         {

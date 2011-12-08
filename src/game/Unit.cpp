@@ -626,12 +626,12 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         pVictim->RemoveAura(126, EFFECT_INDEX_1);
     }
 
-	// Remove WSG restoration upon damage
-	if (pVictim->HasAura(23493))
-	{
-		pVictim->RemoveAurasDueToSpellByCancel(23493);
-	}
-	
+    // Remove WSG restoration upon damage
+    if (pVictim->HasAura(23493))
+    {
+        pVictim->RemoveAurasDueToSpellByCancel(23493);
+    }
+    
     // remove affects from attacker at any non-DoT damage (including 0 damage)
     if( damagetype != DOT)
     {
@@ -667,9 +667,6 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         // Critter may not die of damage taken, instead expect it to run away (no fighting back)
         // If (this) is TYPEID_PLAYER, (this) will enter combat w/victim, but after some time, automatically leave combat.
         // It is unclear how it should work for other cases.
-		if (GetTypeId() == TYPEID_PLAYER)
-			((Player*)this)->RewardRage(damage, NULL, true); // Warriors should recieve rage from hitting critters
-
         ((Creature*)pVictim)->SetLootRecipient(this);
 
         pVictim->SetDeathState(JUST_DIED);
@@ -681,9 +678,11 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
 
         // some critters required for quests
         if(GetTypeId() == TYPEID_PLAYER)
+        {
             if(CreatureInfo const* normalInfo = ObjectMgr::GetCreatureTemplate(pVictim->GetEntry()))
                 ((Player*)this)->KilledMonster(normalInfo,pVictim->GetObjectGuid());
-
+            ((Player*)this)->RewardRage(damage, NULL, true); // Warriors should recieve rage from hitting critters
+        }
         if (InstanceData* mapInstance = pVictim->GetInstanceData())
             mapInstance->OnCreatureDeath(((Creature*)pVictim));
 
