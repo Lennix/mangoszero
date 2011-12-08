@@ -6547,7 +6547,7 @@ void Unit::SetInCombatWith(Unit* enemy)
     SetInCombatState(false,enemy);
 }
 
-void Unit::SetInCombatState(bool PvP, Unit* enemy)
+void Unit::SetInCombatState(bool PvP, Unit* enemy, bool enrage)
 {
     // only alive units can be in combat
     if (!isAlive())
@@ -6555,6 +6555,9 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy)
 
     if (PvP)
         m_CombatTimer = 6000;
+
+    if (enrage)
+        m_CombatTimer = 10000;
 
     bool creatureNotInCombat = GetTypeId()==TYPEID_UNIT && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IN_COMBAT);
 

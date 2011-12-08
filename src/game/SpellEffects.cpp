@@ -1196,7 +1196,15 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
             break;
         }
         case SPELLFAMILY_DRUID:
+        {
+            switch (m_spellInfo->Id)
+            {
+                case 5229: // Enrage, set in combat
+                    unitTarget->SetInCombatState(false, m_caster, true);
+                    return;
+            }
             break;
+        }
         case SPELLFAMILY_ROGUE:
             break;
         case SPELLFAMILY_HUNTER:
@@ -1443,6 +1451,10 @@ void Spell::EffectTriggerSpell(SpellEffectIndex eff_idx)
         case 23770:                                         // Sayge's Dark Fortune of *
             // not exist, common cooldown can be implemented in scripts if need.
             return;
+        case 29131:
+            //unitTarget->CastSpell(m_caster, 29131, true);
+            unitTarget->SetInCombatState(false, m_caster, true);
+            break;
         // Brittle Armor - (need add max stack of 24575 Brittle Armor)
         case 29284:
             m_caster->CastSpell(unitTarget, 24575, true, m_CastItem, NULL, m_originalCasterGUID);
