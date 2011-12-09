@@ -326,8 +326,8 @@ uint32 Group::RemoveMember(ObjectGuid guid, uint8 method)
 
         if (leaderChanged)
         {
-            WorldPacket data(SMSG_GROUP_SET_LEADER, (m_memberSlots.front().name.size()+1));
-            data << m_memberSlots.front().name;
+            WorldPacket data(SMSG_GROUP_SET_LEADER, (((std::string)GetLeaderName()).size()+1));
+            data << (std::string)GetLeaderName();
             BroadcastPacket(&data, true);
         }
 
@@ -1118,7 +1118,22 @@ bool Group::_removeMember(ObjectGuid guid)
     if (m_leaderGuid == guid)                               // leader was removed
     {
         if (GetMembersCount() > 0)
-            _setLeader(m_memberSlots.front().guid);
+        {
+            // Search for a leader who is InWorld
+            bool newLeaderFound = false;
+            member_citerator guid_itr;
+            for(member_citerator itr = m_memberSlots.begin(); itr != m_memberSlots.end(); ++itr)
+            {
+                if (Player* pl = ObjectAccessor::FindPlayer(itr->guid))
+                    if (pl->IsInWorld())
+                    {
+                        _setLeader(itr->guid);
+                        newLeaderFound = true;
+                    }
+            }
+            if (!newLeaderFound)
+                _setLeader(m_memberSlots.front().guid);
+        }
         return true;
     }
 
@@ -1503,27 +1518,29 @@ void Group::ResetInstances(InstanceResetMethod method, Player* SendMsgTo)
             }
         }
 
-        bool isEmpty = true;
+        bool success = false;
         // if the map is loaded, reset it
         if (Map *map = sMapMgr.FindMap(state->GetMapId(), state->GetInstanceId()))
-            if (map->IsDungeon() && !(method == INSTANCE_RESET_GROUP_DISBAND && !state->CanReset()))
-                isEmpty = ((DungeonMap*)map)->Reset(method);
+            if (map->IsDungeon())
+                success = ((DungeonMap*)map)->Reset(method, SendMsgTo);
 
-        if (SendMsgTo)
-        {
-            if (isEmpty)
-                SendMsgTo->SendResetInstanceSuccess(state->GetMapId());
-            else
-                SendMsgTo->SendResetInstanceFailed(0, state->GetMapId());
-        }
-
-        if (isEmpty || method == INSTANCE_RESET_GROUP_DISBAND)
+        if (success || method == INSTANCE_RESET_GROUP_DISBAND)
         {
             // do not reset the instance, just unbind if others are permanently bound to it
-            if (state->CanReset())
+            if (success)
                 state->DeleteFromDB();
             else
+            {
+                // Group disband but still bound to instance
                 CharacterDatabase.PExecute("DELETE FROM group_instance WHERE instance = '%u'", state->GetInstanceId());
+                //member_citerator guid_itr;
+                //for(member_citerator itr = m_memberSlots.begin(); itr != m_memberSlots.end(); ++itr)
+                //{
+                //	if (Player* pl = ObjectAccessor::FindPlayer(itr->guid))
+                //	{
+
+                //}
+            }
             // i don't know for sure if hash_map iterators
             m_boundInstances.erase(itr);
             itr = m_boundInstances.begin();

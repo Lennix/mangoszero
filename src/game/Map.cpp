@@ -37,6 +37,7 @@
 #include "VMapFactory.h"
 #include "MoveMap.h"
 #include "BattleGroundMgr.h"
+#include "Chat.h"
 
 #define MAX_GRID_LOAD_TIME      50
 
@@ -1010,6 +1011,27 @@ void Map::RemoveAllObjectsInRemoveList()
     //DEBUG_LOG("Object remover 2 check.");
 }
 
+bool Map::HavePlayers(bool offline) const
+{
+    if (!offline)
+        return !m_mapRefManager.isEmpty();
+
+    if (Instanceable())
+    {
+        // Get all players which are connected to this instance ID and within the same group
+        QueryResult *result =
+            CharacterDatabase.PQuery( "SELECT map FROM characters WHERE map = %u AND guid IN (SELECT memberGuid FROM groups NATURAL JOIN group_instance NATURAL JOIN group_member WHERE instance = %u)",
+            GetId(), GetInstanceId() );
+        if(!result)
+        {
+            return !m_mapRefManager.isEmpty();
+        }
+        else // If we have a result there's still a player in the instance
+            return true;
+    }
+    return !m_mapRefManager.isEmpty();
+}
+
 uint32 Map::GetPlayersCountExceptGMs() const
 {
     uint32 count = 0;
@@ -1217,6 +1239,8 @@ DungeonMap::DungeonMap(uint32 id, time_t expiry, uint32 InstanceId)
     // the timer is started by default, and stopped when the first player joins
     // this make sure it gets unloaded if for some reason no player joins
     m_unloadTimer = std::max(sWorld.getConfig(CONFIG_UINT32_INSTANCE_UNLOAD_DELAY), (uint32)MIN_UNLOAD_DELAY);
+
+    m_createtime = time(NULL);
 }
 
 DungeonMap::~DungeonMap()
@@ -1348,6 +1372,8 @@ bool DungeonMap::Add(Player *player)
                     player->GetSession()->SendPacket(&data);
                     player->BindToInstance(GetPersistanceState(), true);
                 }
+                else
+                    player->BindToInstance(GetPersistanceState(), false);
             }
         }
         else
@@ -1388,8 +1414,14 @@ void DungeonMap::Remove(Player *player, bool remove)
 
     //if last player set unload timer
     if(!m_unloadTimer && m_mapRefManager.getSize() == 1)
-        m_unloadTimer = m_unloadWhenEmpty ? MIN_UNLOAD_DELAY : std::max(sWorld.getConfig(CONFIG_UINT32_INSTANCE_UNLOAD_DELAY), (uint32)MIN_UNLOAD_DELAY);
-
+    {
+        // Instance was just created
+        if ((m_createtime + 12*MINUTE) < time(NULL))
+            m_unloadTimer = 12*MINUTE - (time(NULL) - m_createtime);
+        
+        if (m_unloadTimer < MIN_UNLOAD_DELAY)
+            m_unloadTimer = m_unloadWhenEmpty ? MIN_UNLOAD_DELAY : std::max(sWorld.getConfig(CONFIG_UINT32_INSTANCE_UNLOAD_DELAY), (uint32)MIN_UNLOAD_DELAY);
+    }
     Map::Remove(player, remove);
 
     // for normal instances schedule the reset after all players have left
@@ -1399,42 +1431,75 @@ void DungeonMap::Remove(Player *player, bool remove)
 /*
     Returns true if there are no players in the instance
 */
-bool DungeonMap::Reset(InstanceResetMethod method)
+bool DungeonMap::Reset(InstanceResetMethod method, Player* SendMsgTo)
 {
     // note: since the map may not be loaded when the instance needs to be reset
     // the instance must be deleted from the DB by InstanceSaveManager
 
-    if(HavePlayers())
+    bool haveOnlinePlayers = !m_mapRefManager.isEmpty(), haveOfflinePlayers = false, timeIsUp = true;
+
+    // First special cases
+    if (method == INSTANCE_RESET_GLOBAL || method == INSTANCE_RESET_GROUP_DISBAND)
     {
-        if(method == INSTANCE_RESET_ALL)
+        if (haveOnlinePlayers)
         {
-            // notify the players to leave the instance so it can be reset
+            // set the homebind timer for players inside (1 minute)
             for(MapRefManager::iterator itr = m_mapRefManager.begin(); itr != m_mapRefManager.end(); ++itr)
-                itr->getSource()->SendResetFailedNotify(GetId());
-        }
-        else
-        {
-            if(method == INSTANCE_RESET_GLOBAL)
-            {
-                // set the homebind timer for players inside (1 minute)
-                for(MapRefManager::iterator itr = m_mapRefManager.begin(); itr != m_mapRefManager.end(); ++itr)
-                    itr->getSource()->m_InstanceValid = false;
-            }
+                itr->getSource()->m_InstanceValid = false;
 
             // the unload timer is not started
             // instead the map will unload immediately after the players have left
             m_unloadWhenEmpty = true;
             m_resetAfterUnload = true;
         }
+        else if (method == INSTANCE_RESET_GLOBAL)
+        {
+            // unloaded at next update
+            m_unloadTimer = MIN_UNLOAD_DELAY;
+            m_resetAfterUnload = true;
+            return true;
+        }
+    }
+
+    // Notify online players if available
+    if (haveOnlinePlayers)
+    {
+        if (method == INSTANCE_RESET_ALL)
+        {
+            // notify the players to leave the instance so it can be reset
+            for(MapRefManager::iterator itr = m_mapRefManager.begin(); itr != m_mapRefManager.end(); ++itr)
+                itr->getSource()->SendResetFailedNotify(GetId());
+        }
     }
     else
+    {
+        haveOfflinePlayers = HavePlayers(true);
+        // We have a 12 min ID for each normal instance to avoid exploits
+        timeIsUp = (m_createtime + 12*MINUTE) < time(NULL);
+    }
+
+    bool success = !haveOnlinePlayers && !haveOfflinePlayers && timeIsUp;
+
+    if (SendMsgTo)
+    {
+        if (success)
+            SendMsgTo->SendResetInstanceSuccess(GetId());
+        else if(haveOnlinePlayers)
+            SendMsgTo->SendResetInstanceFailed(0, GetId());
+        else if(haveOfflinePlayers)
+            SendMsgTo->SendResetInstanceFailed(1, GetId());
+        else if(!timeIsUp)
+            ChatHandler(SendMsgTo).PSendSysMessage("Cannot reset %s. You just created the instance.", GetMapName());
+    }
+
+    if (success)
     {
         // unloaded at next update
         m_unloadTimer = MIN_UNLOAD_DELAY;
         m_resetAfterUnload = true;
     }
 
-    return m_mapRefManager.isEmpty();
+    return success;
 }
 
 void DungeonMap::PermBindAllPlayers(Player *player)

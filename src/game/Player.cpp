@@ -658,9 +658,9 @@ bool Player::Create( uint32 guidlow, const std::string& name, uint8 race, uint8 
     m_Played_time[PLAYED_TIME_TOTAL] = 0;
     m_Played_time[PLAYED_TIME_LEVEL] = 0;
 
-	// rates (get values from config)
-	SetRates(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
-	SetRatesMax(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
+    // rates (get values from config)
+    SetRates(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
+    SetRatesMax(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
 
     // base stats and related field values
     InitStatsForLevel();
@@ -2223,9 +2223,9 @@ void Player::RemoveFromGroup(Group* group, ObjectGuid guid)
 
 void Player::SetRatesMax(float rates)
 {
-	m_ratesMax = rates;
-	if(GetRates() > m_ratesMax)
-		SetRates(m_ratesMax);
+    m_ratesMax = rates;
+    if(GetRates() > m_ratesMax)
+        SetRates(m_ratesMax);
 }
 
 void Player::SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 RestXP)
@@ -2403,11 +2403,11 @@ void Player::InitStatsForLevel(bool reapplyMods)
     // reset size before reapply auras
     if (getRace() == RACE_TAUREN)
     {
-		if(getGender() == GENDER_MALE)
-			SetObjectScale(1.35f);
-		else
-			SetObjectScale(1.25f);
-	}
+        if(getGender() == GENDER_MALE)
+            SetObjectScale(1.35f);
+        else
+            SetObjectScale(1.25f);
+    }
     else
         SetObjectScale(DEFAULT_OBJECT_SCALE);
 
@@ -4662,7 +4662,7 @@ float Player::GetMeleeCritFromAgility()
 
     if (level>GT_MAX_LEVEL) level = GT_MAX_LEVEL;
         
-	return (crit_base[pclass-1] + crit_ratio[pclass-1][level-1]*(GetStat(STAT_AGILITY)-GetCreateStat(STAT_AGILITY)))*100.0f + 5.0f;
+    return (crit_base[pclass-1] + crit_ratio[pclass-1][level-1]*(GetStat(STAT_AGILITY)-GetCreateStat(STAT_AGILITY)))*100.0f + 5.0f;
 }
 
 float Player::GetDodgeFromAgility()
@@ -4698,9 +4698,9 @@ float Player::GetDodgeFromAgility()
         -0.0187f    // Druid
     };
 
-	uint32 level = getLevel();
+    uint32 level = getLevel();
     uint32 pclass = getClass();	
-	
+    
     if (level>GT_MAX_LEVEL) level = GT_MAX_LEVEL;
 
     // Dodge per agility for most classes equal crit per agility (but for some classes need apply some multiplier)
@@ -6735,9 +6735,9 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType)
         else if(chance > 100.0f)
         {
             if (sSpellMgr.GetSpellProcEvent(spellData.SpellId) && sSpellMgr.GetSpellProcEvent(spellData.SpellId)->customChance)
-				chance = sSpellMgr.GetSpellProcEvent(spellData.SpellId)->customChance;
-			else
-				chance = GetWeaponProcChance();
+                chance = sSpellMgr.GetSpellProcEvent(spellData.SpellId)->customChance;
+            else
+                chance = GetWeaponProcChance();
         }
 
         if (roll_chance_f(chance))
@@ -12387,7 +12387,7 @@ void Player::RewardQuest(Quest const *pQuest, uint32 reward, Object* questGiver,
 
     // Not give XP in case already completed once repeatable quest
     //uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue(this)*sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
-	uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue( this )*GetRates());
+    uint32 XP = q_status.m_rewarded ? 0 : uint32(pQuest->XPValue( this )*GetRates());
 
     if (getLevel() < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
         GiveXP(XP , NULL);
@@ -13698,8 +13698,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
     // Action bars state
     SetByteValue(PLAYER_FIELD_BYTES, 2, fields[54].GetUInt8());
 
-	SetRates(fields[55].GetFloat());
-	SetRatesMax(fields[56].GetFloat());
+    SetRates(fields[55].GetFloat());
+    SetRatesMax(fields[56].GetFloat());
 
     // cleanup inventory related item value fields (its will be filled correctly in _LoadInventory)
     for(uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
@@ -15244,9 +15244,9 @@ void Player::SaveToDB()
 
     uberInsert.addUInt32(uint32(GetByteValue(PLAYER_FIELD_BYTES, 2)));
 
-	uberInsert.addFloat(GetRates());
+    uberInsert.addFloat(GetRates());
 
-	uberInsert.addFloat(GetRatesMax());
+    uberInsert.addFloat(GetRatesMax());
 
     uberInsert.Execute();
 
@@ -15947,8 +15947,6 @@ void Player::SendResetFailedNotify(uint32 mapid)
 void Player::ResetInstances(InstanceResetMethod method)
 {
     // method can be INSTANCE_RESET_ALL, INSTANCE_RESET_GROUP_JOIN
-
-
     for (BoundInstancesMap::iterator itr = m_boundInstances.begin(); itr != m_boundInstances.end();)
     {
         DungeonPersistentState *state = itr->second.state;
@@ -15969,20 +15967,23 @@ void Player::ResetInstances(InstanceResetMethod method)
             }
         }
 
+        bool success = false;
+
         // if the map is loaded, reset it
         if (Map *map = sMapMgr.FindMap(state->GetMapId(), state->GetInstanceId()))
             if (map->IsDungeon())
-                ((DungeonMap*)map)->Reset(method);
+                success = ((DungeonMap*)map)->Reset(method, this);
 
-        // since this is a solo instance there should not be any players inside
-        if (method == INSTANCE_RESET_ALL)
-            SendResetInstanceSuccess(state->GetMapId());
+        if (success)
+        {
+            state->DeleteFromDB();
+            m_boundInstances.erase(itr++);
 
-        state->DeleteFromDB();
-        m_boundInstances.erase(itr++);
-
-        // the following should remove the instance save from the manager and delete it as well
-        state->RemovePlayer(this);
+            // the following should remove the instance save from the manager and delete it as well
+            state->RemovePlayer(this);
+        }
+        else
+            ++itr;
     }
 }
 

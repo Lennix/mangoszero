@@ -152,6 +152,9 @@ void WorldSession::HandleMoveWorldportAckOpcode()
 
     GetPlayer()->SendInitialPacketsAfterAddToMap();
 
+    // Save the player
+    GetPlayer()->ScheduleDelayedOperation(DELAYED_SAVE_PLAYER);
+
     // flight fast teleport case
     if(GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
     {

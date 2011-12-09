@@ -196,7 +196,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
         bool isCellMarked(uint32 pCellId) { return marked_cells.test(pCellId); }
         void markCell(uint32 pCellId) { marked_cells.set(pCellId); }
 
-        bool HavePlayers() const { return !m_mapRefManager.isEmpty(); }
+        bool HavePlayers(bool offline = false) const;
         uint32 GetPlayersCountExceptGMs() const;
         bool ActiveObjectsNearGrid(uint32 x,uint32 y) const;
 
@@ -255,7 +255,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>
         // Get Holder for Creature Linking
         CreatureLinkingHolder* GetCreatureLinkingHolder() { return &m_creatureLinkingHolder; }
 
-		CreatureGroupHolderType CreatureGroupHolder;
+        CreatureGroupHolderType CreatureGroupHolder;
 
     private:
         void LoadMapAndVMap(int gx, int gy);
@@ -369,7 +369,7 @@ class MANGOS_DLL_SPEC DungeonMap : public Map
         bool Add(Player *);
         void Remove(Player *, bool);
         void Update(const uint32&);
-        bool Reset(InstanceResetMethod method);
+        bool Reset(InstanceResetMethod method, Player* SendMsgTo = NULL);
         void PermBindAllPlayers(Player *player);
         void UnloadAll(bool pForce);
         bool CanEnter(Player* player);
@@ -384,6 +384,7 @@ class MANGOS_DLL_SPEC DungeonMap : public Map
     private:
         bool m_resetAfterUnload;
         bool m_unloadWhenEmpty;
+        time_t m_createtime;
 };
 
 class MANGOS_DLL_SPEC BattleGroundMap : public Map
