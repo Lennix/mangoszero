@@ -1481,7 +1481,7 @@ bool DungeonMap::Reset(InstanceResetMethod method, Player* SendMsgTo)
 
     bool success = !haveOnlinePlayers && !haveOfflinePlayers && timeIsUp;
 
-    if (SendMsgTo)
+    if (SendMsgTo && method == INSTANCE_RESET_ALL)
     {
         if (success)
             SendMsgTo->SendResetInstanceSuccess(GetId());
