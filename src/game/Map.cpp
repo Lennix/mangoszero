@@ -1337,7 +1337,8 @@ bool DungeonMap::Add(Player *player)
                         groupBind->state->GetPlayerCount(), groupBind->state->GetGroupCount(), groupBind->state->CanReset());
 
                 // no reason crash if we can fix state
-                player->UnbindInstance(GetId());
+				// dont unbind player instance if bound
+                //player->UnbindInstance(GetId());
             }
 
             // bind to the group or keep using the group save
