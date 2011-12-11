@@ -1786,6 +1786,15 @@ bool Creature::IsVisibleInGridForPlayer(Player* pl) const
     if (GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_INVISIBLE)
         return false;
 
+    // Ghost mobs may only be seen by dead players
+    if (GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_GHOST)
+    {
+        if (pl->isAlive())
+            return false;
+        else
+            return true;
+    }
+
     // Live player (or with not release body see live creatures or death creatures with corpse disappearing time > 0
     if(pl->isAlive() || pl->GetDeathTimer() > 0)
     {
