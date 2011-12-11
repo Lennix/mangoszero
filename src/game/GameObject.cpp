@@ -732,7 +732,6 @@ bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoi
         if(GetEntry()==187039 && ((u->m_detectInvisibilityMask | u->m_invisibilityMask) & (1<<10))==0)
             return false;
     }
-
     // check distance
     return IsWithinDistInMap(viewPoint, GetMap()->GetVisibilityDistance() +
         (inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false);
@@ -745,6 +744,13 @@ void GameObject::Respawn()
         m_respawnTime = time(NULL);
         GetMap()->GetPersistentState()->SaveGORespawnTime(GetGUIDLow(), 0);
     }
+}
+
+void GameObject::CastSpell(Unit* target, uint32 spellId)
+{
+    Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
+    casterUnit->SetName(GetName());
+    casterUnit->CastSpell(target, spellId, true, NULL, NULL, GetObjectGuid());
 }
 
 bool GameObject::ActivateToQuest(Player *pTarget) const
@@ -1051,7 +1057,7 @@ void GameObject::Use(Unit* user)
 
             // FIXME: when GO casting will be implemented trap must cast spell to target
             if (uint32 spellId = GetGOInfo()->trap.spellId)
-                user->CastSpell(user, spellId, true, NULL, NULL, GetObjectGuid());
+                CastSpell(user, spellId);
 
             // TODO: all traps can be activated, also those without spell.
             // Some may have have animation and/or are expected to despawn.
