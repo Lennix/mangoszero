@@ -1936,14 +1936,14 @@ bool Creature::IsOutOfThreatArea(Unit* pVictim) const
     if (!pVictim->isTargetableForAttack())
         return true;
 
-    if (!pVictim->isInAccessablePlaceFor(this))
-        return true;
-
     if (!pVictim->isVisibleForOrDetect(this,this,false))
         return true;
 
-    if(sMapStore.LookupEntry(GetMapId())->IsDungeon())
+    if (sMapStore.LookupEntry(GetMapId())->IsDungeon())
         return false;
+
+    if (!pVictim->isInAccessablePlaceFor(this))
+        return true;
 
     float AttackDist = GetAttackDistance(pVictim);
     float ThreatRadius = sWorld.getConfig(CONFIG_FLOAT_THREAT_RADIUS);
