@@ -1768,8 +1768,10 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
             Probability -= (VictimDefense - AttackerMeleeSkill) / 5;
         }
 
-        if(Probability > 40.0f)
+        if (Probability > 40.0f)
             Probability = 40.0f;
+        else if (Probability < 0.0f)
+            Probability = 0.0f;
 
         if(roll_chance_f(Probability))
             CastSpell(pVictim, 1604, true);
