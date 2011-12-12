@@ -1758,13 +1758,15 @@ void Unit::DealMeleeDamage(CalcDamageInfo *damageInfo, bool durabilityLoss)
         float Probability = 20.0f;
 
         //there is a newbie protection, at level 10 just 7% base chance; assuming linear function
-        if( pVictim->getLevel() < 30 )
+        if (pVictim->getLevel() < 30)
             Probability = 0.65f*pVictim->getLevel()+0.5f;
+        else
+        {
+            int32 VictimDefense=pVictim->GetDefenseSkillValue();
+            int32 AttackerMeleeSkill=GetUnitMeleeSkill();
 
-        uint32 VictimDefense=pVictim->GetDefenseSkillValue();
-        uint32 AttackerMeleeSkill=GetUnitMeleeSkill();
-
-        Probability *= AttackerMeleeSkill/(float)VictimDefense;
+            Probability -= (VictimDefense - AttackerMeleeSkill) / 5;
+        }
 
         if(Probability > 40.0f)
             Probability = 40.0f;
