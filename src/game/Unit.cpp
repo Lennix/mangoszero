@@ -2833,15 +2833,22 @@ float Unit::MeleeMissChanceCalc(const Unit *pVictim, WeaponAttackType attType) c
             missChance += 19.0f;
     }
 
-    int32 skillDiff = int32(GetWeaponSkillValue(attType, pVictim)) - int32(pVictim->GetDefenseSkillValue(this));
+    int32 attackerSkill = int32(GetWeaponSkillValue(attType, pVictim));
+
+    // ignore additional weapon rating for hitsystem, only glancing
+    if (GetTypeId() == TYPEID_PLAYER)
+        if (attackerSkill > ((Player*)this)->GetMaxSkillValue(SKILL_DEFENSE))
+            attackerSkill = ((Player*)this)->GetMaxSkillValue(SKILL_DEFENSE);
+
+    int32 skillDiff = attackerSkill - int32(pVictim->GetDefenseSkillValue(this));
 
     // PvP - PvE melee chances
-    if ( pVictim->GetTypeId() == TYPEID_PLAYER )
+    if (pVictim->GetTypeId() == TYPEID_PLAYER)
         missChance -= skillDiff * 0.04f;
-    else if ( skillDiff < -10 )
-        missChance -= (skillDiff + 10) * 0.4f - 2.0f;       // 7% base chance to miss for big skill diff (%6 in 3.x)
+    else if (skillDiff < -10)
+        missChance -= skillDiff * 0.4f + 3.0f;       // 7% base chance to miss for big skill diff (%6 in 3.x)
     else
-        missChance -=  skillDiff * 0.1f;
+        missChance -= skillDiff * 0.1f;
 
     // Hit chance bonus from attacker based on ratings and auras
     if (attType == RANGED_ATTACK)
