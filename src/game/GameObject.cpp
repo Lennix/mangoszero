@@ -306,15 +306,18 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                         {
                             MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, owner, radius);
                             MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
+                            Cell::VisitGridObjects(this, checker, radius);
+                            if (!ok)
+                                Cell::VisitWorldObjects(this, checker, radius);
                         }
                         else
                         {
                             MaNGOS::AnyUnitInObjectRangeCheck u_check(this, radius);
                             MaNGOS::UnitSearcher<MaNGOS::AnyUnitInObjectRangeCheck> checker(ok, u_check);
+                            Cell::VisitGridObjects(this, checker, radius);
+                            if (!ok)
+                                Cell::VisitWorldObjects(this, checker, radius);
                         }
-                        Cell::VisitGridObjects(this, checker, radius);
-                        if (!ok)
-                            Cell::VisitWorldObjects(this, checker, radius);
                     }
                     else                                    // environmental trap
                     {
