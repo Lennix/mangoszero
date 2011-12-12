@@ -317,6 +317,10 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                             Cell::VisitGridObjects(this, checker, radius);
                             if (!ok)
                                 Cell::VisitWorldObjects(this, checker, radius);
+
+                            // If we have a specific faction then the trab is for creatures only
+                            if (ok && ok->GetTypeId() == TYPEID_PLAYER && goInfo->faction != 0)
+                                ok = NULL;
                         }
                     }
                     else                                    // environmental trap
