@@ -300,13 +300,21 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                     // Note: this hack with search required until GO casting not implemented
                     // search unfriendly creature
-                    if (owner && goInfo->trap.charges > 0)  // hunter trap
+                    if (goInfo->trap.charges > 0)  // hunter trap
                     {
-                        MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, owner, radius);
-                        MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
-                        Cell::VisitGridObjects(this,checker, radius);
+                        if (owner)
+                        {
+                            MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, owner, radius);
+                            MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
+                        }
+                        else
+                        {
+                            MaNGOS::AnyUnitInObjectRangeCheck u_check(this, radius);
+                            MaNGOS::UnitSearcher<MaNGOS::AnyUnitInObjectRangeCheck> checker(ok, u_check);
+                        }
+                        Cell::VisitGridObjects(this, checker, radius);
                         if (!ok)
-                            Cell::VisitWorldObjects(this,checker, radius);
+                            Cell::VisitWorldObjects(this, checker, radius);
                     }
                     else                                    // environmental trap
                     {
