@@ -4157,10 +4157,11 @@ void Spell::EffectSummonPlayer(SpellEffectIndex /*eff_idx*/)
     if(unitTarget->GetDummyAura(23445))
         return;
 
-    float x, y, z;
-    m_caster->GetClosePoint(x, y, z, unitTarget->GetObjectBoundingRadius());
+    //float x, y, z;
+    //m_caster->GetClosePoint(x, y, z, unitTarget->GetObjectBoundingRadius());
 
-    ((Player*)unitTarget)->SetSummonPoint(m_caster->GetMapId(),x,y,z);
+	// teleport directly to caster to avoid exploits
+	((Player*)unitTarget)->SetSummonPoint(m_caster->GetMapId(),m_caster->GetPositionX(),m_caster->GetPositionY(),m_caster->GetPositionZ());
 
     WorldPacket data(SMSG_SUMMON_REQUEST, 8+4+4);
     data << m_caster->GetObjectGuid();                      // summoner guid
