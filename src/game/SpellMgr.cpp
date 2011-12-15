@@ -275,6 +275,10 @@ float CalculateDefaultCoefficient(SpellEntry const *spellProto, DamageEffectType
         if (!IsChanneledSpell(spellProto))
             DotFactor = GetSpellDuration(spellProto) / 15000.0f;
 
+		// DotFactor should be maxed by 100%
+		if (DotFactor > 1.0f)
+			DotFactor = 1.0f;
+
         if (uint16 DotTicks = GetSpellAuraMaxTicks(spellProto))
             DotFactor /= DotTicks;
     }

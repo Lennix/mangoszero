@@ -5500,7 +5500,9 @@ int32 Unit::SpellBonusWithCoeffs(SpellEntry const *spellProto, int32 total, int3
 
     if (benefit)
     {
-		if (coeff > 1.0f) coeff = 1.0f;
+		if (coeff > 1.0f) 
+			coeff = 1.0f;
+
         float LvlPenalty = CalculateLevelPenalty(spellProto);
 
         // Spellmod SpellDamage
