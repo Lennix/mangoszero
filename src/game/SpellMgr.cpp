@@ -196,8 +196,8 @@ uint32 GetSpellCastTimeForBonus( SpellEntry const *spellProto, DamageEffectType 
         }
     }
 
-    // Combined Spells with Both Over Time and Direct Damage
-    if (overTime > 0 && CastingTime > 0 && DirectDamage)
+    // Combined Spells with Both Over Time and Direct Damage (Except for Fireball which isn't consired a hybrid spell)
+	if (overTime > 0 && CastingTime > 0 && DirectDamage && spellProto->SpellIconID != 185)
     {
         // mainly for DoTs which are 3500 here otherwise
         uint32 OriginalCastTime = GetSpellCastTime(spellProto);
