@@ -2484,22 +2484,12 @@ uint32 Unit::CalculateDamage (WeaponAttackType attType, bool normalized)
 
 float Unit::CalculateLevelPenalty(SpellEntry const* spellProto) const
 {
-	// Not in 1.12
-	return 1.0f;
-
+	// Level penalty for spells with spelllevel <= 20
     uint32 spellLevel = spellProto->spellLevel;
-    if(spellLevel <= 0)
+    if(spellLevel <= 0 || spellLevel > 20)
         return 1.0f;
 
-    float LvlPenalty = 0.0f;
-
-    if(spellLevel < 20)
-        LvlPenalty = 20.0f - spellLevel * 3.75f;
-    float LvlFactor = (float(spellLevel) + 6.0f) / float(getLevel());
-    if(LvlFactor > 1.0f)
-        LvlFactor = 1.0f;
-
-    return (100.0f - LvlPenalty) * LvlFactor / 100.0f;
+	return 1.0f - ((20.0f - spellLevel) * 0.0375f);
 }
 
 void Unit::SendMeleeAttackStart(Unit* pVictim)
@@ -5495,8 +5485,6 @@ int32 Unit::SpellBonusWithCoeffs(SpellEntry const *spellProto, int32 total, int3
     else if (SpellBonusEntry const* bonus = sSpellMgr.GetSpellBonusData(spellProto->Id))
     {
         coeff = damagetype == DOT ? bonus->dot_damage : bonus->direct_damage;
-
-		coeff *= CalculateDefaultCoefficient(spellProto, damagetype);
 
         // apply ap bonus at done part calculation only (it flat total mod so common with taken)
         if (donePart && (bonus->ap_bonus || bonus->ap_dot_bonus))
