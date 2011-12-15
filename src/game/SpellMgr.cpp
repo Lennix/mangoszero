@@ -266,7 +266,7 @@ float CalculateDefaultCoefficient(SpellEntry const *spellProto, DamageEffectType
 {
     // Fireball isn't handled as hybrid spell
     if (spellProto->SpellIconID == 185)
-        return GetSpellCastTime(spellProto) / 3500.0f
+        return GetSpellCastTime(spellProto) / 3500.0f;
 
     // Damage over Time spells bonus calculation
     float DotFactor = 1.0f;
