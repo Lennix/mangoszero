@@ -1411,7 +1411,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         uint32 GetCreatePowers(Powers power) const;
         float GetCreateStat(Stats stat) const { return m_createStats[stat]; }
 
-        void SetCurrentCastedSpell(Spell * pSpell);
+        void SetCurrentCastedSpell(Spell * pSpell, bool triggered = false);
         virtual void ProhibitSpellSchool(SpellSchoolMask /*idSchoolMask*/, uint32 /*unTimeMs*/ ) { }
         void InterruptSpell(CurrentSpellTypes spellType, bool withDelayed = true);
         void FinishSpell(CurrentSpellTypes spellType, bool ok = true);

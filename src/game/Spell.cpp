@@ -2528,7 +2528,7 @@ void Spell::prepare(SpellCastTargets const* targets, Aura* triggeredByAura)
     {
         // if its a triggered spell and channeled, lets add the new channeled spell (if there currently is none)
         if (IsChanneledSpell(m_spellInfo) && !m_caster->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
-            m_caster->SetCurrentCastedSpell(this);
+            m_caster->SetCurrentCastedSpell(this, true);
 
         if(m_timer == 0)
             cast(true);

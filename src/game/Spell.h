@@ -209,7 +209,7 @@ class Spell
 {
     friend struct MaNGOS::SpellNotifierPlayer;
     friend struct MaNGOS::SpellNotifierCreatureAndPlayer;
-    friend void Unit::SetCurrentCastedSpell( Spell * pSpell );
+    friend void Unit::SetCurrentCastedSpell( Spell * pSpell, bool triggered );
     public:
 
         void EffectEmpty(SpellEffectIndex eff_idx);

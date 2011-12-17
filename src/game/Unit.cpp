@@ -624,18 +624,8 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
 
         // Eye of Kilrogg
         pVictim->RemoveAura(126, EFFECT_INDEX_1);
-
-        // Remove WSG restoration upon damage
-        if (pVictim->HasAura(23493))
-            pVictim->RemoveAurasDueToSpellByCancel(23493);
-		// Cannibalize
-        else if (pVictim->HasAura(20578))
-		{
-            pVictim->RemoveAurasDueToSpellByCancel(20578);
-			pVictim->InterruptSpell(CURRENT_CHANNELED_SPELL);
-		}
     }
-    
+
     // remove affects from attacker at any non-DoT damage (including 0 damage)
     if( damagetype != DOT)
     {
@@ -3126,7 +3116,7 @@ void Unit::_UpdateAutoRepeatSpell()
     }
 }
 
-void Unit::SetCurrentCastedSpell( Spell * pSpell )
+void Unit::SetCurrentCastedSpell( Spell * pSpell , bool triggered)
 {
     MANGOS_ASSERT(pSpell);                                  // NULL may be never passed here, use InterruptSpell or InterruptNonMeleeSpells
 
@@ -3158,13 +3148,16 @@ void Unit::SetCurrentCastedSpell( Spell * pSpell )
         case CURRENT_CHANNELED_SPELL:
         {
             // channel spells always break generic non-delayed and any channeled spells
-            InterruptSpell(CURRENT_GENERIC_SPELL,false);
-            InterruptSpell(CURRENT_CHANNELED_SPELL);
+            if (!triggered)
+            {
+                InterruptSpell(CURRENT_GENERIC_SPELL,false);
+                InterruptSpell(CURRENT_CHANNELED_SPELL);
 
-            // it also does break autorepeat if not Auto Shot
-            if ( m_currentSpells[CURRENT_AUTOREPEAT_SPELL] &&
-                m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_spellInfo->Category == 351 )
-                InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
+                // it also does break autorepeat if not Auto Shot
+                if ( m_currentSpells[CURRENT_AUTOREPEAT_SPELL] &&
+                    m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_spellInfo->Category == 351 )
+                    InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
+            }
         } break;
 
         case CURRENT_AUTOREPEAT_SPELL:
