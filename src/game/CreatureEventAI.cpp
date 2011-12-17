@@ -871,6 +871,10 @@ void CreatureEventAI::Reset()
     m_EventUpdateTime = EVENT_UPDATE_TIME;
     m_EventDiff = 0;
 
+    // Reset possible fear
+    if (m_creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
+        m_creature->SetFeared(false);
+
     if (m_bEmptyList)
         return;
 
