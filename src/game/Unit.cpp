@@ -6024,9 +6024,10 @@ uint32 Unit::SpellHealingBonusTaken(Unit *pCaster, SpellEntry const *spellProto,
     // Blessing of Light dummy effects healing taken from Holy Light and Flash of Light
     if (spellProto->SpellFamilyName == SPELLFAMILY_PALADIN && (spellProto->SpellFamilyFlags & UI64LIT(0x0000000000006000)))
     {
-        AuraList const& mDummyAuras = pCaster->GetAurasByType(SPELL_AURA_DUMMY);
+        AuraList const& mDummyAuras = GetAurasByType(SPELL_AURA_DUMMY);
         for(AuraList::const_iterator i = mDummyAuras.begin();i != mDummyAuras.end(); ++i)
         {
+            // Blessing of light
             if ((*i)->GetSpellProto()->SpellVisual == 300 && ((*i)->GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000010000000)))
             {
                 // Flash of Light
