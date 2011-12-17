@@ -227,7 +227,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
                 unit_target = spell->m_targets.getUnitTarget();
 
                 // Check AutoCast criteria to prevent spell spamming
-                if(!spell->CanAutoCast(unit_target))
+                if(unit_target && !spell->CanAutoCast(unit_target))
                     return;
 
                 ((Creature*)pet)->AddCreatureSpellCooldown(spellid);
