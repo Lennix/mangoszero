@@ -2524,8 +2524,15 @@ void Spell::prepare(SpellCastTargets const* targets, Aura* triggeredByAura)
         TriggerGlobalCooldown();
     }
     // execute triggered without cast time explicitly in call point
-    else if(m_timer == 0)
-        cast(true);
+    else
+    {
+        // if its a triggered spell and channeled, lets add the new channeled spell (if there currently is none)
+        if (IsChanneledSpell(m_spellInfo) && !m_caster->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
+            m_caster->SetCurrentCastedSpell(this);
+
+        if(m_timer == 0)
+            cast(true);
+    }
     // else triggered with cast time will execute execute at next tick or later
     // without adding to cast type slot
     // will not show cast bar but will show effects at casting time etc
