@@ -410,6 +410,8 @@ void TimedFleeingMovementGenerator::Finalize(Unit &owner)
         if (owner.isAlive())
         {
             owner.AttackStop(true);
+            if (owner.HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
+                owner.SetFeared(false);
             ((Creature*)&owner)->AI()->AttackStart(victim);
         }
     }
