@@ -994,22 +994,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
         // Do triggers for unit (reflect triggers passed on hit phase for correct drop charge)
         if (m_canTrigger && missInfo != SPELL_MISS_REFLECT)
-        {
-            // Some spell expected send main spell info to triggered system
-            SpellEntry const* spellInfo = m_spellInfo;
-            switch(m_spellInfo->Id)
-            {
-                case 19968:                                 // Holy Light triggered heal
-                case 19993:                                 // Flash of Light triggered heal
-                {
-                    // stored in unused spell effect basepoints in main spell code
-                    uint32 spellid = m_currentBasePoints[EFFECT_INDEX_1];
-                    spellInfo = sSpellStore.LookupEntry(spellid);
-                }
-            }
-
-            caster->ProcDamageAndSpell(unitTarget, real_caster ? procAttacker : PROC_FLAG_NONE, procVictim, procEx, addhealth, m_attackType, spellInfo);
-        }
+            caster->ProcDamageAndSpell(unitTarget, real_caster ? procAttacker : PROC_FLAG_NONE, procVictim, procEx, addhealth, m_attackType, m_spellInfo);
 
         int32 gain = caster->DealHeal(unitTarget, addhealth, m_spellInfo, crit);
 
@@ -3255,7 +3240,13 @@ void Spell::SendSpellGo()
         data << m_caster->GetPackGUID();
 
     data << m_caster->GetPackGUID();
-    data << uint32(m_spellInfo->Id);                        // spellId
+
+    // Very dirty - Send 19993 animation for flash of light
+    if (m_spellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000040000000))
+        data << uint32(19993);
+    else
+        data << uint32(m_spellInfo->Id);                        // spellId
+
     data << uint16(castFlags);                              // cast flags
 
     WriteSpellGoTargets(&data);

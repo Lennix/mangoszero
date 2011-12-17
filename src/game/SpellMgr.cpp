@@ -127,10 +127,6 @@ uint32 GetSpellCastTime(SpellEntry const* spellInfo, Spell const* spell)
     if (spellInfo->Attributes & SPELL_ATTR_RANGED && (!spell || !spell->IsAutoRepeat()))
         castTime += 500;
 
-    // Holy Light trigger heal
-    if (spellInfo->Id == 19968)
-        castTime = 0;
-
     return (castTime > 0) ? uint32(castTime) : 0;
 }
 

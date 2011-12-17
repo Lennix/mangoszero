@@ -304,8 +304,24 @@ void LoadDBCStores(const std::string& dataPath)
                     case 13021:
                         notConstSpell->speed = 15.0f;
                         break;
-                    case 19968:
-                        notConstSpell->spellLevel = 20;
+                    // Holy light
+                    case 635:
+                    case 639:
+                    case 647:
+                    case 1026:
+                    case 1042:
+                    case 3472:
+                    case 10328:
+                    case 10329:
+                    case 25292:
+                    // Flash of light
+                    case 19750:
+                    case 19939:
+                    case 19940:
+                    case 19941:
+                    case 19942:
+                    case 19943:
+                        notConstSpell->Effect[0] = SPELL_EFFECT_HEAL;
                         break;
                 }
             }
