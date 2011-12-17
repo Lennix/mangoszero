@@ -283,12 +283,13 @@ void LoadDBCStores(const std::string& dataPath)
     for(uint32 i = 1; i < sSpellStore.GetNumRows(); ++i)
     {
         SpellEntry const * spell = sSpellStore.LookupEntry(i);
-        if(spell && spell->Category)
+        if(spell)
         {
-            sSpellCategoryStore[spell->Category].insert(i);
-            if(spell->SpellFamilyName == SPELLFAMILY_MAGE)
+            if (spell->Category)
+                sSpellCategoryStore[spell->Category].insert(i);
+
+            if (SpellEntry* notConstSpell = (SpellEntry*)spell)
             {
-                SpellEntry* notConstSpell = (SpellEntry*)spell;
                 switch(notConstSpell->Id)
                 {
                     // Frost nova and blast wave all ranks
@@ -302,7 +303,10 @@ void LoadDBCStores(const std::string& dataPath)
                     case 13020:
                     case 13021:
                         notConstSpell->speed = 15.0f;
-                    break;
+                        break;
+                    case 19968:
+                        notConstSpell->spellLevel = 20;
+                        break;
                 }
             }
         }
