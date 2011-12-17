@@ -282,6 +282,12 @@ float CalculateDefaultCoefficient(SpellEntry const *spellProto, DamageEffectType
         if (uint16 DotTicks = GetSpellAuraMaxTicks(spellProto))
             DotFactor /= DotTicks;
     }
+    else if (IsChanneledSpell(spellProto))
+    {
+        if (uint16 DotTicks = GetSpellAuraMaxTicks(spellProto))
+            DotFactor /= DotTicks;
+    }
+
 
     // Distribute Damage over multiple effects, reduce by AoE
     float coeff = GetSpellCastTimeForBonus(spellProto, damagetype) / 3500.0f;

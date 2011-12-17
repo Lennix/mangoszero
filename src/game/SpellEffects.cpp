@@ -1794,7 +1794,11 @@ void Spell::EffectHeal(SpellEffectIndex /*eff_idx*/)
             }
 
             int32 tickheal = targetAura->GetModifier()->m_amount;
-            int32 tickcount = GetSpellDuration(targetAura->GetSpellProto()) / targetAura->GetSpellProto()->EffectAmplitude[idx] - 1;
+            int32 tickcount = GetSpellDuration(targetAura->GetSpellProto()) / targetAura->GetSpellProto()->EffectAmplitude[idx];
+
+			// Swiftmend
+            if (targetAura->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID && targetAura->GetSpellProto()->SpellFamilyFlags & UI64LIT(0x0000000000000040))
+                tickcount -= 1;
 
             unitTarget->RemoveAurasDueToSpell(targetAura->GetId());
 
