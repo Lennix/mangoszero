@@ -624,12 +624,16 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
 
         // Eye of Kilrogg
         pVictim->RemoveAura(126, EFFECT_INDEX_1);
-    }
 
-    // Remove WSG restoration upon damage
-    if (pVictim->HasAura(23493))
-    {
-        pVictim->RemoveAurasDueToSpellByCancel(23493);
+        // Remove WSG restoration upon damage
+        if (pVictim->HasAura(23493))
+            pVictim->RemoveAurasDueToSpellByCancel(23493);
+		// Cannibalize
+        else if (pVictim->HasAura(20578))
+		{
+            pVictim->RemoveAurasDueToSpellByCancel(20578);
+			pVictim->InterruptSpell(CURRENT_CHANNELED_SPELL);
+		}
     }
     
     // remove affects from attacker at any non-DoT damage (including 0 damage)
@@ -5939,7 +5943,7 @@ uint32 Unit::SpellCriticalHealingBonus(SpellEntry const *spellProto, uint32 dama
 uint32 Unit::SpellHealingBonusDone(Unit *pVictim, SpellEntry const *spellProto, int32 healamount, DamageEffectType damagetype, uint32 stack)
 {
     // For totems get healing bonus from owner
-    if( GetTypeId()==TYPEID_UNIT && ((Creature*)this)->IsTotem())
+    if (GetTypeId()==TYPEID_UNIT && ((Creature*)this)->IsTotem())
         if(Unit* owner = GetOwner())
             return owner->SpellHealingBonusDone(pVictim, spellProto, healamount, damagetype, stack);
 
@@ -5958,21 +5962,23 @@ uint32 Unit::SpellHealingBonusDone(Unit *pVictim, SpellEntry const *spellProto, 
         DoneTotalMod *= (100.0f + (*i)->GetModifier()->m_amount) / 100.0f;
 
     // done scripted mod (take it from owner)
-    Unit *owner = GetOwner();
-    if (!owner) owner = this;
-    AuraList const& mOverrideClassScript= owner->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
-    for(AuraList::const_iterator i = mOverrideClassScript.begin(); i != mOverrideClassScript.end(); ++i)
-    {
-        if (!(*i)->isAffectedOnSpell(spellProto))
-            continue;
-        switch((*i)->GetModifier()->m_miscvalue)
+    if ((spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000010) && spellProto->SpellFamilyName == SPELLFAMILY_DRUID) || 
+		(spellProto->SpellFamilyFlags & UI64LIT(0x0000000000000080) && spellProto->SpellFamilyName == SPELLFAMILY_SHAMAN))
+    {	
+        Unit *owner = GetOwner();
+        if (!owner) owner = this;
+        AuraList const& mOverrideClassScript= owner->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
+        for(AuraList::const_iterator i = mOverrideClassScript.begin(); i != mOverrideClassScript.end(); ++i)
         {
-            case 4415: // Increased Rejuvenation Healing
-            case 3736: // Hateful Totem of the Third Wind / Increased Lesser Healing Wave / Savage Totem of the Third Wind
-                DoneTotal+=(*i)->GetModifier()->m_amount;
-                break;
-            default:
-                break;
+            switch((*i)->GetModifier()->m_miscvalue)
+            {
+                case 4415: // Idol of Rejuvenation - Increased Rejuvenation Healing
+                case 3736: // Totem of Life/Totem of Sustaining - Increased Lesser Healing Wave 
+                    DoneTotal+=(*i)->GetModifier()->m_amount;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
