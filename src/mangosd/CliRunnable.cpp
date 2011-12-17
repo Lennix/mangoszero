@@ -595,8 +595,8 @@ void CliRunnable::run()
     ///- Display the list of available CLI functions then beep
     sLog.outString();
 
-    if (sConfig.GetBoolDefault("BeepAtStart", true))
-        printf("\a");                                       // \a = Alert
+    //if (sConfig.GetBoolDefault("BeepAtStart", true))
+    //    printf("\a");                                       // \a = Alert
 
     // print this here the first time
     // later it will be printed after command queue updates
