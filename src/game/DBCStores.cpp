@@ -314,13 +314,6 @@ void LoadDBCStores(const std::string& dataPath)
                     case 10328:
                     case 10329:
                     case 25292:
-                    // Flash of light
-                    case 19750:
-                    case 19939:
-                    case 19940:
-                    case 19941:
-                    case 19942:
-                    case 19943:
                         notConstSpell->Effect[0] = SPELL_EFFECT_HEAL;
                         break;
                 }
