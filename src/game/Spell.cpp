@@ -1207,10 +1207,14 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
     {
         if (effectMask & (1 << effectNumber))
         {
-			if (rollEffectChances && !unit->RollBinarySpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo)))
-				continue;
-
-			HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
+            if (rollEffectChances)
+                // Roll for effect hit outcome
+                if(!unit->RollBinarySpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo)))
+                {
+                    realCaster->SendSpellMiss(unit, m_spellInfo->Id, SPELL_MISS_RESIST);
+                    continue;
+                }
+            HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
             if ( m_applyMultiplierMask & (1 << effectNumber) )
             {
                 // Get multiplier
