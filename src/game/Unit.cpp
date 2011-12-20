@@ -641,10 +641,8 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
 
     if(!damage)
     {
-        // Rage from physical damage received .
-        // ?? No dmg done, why reward rage ??
-        //if(cleanDamage && cleanDamage->damage && (damageSchoolMask & SPELL_SCHOOL_MASK_NORMAL) && pVictim->GetTypeId() == TYPEID_PLAYER && (pVictim->getPowerType() == POWER_RAGE))
-        //   ((Player*)pVictim)->RewardRage(cleanDamage->damage, 0, false);
+        if(cleanDamage && !(cleanDamage->hitOutCome == MELEE_HIT_MISS) && cleanDamage->damage && (damageSchoolMask & SPELL_SCHOOL_MASK_NORMAL) && this != pVictim && GetTypeId() == TYPEID_PLAYER && (getPowerType() == POWER_RAGE))
+            ((Player*)this)->RewardRage(((Player*)this)->CalcArmorReducedDamage(pVictim, cleanDamage->damage)*0.8, false);
 
         return 0;
     }
@@ -675,7 +673,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         {
             if(CreatureInfo const* normalInfo = ObjectMgr::GetCreatureTemplate(pVictim->GetEntry()))
                 ((Player*)this)->KilledMonster(normalInfo,pVictim->GetObjectGuid());
-            ((Player*)this)->RewardRage(damage, NULL, true); // Warriors should recieve rage from hitting critters
+            ((Player*)this)->RewardRage(damage, true); // Warriors should recieve rage from hitting critters
         }
         if (InstanceData* mapInstance = pVictim->GetInstanceData())
             mapInstance->OnCreatureDeath(((Creature*)pVictim));
@@ -713,29 +711,12 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
     // Rage from Damage made (only from direct weapon damage)
     if( cleanDamage && damagetype==DIRECT_DAMAGE && this != pVictim && GetTypeId() == TYPEID_PLAYER && (getPowerType() == POWER_RAGE))
     {
-        uint32 weaponSpeedHitFactor;
-
         switch(cleanDamage->attackType)
         {
             case BASE_ATTACK:
-            {
-                if(cleanDamage->hitOutCome == MELEE_HIT_CRIT)
-                    weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 7);
-                else
-                    weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 3.5f);
-
-                ((Player*)this)->RewardRage(damage, weaponSpeedHitFactor, true);
-
-                break;
-            }
             case OFF_ATTACK:
             {
-                if(cleanDamage->hitOutCome == MELEE_HIT_CRIT)
-                    weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 3.5f);
-                else
-                    weaponSpeedHitFactor = uint32(GetAttackTime(cleanDamage->attackType)/1000.0f * 1.75f);
-
-                ((Player*)this)->RewardRage(damage, weaponSpeedHitFactor, true);
+                ((Player*)this)->RewardRage(damage, true);
 
                 break;
             }
@@ -1016,7 +997,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         {
             // Rage from damage received
             if(this != pVictim && pVictim->getPowerType() == POWER_RAGE)
-                ((Player*)pVictim)->RewardRage(damage, 0, false);
+                ((Player*)pVictim)->RewardRage(damage, false);
 
             // random durability for items (HIT TAKEN)
             if (roll_chance_f(sWorld.getConfig(CONFIG_FLOAT_RATE_DURABILITY_LOSS_DAMAGE)))

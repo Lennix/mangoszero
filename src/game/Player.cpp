@@ -1813,7 +1813,7 @@ void Player::RemoveFromWorld()
     Unit::RemoveFromWorld();
 }
 
-void Player::RewardRage( uint32 damage, uint32 weaponSpeedHitFactor, bool attacker )
+void Player::RewardRage( uint32 damage, bool attacker )
 {
     float addRage;
 
