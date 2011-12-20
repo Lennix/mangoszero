@@ -3739,7 +3739,7 @@ bool Unit::RemoveNoStackAurasDueToAuraHolder(SpellAuraHolder *holder)
                 continue;
         }
 
-        if(i_spellId == spellId) continue;
+        if(i_spellId == spellId && !firstHoT) continue;
 
         bool is_triggered_by_spell = false;
         // prevent triggering aura of removing aura that triggered it
