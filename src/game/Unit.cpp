@@ -5996,7 +5996,7 @@ uint32 Unit::SpellHealingBonusDone(Unit *pVictim, SpellEntry const *spellProto, 
  */
 uint32 Unit::SpellHealingBonusTaken(Unit *pCaster, SpellEntry const *spellProto, int32 healamount, DamageEffectType damagetype, uint32 stack)
 {
-    float  TakenTotalMod = 1.0f;
+    float TakenTotalMod = 1.0f;
 
     // Healing taken percent
     float minval = float(GetMaxNegativeAuraModifier(SPELL_AURA_MOD_HEALING_PCT));
@@ -6016,7 +6016,7 @@ uint32 Unit::SpellHealingBonusTaken(Unit *pCaster, SpellEntry const *spellProto,
 
     // Healing Done
     // Done total percent damage auras
-    int32  TakenTotal = 0;
+    int32 TakenTotal = 0;
 
     // Taken fixed damage bonus auras
     int32 TakenAdvertisedBenefit = SpellBaseHealingBonusTaken(GetSpellSchoolMask(spellProto));

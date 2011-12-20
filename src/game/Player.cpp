@@ -1821,8 +1821,8 @@ void Player::RewardRage( uint32 damage, uint32 weaponSpeedHitFactor, bool attack
 
     if(attacker)
     {
-        addRage = 2*damage/getLevel();
-        //addRage = (damage/rageconversion)*7.5f;
+        //addRage = 2*damage/getLevel(); - Relic says to use raceconversion
+        addRage = (damage/rageconversion)*7.5f;
     }
     else
     {
