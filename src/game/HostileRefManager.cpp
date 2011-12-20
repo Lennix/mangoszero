@@ -45,7 +45,11 @@ void HostileRefManager::threatAssist(Unit *pVictim, float pThreat, SpellEntry co
     HostileReference* ref = getFirst();
     while (ref)
     {
-        ref->getSource()->addThreat(pVictim, threat, false, (pThreatSpell ? GetSpellSchoolMask(pThreatSpell) : SPELL_SCHOOL_MASK_NORMAL), pThreatSpell);
+        // extra check for fade
+        if(pThreatSpell->EffectApplyAuraName[EFFECT_INDEX_0] == SPELL_AURA_MOD_TOTAL_THREAT)
+            ref->getSource()->addThreatDirectly(pVictim, pThreat);
+        else
+            ref->getSource()->addThreat(pVictim, threat, false, (pThreatSpell ? GetSpellSchoolMask(pThreatSpell) : SPELL_SCHOOL_MASK_NORMAL), pThreatSpell);
 
         ref = ref->next();
     }
