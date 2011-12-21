@@ -922,24 +922,24 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 	else
 	{
         // refund energe and rage
-        if((missInfo & (SPELL_MISS_DODGE|SPELL_MISS_PARRY|SPELL_MISS_BLOCK)) && !m_damage)
-            switch(m_spellInfo->SpellFamilyName)
+        if ((target->missCondition & (SPELL_MISS_DODGE|SPELL_MISS_PARRY|SPELL_MISS_BLOCK)))
+            switch (m_spellInfo->SpellFamilyName)
             {
                 case SPELLFAMILY_WARRIOR:					
                     caster->ModifyPower(POWER_RAGE, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                     break;
                 case SPELLFAMILY_ROGUE:
-                    if(!NeedsComboPoints(m_spellInfo))
+                    if (!NeedsComboPoints(m_spellInfo))
                         caster->ModifyPower(POWER_ENERGY, (int32)(CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                     break;
                 case SPELLFAMILY_DRUID:
-                    switch(m_spellInfo->powerType)
+                    switch (m_spellInfo->powerType)
                     {
                         case POWER_RAGE:
                             caster->ModifyPower(POWER_RAGE, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                             break;
                         case POWER_ENERGY:
-                            if(!NeedsComboPoints(m_spellInfo))
+                            if (!NeedsComboPoints(m_spellInfo))
                                 caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                             break;
                     }
