@@ -930,7 +930,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
                     break;
                 case SPELLFAMILY_ROGUE:
                     if (!NeedsComboPoints(m_spellInfo))
-                        caster->ModifyPower(POWER_ENERGY, (int32)(CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
+                        caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                     break;
                 case SPELLFAMILY_DRUID:
                     switch (m_spellInfo->powerType)
