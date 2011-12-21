@@ -4032,14 +4032,13 @@ SpellCastResult Spell::CheckCast(bool strict)
 
             // auto selection spell rank implemented in WorldSession::HandleCastSpellOpcode
             // this case can be triggered if rank not found (too low-level target for first rank)
-            if (m_caster->GetTypeId() == TYPEID_PLAYER)
+            if (m_caster->GetTypeId() == TYPEID_PLAYER && !m_IsTriggeredSpell)
             {
                 // spell expected to be auto-downranking in cast handle, so must be same
-                if (!m_CastItem && !m_IsTriggeredSpell && 
-                    m_spellInfo != sSpellMgr.SelectAuraRankForLevel(m_spellInfo, target->getLevel()))
+                if (!m_CastItem && m_spellInfo != sSpellMgr.SelectAuraRankForLevel(m_spellInfo, target->getLevel()))
                     return SPELL_FAILED_LOWLEVEL;
 
-                if(!target->isVisibleForOrDetect(m_caster, m_caster, false))
+                if (!target->isVisibleForOrDetect(m_caster, m_caster, false))
                     return SPELL_FAILED_TRY_AGAIN;
             }
         }
