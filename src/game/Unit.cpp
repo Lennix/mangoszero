@@ -717,7 +717,6 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             case OFF_ATTACK:
             {
                 ((Player*)this)->RewardRage(damage, true);
-
                 break;
             }
             case RANGED_ATTACK:
