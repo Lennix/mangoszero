@@ -114,12 +114,13 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode( WorldPacket & recv_data )
     uint32 quest;
     recv_data >> guid >> quest;
 
-    if (!GetPlayer()->isAlive())
-        return;
-
     DEBUG_LOG("WORLD: Received CMSG_QUESTGIVER_ACCEPT_QUEST npc = %s, quest = %u", guid.GetString().c_str(), quest);
 
     Object* pObject = _player->GetObjectByTypeMask(guid, TYPEMASK_CREATURE_GAMEOBJECT_PLAYER_OR_ITEM);
+
+    // Check if player is dead or alive
+    if (!_player->isAlive() && !(pObject->GetTypeId()==TYPEID_UNIT && ((Creature*)pObject)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_GHOST))
+        return;
 
     // no or incorrect quest giver
     if(!pObject
