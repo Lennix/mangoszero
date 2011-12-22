@@ -119,7 +119,7 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode( WorldPacket & recv_data )
     Object* pObject = _player->GetObjectByTypeMask(guid, TYPEMASK_CREATURE_GAMEOBJECT_PLAYER_OR_ITEM);
 
     // Check if player is dead or alive
-    if (!_player->isAlive() && !(pObject->GetTypeId()==TYPEID_UNIT && ((Creature*)pObject)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_GHOST))
+    if (!_player->isAlive() && !(pObject && pObject->GetTypeId()==TYPEID_UNIT && ((Creature*)pObject)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_GHOST))
         return;
 
     // no or incorrect quest giver
@@ -238,9 +238,6 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode( WorldPacket & recv_data )
         return;
     }
 
-    if(!GetPlayer()->isAlive())
-        return;
-
     DEBUG_LOG("WORLD: Received CMSG_QUESTGIVER_CHOOSE_REWARD npc = %s, quest = %u, reward = %u", guid.GetString().c_str(), quest, reward);
 
     Object* pObject = _player->GetObjectByTypeMask(guid, TYPEMASK_CREATURE_OR_GAMEOBJECT);
@@ -248,6 +245,10 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode( WorldPacket & recv_data )
         return;
 
     if(!pObject->HasInvolvedQuest(quest))
+        return;
+
+    // Check if player is dead or alive
+    if (!_player->isAlive() && !(pObject->GetTypeId()==TYPEID_UNIT && ((Creature*)pObject)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_GHOST))
         return;
 
     Quest const *pQuest = sObjectMgr.GetQuestTemplate(quest);
@@ -272,13 +273,14 @@ void WorldSession::HandleQuestgiverRequestRewardOpcode( WorldPacket & recv_data 
     ObjectGuid guid;
     recv_data >> guid >> quest;
 
-    if (!GetPlayer()->isAlive())
-        return;
-
     DEBUG_LOG("WORLD: Received CMSG_QUESTGIVER_REQUEST_REWARD npc = %s, quest = %u", guid.GetString().c_str(), quest);
 
     Object* pObject = _player->GetObjectByTypeMask(guid, TYPEMASK_CREATURE_OR_GAMEOBJECT);
     if (!pObject||!pObject->HasInvolvedQuest(quest))
+        return;
+	
+    // Check if player is dead or alive
+    if (!_player->isAlive() && !(pObject->GetTypeId()==TYPEID_UNIT && ((Creature*)pObject)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_GHOST))
         return;
 
     if (_player->CanCompleteQuest(quest))
@@ -379,7 +381,10 @@ void WorldSession::HandleQuestgiverCompleteQuest(WorldPacket& recv_data)
     ObjectGuid guid;
     recv_data >> guid >> quest;
 
-    if (!GetPlayer()->isAlive())
+    Object* pObject = _player->GetObjectByTypeMask(guid, TYPEMASK_CREATURE_GAMEOBJECT_PLAYER_OR_ITEM);
+
+    // Check if player is dead or alive
+    if (!_player->isAlive() && !(pObject && pObject->GetTypeId()==TYPEID_UNIT && ((Creature*)pObject)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_GHOST))
         return;
 
     DEBUG_LOG("WORLD: Received CMSG_QUESTGIVER_COMPLETE_QUEST npc = %s, quest = %u", guid.GetString().c_str(), quest);
