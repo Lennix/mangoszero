@@ -4156,7 +4156,8 @@ void Aura::HandleModHitChance(bool apply, bool /*Real*/)
 {
     Unit *target = GetTarget();
 
-    target->m_modMeleeHitChance += apply ? m_modifier.m_amount : (-m_modifier.m_amount);
+    if (!(GetSpellProto()->EquippedItemSubClassMask == 0x0004000C)) // Biznicks 247x128 Accurascope
+        target->m_modMeleeHitChance += apply ? m_modifier.m_amount : (-m_modifier.m_amount);
     target->m_modRangedHitChance += apply ? m_modifier.m_amount : (-m_modifier.m_amount);
 }
 
