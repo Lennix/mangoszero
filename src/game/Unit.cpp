@@ -3645,6 +3645,51 @@ void Unit::AddAuraToModList(Aura *aura)
         m_modAuras[aura->GetModifier()->m_auraname].push_back(aura);
 }
 
+bool Unit::IsMorePowerfulSpellActive(uint32 spellId, Unit* caster)
+{
+    SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId);
+    if(!spellInfo)
+        return false;
+
+    // Special cases first
+    // Renew - Prevent overwriting
+    if ((spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST) && (spellInfo->SpellFamilyFlags & UI64LIT(0x40)))
+    {
+        if (Aura* aura = GetAura(SPELL_AURA_PERIODIC_HEAL, SPELLFAMILY_PRIEST, UI64LIT(0x40)))
+        {
+            int32 activeRenew = aura->GetModifier()->m_amount;
+            int32 freshRenew = caster->SpellHealingBonusDone(this, spellInfo, spellInfo->EffectBasePoints[EFFECT_INDEX_0], DOT, spellInfo->StackAmount) + 1;
+            if(activeRenew > freshRenew)
+                return true;
+        }
+    }
+    // Rejuvenation - Prevent overwriting
+    else if ((spellInfo->SpellFamilyName == SPELLFAMILY_DRUID) && (spellInfo->SpellFamilyFlags & UI64LIT(0x10)))
+    {
+        if (Aura* aura = GetAura(SPELL_AURA_PERIODIC_HEAL, SPELLFAMILY_DRUID, UI64LIT(0x10)))
+        {
+            int32 activeRej = aura->GetModifier()->m_amount;
+            int32 freshRej = caster->SpellHealingBonusDone(this, spellInfo, spellInfo->EffectBasePoints[EFFECT_INDEX_0], DOT, spellInfo->StackAmount) + 1;
+            if(activeRej > freshRej)
+                return true;
+        }
+    }
+    else
+    {
+        // Loop trough spellEffects and applied auras if a spell with same visual or spellFamilyFlags is more powerful
+        for (int eff = 0; eff < MAX_EFFECT_INDEX; ++eff)
+        {
+            Unit::AuraList const &m_Auras = GetAurasByType(AuraType(spellInfo->EffectApplyAuraName[eff]));
+            for(Unit::AuraList::const_iterator i = m_Auras.begin(); i != m_Auras.end(); ++i)
+            {
+                if ((spellInfo->SpellVisual == (*i)->GetSpellProto()->SpellVisual || spellInfo->SpellFamilyFlags == (*i)->GetSpellProto()->SpellFamilyFlags) && CompareAuraRanks((*i)->GetSpellProto()->Id,spellInfo->Id) > 0)
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
 void Unit::RemoveRankAurasDueToSpell(uint32 spellId)
 {
     SpellEntry const *spellInfo = sSpellStore.LookupEntry(spellId);

@@ -4004,27 +4004,15 @@ SpellCastResult Spell::CheckCast(bool strict)
             if (!target->GetAura(SPELL_AURA_PERIODIC_HEAL,SPELLFAMILY_DRUID,UI64LIT(0x50)))
                 return SPELL_FAILED_TARGET_AURASTATE;
         }
-        // Renew - Prevent overwriting
-        else if ((m_spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST) && (m_spellInfo->SpellFamilyFlags & UI64LIT(0x40)))
-            if (Aura* aura = target->GetAura(SPELL_AURA_PERIODIC_HEAL, SPELLFAMILY_PRIEST, UI64LIT(0x40)))
-            {
-                int32 activeRenew = aura->GetModifier()->m_amount;
-                int32 freshRenew = m_caster->SpellHealingBonusDone(target, m_spellInfo, m_spellInfo->EffectBasePoints[EFFECT_INDEX_0], DOT, m_spellInfo->StackAmount) + 1;
-                if(activeRenew > freshRenew)
-                    return SPELL_FAILED_MORE_POWERFUL_SPELL_ACTIVE;
-            }
-        // Rejuvenation - Prevent overwriting
-        else if ((m_spellInfo->SpellFamilyName == SPELLFAMILY_DRUID) && (m_spellInfo->SpellFamilyFlags & UI64LIT(0x10)))
-            if (Aura* aura = target->GetAura(SPELL_AURA_PERIODIC_HEAL, SPELLFAMILY_DRUID, UI64LIT(0x10)))
-            {
-                int32 activeRej = aura->GetModifier()->m_amount;
-                int32 freshRej = m_caster->SpellHealingBonusDone(target, m_spellInfo, m_spellInfo->EffectBasePoints[EFFECT_INDEX_0], DOT, m_spellInfo->StackAmount) + 1;
-                if(activeRej > freshRej)
-                    return SPELL_FAILED_MORE_POWERFUL_SPELL_ACTIVE;
-            }
 
-        if (!m_IsTriggeredSpell && IsDeathOnlySpell(m_spellInfo) && target->isAlive())
-            return SPELL_FAILED_TARGET_NOT_DEAD;
+        if (!m_IsTriggeredSpell)
+        {
+            if (target->IsMorePowerfulSpellActive(m_spellInfo->Id, m_caster))
+                return SPELL_FAILED_MORE_POWERFUL_SPELL_ACTIVE;
+
+            if (IsDeathOnlySpell(m_spellInfo) && target->isAlive())
+                return SPELL_FAILED_TARGET_NOT_DEAD;
+        }
 
         bool non_caster_target = target != m_caster && !IsSpellWithCasterSourceTargetsOnly(m_spellInfo);
 
