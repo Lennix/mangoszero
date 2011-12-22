@@ -3118,9 +3118,10 @@ void Unit::SetCurrentCastedSpell( Spell * pSpell , bool triggered)
             // autorepeat breaking
             if ( m_currentSpells[CURRENT_AUTOREPEAT_SPELL] )
             {
-                // break autorepeat if not Auto Shot
-                if (m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_spellInfo->Category == 351)
+                // break autorepeat if not Auto Shot except for scatter shot
+                if (m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_spellInfo->Category == 351 || InterruptSpell(CURRENT_AUTOREPEAT_SPELL))
                     InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
+
                 m_AutoRepeatFirstCast = true;
             }
         } break;
