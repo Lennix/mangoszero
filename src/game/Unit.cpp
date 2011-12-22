@@ -3119,7 +3119,7 @@ void Unit::SetCurrentCastedSpell( Spell * pSpell , bool triggered)
             if ( m_currentSpells[CURRENT_AUTOREPEAT_SPELL] )
             {
                 // break autorepeat if not Auto Shot except for scatter shot
-                if (m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_spellInfo->Category == 351 || InterruptSpell(CURRENT_AUTOREPEAT_SPELL))
+                if (m_currentSpells[CURRENT_AUTOREPEAT_SPELL]->m_spellInfo->Category == 351 || pSpell->m_spellInfo->Id == 19503)
                     InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
 
                 m_AutoRepeatFirstCast = true;
