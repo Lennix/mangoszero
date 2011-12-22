@@ -3682,7 +3682,7 @@ bool Unit::IsMorePowerfulSpellActive(uint32 spellId, Unit* caster)
             Unit::AuraList const &m_Auras = GetAurasByType(AuraType(spellInfo->EffectApplyAuraName[eff]));
             for(Unit::AuraList::const_iterator i = m_Auras.begin(); i != m_Auras.end(); ++i)
             {
-                if ((spellInfo->SpellVisual == (*i)->GetSpellProto()->SpellVisual || spellInfo->SpellFamilyFlags == (*i)->GetSpellProto()->SpellFamilyFlags) && CompareAuraRanks((*i)->GetSpellProto()->Id,spellInfo->Id) > 0)
+                if ((spellInfo->SpellVisual == (*i)->GetSpellProto()->SpellVisual || (spellInfo->SpellFamilyFlags != 0 && spellInfo->SpellFamilyFlags == (*i)->GetSpellProto()->SpellFamilyFlags)) && CompareAuraRanks((*i)->GetSpellProto()->Id,spellInfo->Id) > 0)
                     return true;
             }
         }
