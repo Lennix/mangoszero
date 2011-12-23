@@ -3533,38 +3533,6 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
                 if (holder->IsWeaponBuffCoexistableWith(foundHolder))
                     continue;
 
-                bool cont = false;
-                switch(aurSpellInfo->Id)
-                {
-					// Zul'Gurub enchants
-                    case 24159:
-                    case 24157:
-                    case 24156:
-                    case 24155:
-                    case 24158:
-                    case 24153:
-                    case 24154:
-                    case 24148:
-                    case 24151:
-                    {
-                        SpellAuraHolderBounds spair2 = GetSpellAuraHolderBounds(aurSpellInfo->Id);
-                        int32 counter = 0;
-                        for (SpellAuraHolderMap::iterator iter2 = spair2.first; iter2 != spair.second; ++iter2)
-                        {		
-                            SpellAuraHolder *foundHolder2 = iter2->second;
-                            if (foundHolder2->GetCasterGuid() == holder->GetCasterGuid())
-                                counter++;
-                            if (counter > 1)
-                                return false;
-                            else
-                                cont = true;
-                        }
-                    }
-                        
-                }
-                if(cont)
-                    continue;
-
                 // can be only single
                 RemoveSpellAuraHolder(foundHolder, AURA_REMOVE_BY_STACK);
                 break;
