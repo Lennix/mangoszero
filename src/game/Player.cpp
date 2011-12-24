@@ -4003,20 +4003,23 @@ void Player::SetCharmed(bool apply, uint64 casterGUID, uint32 spellID)
         {
             if (!pCaster->CanHaveThreatList()) // Wenn der Caster keine ThreatList hat, müssen wir dem Spieler sein Target in die Liste schreiben
             {
-                ThreatList const& threatlistOwner = pCaster->GetCharmerOrOwner()->getThreatManager().getThreatList();
-                if (threatlistOwner.size())
+                if (Unit* charmer = pCaster->GetCharmerOrOwner())
                 {
-                    for (uint8 i = 0;i < 3;++i)
+                    ThreatList const& threatlistOwner = charmer->getThreatManager().getThreatList();
+                    if (threatlistOwner.size())
                     {
-                        ThreatList::const_iterator itr = threatlistOwner.begin();
-                        advance(itr,(rand() % (threatlistOwner.size())));
-                        if (Unit* pTarget = pCaster->GetMap()->GetUnit((*itr)->getUnitGuid()))
+                        for (uint8 i = 0;i < 3;++i)
                         {
-                            if (pTarget != this && pTarget != pCaster && pTarget->isAlive())
+                            ThreatList::const_iterator itr = threatlistOwner.begin();
+                            advance(itr,(rand() % (threatlistOwner.size())));
+                            if (Unit* pTarget = pCaster->GetMap()->GetUnit((*itr)->getUnitGuid()))
                             {
-                                GetMotionMaster()->MoveChase(pTarget);
-                                Attack(pTarget,true);       //attack to make a victim for further attacks
-                                break;
+                                if (pTarget != this && pTarget != pCaster && pTarget->isAlive())
+                                {
+                                    GetMotionMaster()->MoveChase(pTarget);
+                                    Attack(pTarget,true);       //attack to make a victim for further attacks
+                                    break;
+                                }
                             }
                         }
                     }
