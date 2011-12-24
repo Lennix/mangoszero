@@ -564,6 +564,20 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     m_caster->CastCustomSpell(m_caster, 12976, &healthModSpellBasePoints0, NULL, NULL, true, NULL);
                     return;
                 }
+                case 13180:
+                {
+                    if (!unitTarget)
+                        return;
+
+                    uint32 roll = urand(0, 99);
+                    if (roll < 33)
+                        unitTarget->CastSpell(m_caster, 13181, true, NULL, NULL, unitTarget->GetObjectGuid(), m_spellInfo);
+                    else if (roll < 66)
+                        m_caster->CastSpell(unitTarget, 13181, true, NULL, NULL, m_caster->GetObjectGuid(), m_spellInfo);
+                    else
+                        SendCastResult(SPELL_FAILED_FIZZLE);
+                    return;
+                }
                 case 13120:                                 // net-o-matic
                 {
                     if (!unitTarget)
