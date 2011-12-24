@@ -4189,7 +4189,7 @@ SpellCastResult Spell::CheckCast(bool strict)
         }
 
         // check if target is in combat
-        if (non_caster_target && (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_IN_COMBAT_TARGET) && target->isInCombat())
+        if (non_caster_target && !m_IsTriggeredSpell && (m_spellInfo->AttributesEx & SPELL_ATTR_EX_NOT_IN_COMBAT_TARGET) && target->isInCombat())
             return SPELL_FAILED_TARGET_AFFECTING_COMBAT;
     }
     // zone check
@@ -4994,10 +4994,10 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if (!m_targets.getUnitTarget())
                     return SPELL_FAILED_BAD_IMPLICIT_TARGETS;
 
-                Unit::AuraList const &mAbsorbAuras = m_targets.getUnitTarget()->GetAurasByType(SPELL_AURA_SCHOOL_ABSORB);
+                /*Unit::AuraList const &mAbsorbAuras = m_targets.getUnitTarget()->GetAurasByType(SPELL_AURA_SCHOOL_ABSORB);
                 for(Unit::AuraList::const_iterator i = mAbsorbAuras.begin(); i != mAbsorbAuras.end(); ++i)
                     if (m_spellInfo->EffectBasePoints[EFFECT_INDEX_0] <= (*i)->GetModifier()->m_amount && (*i)->GetEffIndex() == 0)
-                        return SPELL_FAILED_MORE_POWERFUL_SPELL_ACTIVE;
+                        return SPELL_FAILED_MORE_POWERFUL_SPELL_ACTIVE;*/
 
                 break;
             }
