@@ -3505,7 +3505,7 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
     }
 
     // passive and persistent auras can stack with themselves any number of times
-    if ((!holder->IsPassive() && !holder->IsPersistent()) || holder->IsAreaAura())
+    if ((!(aurSpellInfo->Attributes & (SPELL_ATTR_PASSIVE | SPELL_ATTR_UNK7)) && !holder->IsPersistent()) || holder->IsAreaAura())
     {
         SpellAuraHolderBounds spair = GetSpellAuraHolderBounds(aurSpellInfo->Id);
 
