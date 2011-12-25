@@ -1273,6 +1273,15 @@ void Player::Update( uint32 update_diff, uint32 p_time )
     // Played time
     if (now > m_Last_tick)
     {
+        // MCEP - Unroot player after 1.5 seconds up to 5 seconds
+        /*if (now < m_logintime + 5*IN_MILLISECONDS && now > m_logintime + 1500)
+		{
+			WorldPacket data(SMSG_FORCE_MOVE_UNROOT, 10);
+            data << target->GetPackGUID();
+            data << (uint32)2;
+            target->SendMessageToSet(&data, true);
+		}*/
+
         uint32 elapsed = uint32(now - m_Last_tick);
         m_Played_time[PLAYED_TIME_TOTAL] += elapsed;        // Total played time
         m_Played_time[PLAYED_TIME_LEVEL] += elapsed;        // Level played time
@@ -13866,6 +13875,12 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
             transGUID = 0;
         }
     }
+
+	// MCEP - Root player
+    /*WorldPacket data(SMSG_FORCE_MOVE_ROOT, 10);
+    data << target->GetPackGUID();
+    data << (uint32)2;
+    target->SendMessageToSet(&data, true);*/
 
     // player bounded instance saves loaded in _LoadBoundInstances, group versions at group loading
     DungeonPersistentState* state = GetBoundInstanceSaveForSelfOrGroup(GetMapId());
