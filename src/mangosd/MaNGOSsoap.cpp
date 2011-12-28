@@ -137,6 +137,8 @@ int ns1__executeCommand(soap* soap, char* command, char** result)
     {
         sLog.outError("MaNGOSsoap: Error while acquiring lock, acc = %i, errno = %u", acc, errno);
     }
+	ACE_Based::Thread::Sleep(1000);
+
 	DEBUG_LOG("MaNGOSsoap: command completed: '%s'", command);
     // alright, command finished
 
