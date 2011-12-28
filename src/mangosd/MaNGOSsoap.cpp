@@ -131,13 +131,13 @@ int ns1__executeCommand(soap* soap, char* command, char** result)
     }
 
     // wait for callback to complete command
-
+	DEBUG_LOG("MaNGOSsoap: waiting for completion of: '%s'", command);
     int acc = connection.pendingCommands.acquire();
     if(acc)
     {
         sLog.outError("MaNGOSsoap: Error while acquiring lock, acc = %i, errno = %u", acc, errno);
     }
-
+	DEBUG_LOG("MaNGOSsoap: command completed: '%s'", command);
     // alright, command finished
 
     char* printBuffer = soap_strdup(soap, connection.m_printBuffer.c_str());

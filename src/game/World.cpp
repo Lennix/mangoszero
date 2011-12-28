@@ -1910,22 +1910,31 @@ void World::InitServerMaintenanceCheck()
 // This handles the issued and queued CLI/RA commands
 void World::ProcessCliCommands()
 {
+	bool blah = false;
+
     CliCommandHolder::Print* zprint = NULL;
     void* callbackArg = NULL;
     CliCommandHolder* command;
     while (cliCmdQueue.next(command))
     {
-        DEBUG_LOG("CLI command under processing...");
+		blah = true;
+
+		DEBUG_LOG("CLI command under processing for command '%s'", command->m_command);
         zprint = command->m_print;
         callbackArg = command->m_callbackArg;
         CliHandler handler(command->m_cliAccountId, command->m_cliAccessLevel, callbackArg, zprint);
         handler.ParseCommands(command->m_command);
-
+		DEBUG_LOG("CLI command processed: '%s'", command->m_command);
         if(command->m_commandFinished)
+		{
             command->m_commandFinished(callbackArg, !handler.HasSentErrorMessage());
-
+			DEBUG_LOG("CLI command finished: '%s'", command->m_command);
+		}
         delete command;
+		DEBUG_LOG("CLI command deleted");
     }
+	if (blah)
+		DEBUG_LOG("CLI commands processed");
 }
 
 void World::SendBroadcast()
