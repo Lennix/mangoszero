@@ -896,53 +896,61 @@ void AuthSocket::LoadRealmlist(ByteBuffer &pkt, uint32 acctid)
         case 5875:                                          // 1.12.1
         case 6005:                                          // 1.12.2
         {
+            uint32 size = 0;
+            for(RealmList::RealmMap::const_iterator  i = sRealmlist.begin(); i != sRealmlist.end(); ++i)
+            {
+                if (_accountSecurityLevel >= i->second.allowedSecurityLevel)
+                    size ++;
+            }
             pkt << uint32(0);                               // unused value
-            pkt << uint8(sRealmList.size());
+            pkt << uint8(size);
 
             for(RealmList::RealmMap::const_iterator  i = sRealmList.begin(); i != sRealmList.end(); ++i)
             {
-                uint8 AmountOfCharacters;
+                if (_accountSecurityLevel >= i->second.allowedSecurityLevel) {
+                    uint8 AmountOfCharacters;
 
-                // No SQL injection. id of realm is controlled by the database.
-                QueryResult *result = LoginDatabase.PQuery( "SELECT numchars FROM realmcharacters WHERE realmid = '%d' AND acctid='%u'", i->second.m_ID, acctid);
-                if( result )
-                {
-                    Field *fields = result->Fetch();
-                    AmountOfCharacters = fields[0].GetUInt8();
-                    delete result;
+                    // No SQL injection. id of realm is controlled by the database.
+                    QueryResult *result = LoginDatabase.PQuery( "SELECT numchars FROM realmcharacters WHERE realmid = '%d' AND acctid='%u'", i->second.m_ID, acctid);
+                    if( result )
+                    {
+                        Field *fields = result->Fetch();
+                        AmountOfCharacters = fields[0].GetUInt8();
+                        delete result;
+                    }
+                    else
+                        AmountOfCharacters = 0;
+
+                    bool ok_build = std::find(i->second.realmbuilds.begin(), i->second.realmbuilds.end(), _build) != i->second.realmbuilds.end();
+
+                    RealmBuildInfo const* buildInfo = ok_build ? FindBuildInfo(_build) : NULL;
+                    if (!buildInfo)
+                        buildInfo = &i->second.realmBuildInfo;
+
+                    RealmFlags realmflags = i->second.realmflags;
+
+                    // 1.x clients not support explicitly REALM_FLAG_SPECIFYBUILD, so manually form similar name as show in more recent clients
+                    std::string name = i->first;
+                    if (realmflags & REALM_FLAG_SPECIFYBUILD)
+                    {
+                        char buf[20];
+                        snprintf(buf, 20," (%u,%u,%u)", buildInfo->major_version, buildInfo->minor_version, buildInfo->bugfix_version);
+                        name += buf;
+                    }
+
+                    // Show offline state for unsupported client builds and locked realms (1.x clients not support locked state show)
+                    if (!ok_build || (i->second.allowedSecurityLevel > _accountSecurityLevel))
+                        realmflags = RealmFlags(realmflags | REALM_FLAG_OFFLINE);
+
+                    pkt << uint32(i->second.icon);              // realm type
+                    pkt << uint8(realmflags);                   // realmflags
+                    pkt << name;                                // name
+                    pkt << i->second.address;                   // address
+                    pkt << float(i->second.populationLevel);
+                    pkt << uint8(AmountOfCharacters);
+                    pkt << uint8(i->second.timezone);           // realm category
+                    pkt << uint8(0x00);                         // unk, may be realm number/id?
                 }
-                else
-                    AmountOfCharacters = 0;
-
-                bool ok_build = std::find(i->second.realmbuilds.begin(), i->second.realmbuilds.end(), _build) != i->second.realmbuilds.end();
-
-                RealmBuildInfo const* buildInfo = ok_build ? FindBuildInfo(_build) : NULL;
-                if (!buildInfo)
-                    buildInfo = &i->second.realmBuildInfo;
-
-                RealmFlags realmflags = i->second.realmflags;
-
-                // 1.x clients not support explicitly REALM_FLAG_SPECIFYBUILD, so manually form similar name as show in more recent clients
-                std::string name = i->first;
-                if (realmflags & REALM_FLAG_SPECIFYBUILD)
-                {
-                    char buf[20];
-                    snprintf(buf, 20," (%u,%u,%u)", buildInfo->major_version, buildInfo->minor_version, buildInfo->bugfix_version);
-                    name += buf;
-                }
-
-                // Show offline state for unsupported client builds and locked realms (1.x clients not support locked state show)
-                if (!ok_build || (i->second.allowedSecurityLevel > _accountSecurityLevel))
-                    realmflags = RealmFlags(realmflags | REALM_FLAG_OFFLINE);
-
-                pkt << uint32(i->second.icon);              // realm type
-                pkt << uint8(realmflags);                   // realmflags
-                pkt << name;                                // name
-                pkt << i->second.address;                   // address
-                pkt << float(i->second.populationLevel);
-                pkt << uint8(AmountOfCharacters);
-                pkt << uint8(i->second.timezone);           // realm category
-                pkt << uint8(0x00);                         // unk, may be realm number/id?
             }
 
             pkt << uint16(0x0002);                          // unused value (why 2?)

@@ -2022,6 +2022,9 @@ void World::_UpdateRealmCharCount(QueryResult *resultCharCount, uint32 accountId
 
 void World::SetPlayerLimit( int32 limit, bool needUpdate )
 {
+    // Dont change allowedSecurityLevel
+    return;
+
     if (limit < -SEC_ADMINISTRATOR)
         limit = -SEC_ADMINISTRATOR;
 
