@@ -316,6 +316,10 @@ void LoadDBCStores(const std::string& dataPath)
                     case 25292:
                         notConstSpell->Effect[0] = SPELL_EFFECT_HEAL;
                         break;
+                    //Divine Favor
+                    case 20216:
+                        notConstSpell->EffectItemType[0] = UI64LIT(0x0000000080206000);
+                    break;
                 }
             }
         }
