@@ -319,7 +319,11 @@ void LoadDBCStores(const std::string& dataPath)
                     //Divine Favor
                     case 20216:
                         notConstSpell->EffectItemType[0] = UI64LIT(0x0000000080206000);
-                    break;
+                        break;
+                    // Feline Swiftness Passive 2a set FORM_CAT stance
+                    case 24864:
+                        notConstSpell->Stances = FORM_CAT;
+                        break;
                 }
             }
         }

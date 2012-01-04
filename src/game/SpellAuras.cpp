@@ -5416,9 +5416,6 @@ m_permanent(false), m_isRemovedOnShapeLost(true), m_deleted(false), m_in_use(0)
         case 26464:                                         // Mercurial Shield
             m_stackAmount = m_spellProto->StackAmount;
             break;
-        case 24864:
-            m_isRemovedOnShapeLost = true;
-            break;
     }
 
     for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
