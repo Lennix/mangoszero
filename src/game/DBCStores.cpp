@@ -324,6 +324,10 @@ void LoadDBCStores(const std::string& dataPath)
                     case 24864:
                         notConstSpell->Stances = FORM_CAT;
                         break;
+                    case 22812:
+                        notConstSpell->Effect[1] = SPELL_EFFECT_APPLY_AURA;
+                        notConstSpell->EffectApplyAuraName[1] = SPELL_AURA_DUMMY;
+                        break;
                 }
             }
         }

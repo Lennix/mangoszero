@@ -1469,6 +1469,13 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     target->CastSpell(target, 23426, true, NULL, this);
                 break;
             }
+            case SPELLFAMILY_DRUID:
+            {
+                // Barkskin
+                if (GetId() == 22812)
+                    target->CastSpell(target, 22839, true, NULL, this);
+                break;
+            }
         }
     }
     // AT REMOVE
@@ -1531,6 +1538,9 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
 
                 return;
             }
+            case 22812:										// Barkskin
+                target->RemoveAurasDueToSpell(22839);
+                return;
             case 28169:                                     // Mutating Injection
             {
                 // Mutagen Explosion
