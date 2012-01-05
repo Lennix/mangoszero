@@ -178,7 +178,7 @@ bool TargetedMovementGeneratorMedium<T,D>::Update(T &owner, const uint32 & time_
     }
 
     // prevent movement while casting spells with cast time or channel time
-    if (owner.IsNonMeleeSpellCasted(false, false,  true))
+    if (owner.IsNonMeleeSpellCasted(false, false, true))
     {
         if (!owner.IsStopped())
             owner.StopMoving();
@@ -192,7 +192,7 @@ bool TargetedMovementGeneratorMedium<T,D>::Update(T &owner, const uint32 & time_
         return true;
     }
 
-    if (i_path && (i_path->getPathType() & PATHFIND_NOPATH))
+    if (i_path && (i_path->getPathType() & PATHFIND_NOPATH) && (owner.GetTypeId() == TYPEID_UNIT && !((Creature&)owner).IsPet()))
         return true;
 
     Traveller<T> traveller(owner);
