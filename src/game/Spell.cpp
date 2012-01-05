@@ -1186,6 +1186,13 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
         }
     }
 
+    // Effect resist
+    if (rollEffectChances && !unit->RollBinarySpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo)))
+    {
+        realCaster->SendSpellMiss(unit, m_spellInfo->Id, SPELL_MISS_RESIST);
+        return;
+    }
+
     // Get Data Needed for Diminishing Returns, some effects may have multiple auras, so this must be done on spell hit, not aura add
     m_diminishGroup = GetDiminishingReturnsGroupForSpell(m_spellInfo, m_triggeredByAuraSpell);
     m_diminishLevel = unit->GetDiminishing(m_diminishGroup);
@@ -1214,13 +1221,6 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
     {
         if (effectMask & (1 << effectNumber))
         {
-            if (rollEffectChances)
-                // Roll for effect hit outcome
-                if(!unit->RollBinarySpellEffectResist(realCaster, GetSpellSchoolMask(m_spellInfo)))
-                {
-                    realCaster->SendSpellMiss(unit, m_spellInfo->Id, SPELL_MISS_RESIST);
-                    continue;
-                }
             HandleEffects(unit, NULL, NULL, SpellEffectIndex(effectNumber), m_damageMultipliers[effectNumber]);
             if ( m_applyMultiplierMask & (1 << effectNumber) )
             {
