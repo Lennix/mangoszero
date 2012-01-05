@@ -593,7 +593,7 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
             m_respawnDelayTime = respawn > 0 ? uint32(respawn) : 0;
         }
         void Respawn();
-        void CastSpell(Unit* target, uint32 spellId);
+        void CastSpell(Unit* target, uint32 spellId, Unit* caster = NULL);
 
         bool isSpawned() const
         {

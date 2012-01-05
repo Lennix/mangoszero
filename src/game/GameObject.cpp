@@ -222,6 +222,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
         }
         case GO_READY:
         {
+            GameObjectInfo const* goInfo = GetGOInfo();
             if (m_respawnTime > 0)                          // timer on
             {
                 if (m_respawnTime <= time(NULL))            // timer expired
@@ -229,7 +230,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                     m_respawnTime = 0;
                     ClearAllUsesData();
 
-                    switch (GetGoType())
+                    switch (goInfo->type)
                     {
                         case GAMEOBJECT_TYPE_FISHINGNODE:   // can't fish now
                         {
@@ -251,6 +252,10 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                             if (GetGoState() != GO_STATE_READY)
                                 ResetDoorOrButton();
                             //flags in AB are type_button and we need to add them here so no break!
+                        //case GAMEOBJECT_TYPE_CHEST:
+                        //    // We're using the cooldown time to set the spawn time on despawnable gobjs
+                        //    if (goInfo->chest.chestRestockTime > 0)
+                        //        m_cooldownTime = time(NULL);
                         default:
                             if (!m_spawnedByDefault)        // despawn timer
                             {
@@ -269,7 +274,6 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
             if (isSpawned())
             {
                 // traps can have time and can not have
-                GameObjectInfo const* goInfo = GetGOInfo();
                 if (goInfo->type == GAMEOBJECT_TYPE_TRAP)
                 {
                     if (m_cooldownTime >= time(NULL))
@@ -337,9 +341,9 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                     if (ok)
                     {
-                        Unit *caster =  owner ? owner : ok;
+                        Unit *caster = owner ? owner : ok;
 
-						CastSpell(ok, goInfo->trap.spellId);
+                        CastSpell(ok, goInfo->trap.spellId, owner);
                         // use template cooldown if provided
                         m_cooldownTime = time(NULL) + (goInfo->trap.cooldown ? goInfo->trap.cooldown : uint32(4));
 
@@ -356,7 +360,17 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                         }
                     }
                 }
-
+                //else if (goInfo->type == GAMEOBJECT_TYPE_CHEST)
+                //{
+                //    // If we have a chestRestockTime we want to despawn it
+                //    if (goInfo->chest.chestRestockTime > 0 && (time(NULL) - m_cooldownTime) > goInfo->chest.chestRestockTime*MINUTE*IN_MILLISECONDS)
+                //    {
+                //        uint32 despawnChance = ((time(NULL) - m_cooldownTime)/IN_MILLISECONDS) * float(goInfo->chest.chestRestockTime/100);
+                //        uint32 roll = irand(0,1000);
+                //        if (despawnChance > roll)
+                //            SetLootState(GO_JUST_DEACTIVATED);
+                //    }
+                //}
                 if (uint32 max_charges = goInfo->GetCharges())
                 {
                     if (m_useTimes >= max_charges)
@@ -761,11 +775,16 @@ void GameObject::Respawn()
     }
 }
 
-void GameObject::CastSpell(Unit* target, uint32 spellId)
+void GameObject::CastSpell(Unit* target, uint32 spellId, Unit* caster)
 {
-    Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
-    casterUnit->SetName(GetName());
-    casterUnit->CastSpell(target, spellId, true, NULL, NULL, GetObjectGuid());
+    if (caster)
+        caster->CastSpell(target, spellId, true, NULL, NULL, caster->GetObjectGuid());
+    else
+    {
+        Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
+        casterUnit->SetName(GetName());
+        casterUnit->CastSpell(target, spellId, true, NULL, NULL, GetObjectGuid());
+    }
 }
 
 bool GameObject::ActivateToQuest(Player *pTarget) const
