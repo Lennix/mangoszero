@@ -2794,7 +2794,7 @@ void Spell::EffectTeleUnitsFaceCaster(SpellEffectIndex eff_idx)
     float fx, fy, fz;
     m_caster->GetClosePoint(fx, fy, fz, unitTarget->GetObjectBoundingRadius(), dis);
 
-    unitTarget->NearTeleportTo(fx, fy, fz, -m_caster->GetOrientation(), unitTarget==m_caster);
+    unitTarget->NearTeleportTo(fx, fy, fz+2.0f, -m_caster->GetOrientation(), unitTarget==m_caster);
 }
 
 void Spell::EffectLearnSkill(SpellEffectIndex eff_idx)
