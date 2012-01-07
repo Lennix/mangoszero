@@ -1115,6 +1115,26 @@ void Player::Update( uint32 update_diff, uint32 p_time )
         m_nextMailDelivereTime = 0;
     }
 
+    // If player is in group, not in dungeon and in fight check for ooc
+    if (isInCombat() && GetGroup() && !sMapStore.LookupEntry(GetMapId())->IsDungeon())
+    {
+        HostileRefManager& hrm = getHostileRefManager();
+        if (!hrm.isEmpty())
+        {
+            HostileReference* ref = hrm.getFirst();
+            HostileReference* next;
+            while(ref != NULL)
+            {
+                next = ref->next();
+                Unit* creature = ref->getSource()->getOwner();
+                if (!IsWithinDist(creature, 45.0f))
+                    hrm.deleteReference(creature);
+
+                ref = next;
+            }
+        }
+    }
+
     //used to implement delayed far teleports
     SetCanDelayTeleport(true);
     Unit::Update( update_diff, p_time );
