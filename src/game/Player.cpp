@@ -1128,8 +1128,11 @@ void Player::Update( uint32 update_diff, uint32 p_time )
                 next = ref->next();
                 Unit* creature = ref->getSource()->getOwner();
                 if (!IsWithinDist(creature, 50.0f))
+                {
                     hrm.deleteReference(creature);
-
+                    if (hrm.isEmpty()) // start combat timer
+                        SetCombatTimer(5000);
+                }
                 ref = next;
             }
         }

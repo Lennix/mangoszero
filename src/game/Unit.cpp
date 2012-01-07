@@ -6583,11 +6583,10 @@ void Unit::SetInCombatState(bool PvP, Unit* enemy, bool enrage)
     if (!isAlive())
         return;
 
-    if (PvP)
-        m_CombatTimer = 6000;
-
     if (enrage)
         m_CombatTimer = 10000;
+    else if (PvP)
+        m_CombatTimer = 6000;
 
     bool creatureNotInCombat = GetTypeId()==TYPEID_UNIT && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IN_COMBAT);
 
