@@ -1127,7 +1127,7 @@ void Player::Update( uint32 update_diff, uint32 p_time )
             {
                 next = ref->next();
                 Unit* creature = ref->getSource()->getOwner();
-                if (!IsWithinDist(creature, 45.0f))
+                if (!IsWithinDist(creature, 50.0f))
                     hrm.deleteReference(creature);
 
                 ref = next;
