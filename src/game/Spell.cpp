@@ -1699,7 +1699,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                         break;
 
                     if(!prev->IsWithinLOSInMap(*next) 
-                    || (m_spellInfo->Attributes & (SPELL_ATTR_ON_NEXT_SWING_1|SPELL_ATTR_ABILITY|SPELL_ATTR_UNK18)) && !prev->isInFront(*next,radius))
+                    || (m_spellInfo->Attributes & (SPELL_ATTR_ON_NEXT_SWING_1|SPELL_ATTR_ABILITY|SPELL_ATTR_UNK18)) && !m_caster->isInFront(*next,radius))
                     {
                         ++next;
                         continue;
