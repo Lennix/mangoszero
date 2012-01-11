@@ -8835,8 +8835,6 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 spellID)
         //SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);  [-ZERO] remove/replace ?
 
         SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-
-        addUnitState(UNIT_STAT_DIED);
         
         // reset aggro
         HostileRefManager& hrm = getHostileRefManager();
@@ -8849,14 +8847,17 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 spellID)
                 next = ref->next();
                 Unit* creature = ref->getSource()->getOwner();
                 // Only delete Reference if effect wasnt resisted
-                //if (MagicSpellHitResult(creature, sSpellStore.LookupEntry(spellID)) == SPELL_MISS_NONE)
-                //    hrm.deleteReference(creature);
+                if (MagicSpellHitResult(creature, sSpellStore.LookupEntry(spellID)) == SPELL_MISS_NONE)
+                    hrm.deleteReference(creature);
                 ref = next;
             }
         }
         // Stop combat if we dont have enemies anymore
         if (hrm.isEmpty())
+		{
+			addUnitState(UNIT_STAT_DIED);
             CombatStop();
+		}
 
         RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_IMMUNE_OR_LOST_SELECTION);
 
