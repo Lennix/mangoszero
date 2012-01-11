@@ -8813,7 +8813,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
         ((Player*)this)->SetClientControl(this, !apply);
 }
 
-void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 /*spellID*/)
+void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 spellID)
 {
     if (apply)
     {
@@ -8837,14 +8837,33 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 /*spellID*/)
         SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
 
         addUnitState(UNIT_STAT_DIED);
-        CombatStop();
+        
+        // reset aggro
+        HostileRefManager& hrm = getHostileRefManager();
+        if (!hrm.isEmpty())
+        {
+            HostileReference* ref = hrm.getFirst();
+            HostileReference* next;
+            while(ref != NULL)
+            {
+                next = ref->next();
+                Unit* creature = ref->getSource()->getOwner();
+                // Only delete Reference if effect wasnt resisted
+                //if (MagicSpellHitResult(creature, sSpellStore.LookupEntry(spellID)) == SPELL_MISS_NONE)
+                //    hrm.deleteReference(creature);
+                ref = next;
+            }
+        }
+        // Stop combat if we dont have enemies anymore
+        if (hrm.isEmpty())
+            CombatStop();
+
         RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_IMMUNE_OR_LOST_SELECTION);
 
         // prevent interrupt message
         if (casterGuid == GetObjectGuid())
             FinishSpell(CURRENT_GENERIC_SPELL,false);
         InterruptNonMeleeSpells(true);
-        getHostileRefManager().deleteReferences();
     }
     else
     {
