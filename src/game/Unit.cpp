@@ -5826,7 +5826,14 @@ bool Unit::IsSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
     switch(spellProto->DmgClass)
     {
         case SPELL_DAMAGE_CLASS_NONE:
+        {
+            if(spellProto->Id == 15290) //Vampiric Embrace can crit
+            {
+                crit_chance = ((Player*)this)->m_SpellCritPercentage[SPELL_SCHOOL_SHADOW];	
+                break;
+            }
             return false;
+        }
         case SPELL_DAMAGE_CLASS_MAGIC:
         {
             if (schoolMask & SPELL_SCHOOL_MASK_NORMAL)
@@ -7640,7 +7647,8 @@ int32 Unit::CalculateSpellDamage(Unit const* target, SpellEntry const* spellProt
             spellProto->Effect[effect_index] != SPELL_EFFECT_WEAPON_PERCENT_DAMAGE &&
             spellProto->Effect[effect_index] != SPELL_EFFECT_KNOCK_BACK &&
             (spellProto->Effect[effect_index] != SPELL_EFFECT_APPLY_AURA || spellProto->EffectApplyAuraName[effect_index] != SPELL_AURA_MOD_DECREASE_SPEED))
-        value = int32(value*0.25f*exp(getLevel()*(70-spellProto->spellLevel)/1000.0f));
+        //value = int32(value*0.25f*exp(getLevel()*(70-spellProto->spellLevel)/1000.0f));
+        value = int32(value*0.25f*exp(getLevel()*(60-spellProto->spellLevel)/1000.0f)); // value 70 for tbc?
 
     return value;
 }
