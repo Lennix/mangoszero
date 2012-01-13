@@ -40,7 +40,8 @@ float ThreatCalcHelper::CalcThreat(Unit* pHatedUnit, Unit* /*pHatingUnit*/, floa
 
     if (pThreatSpell)
     {
-        if (pThreatSpell->AttributesEx & SPELL_ATTR_EX_NO_THREAT)
+        // Holy Nova shouldn't cause aggro
+        if ((pThreatSpell->AttributesEx & SPELL_ATTR_EX_NO_THREAT) || (pThreatSpell->SpellFamilyName == SPELLFAMILY_PRIEST && (pThreatSpell->SpellFamilyFlags & UI64LIT(0x0000000000400000) || pThreatSpell->SpellFamilyFlags & UI64LIT(0x0000000008000000))))
             return 0.0f;
 
         if (Player* modOwner = pHatedUnit->GetSpellModOwner())
