@@ -201,6 +201,10 @@ void Creature::AddToWorld()
         GetMap()->GetObjectsStore().insert<Creature>(GetObjectGuid(), (Creature*)this);
     }
 
+    // Ignore pathfinding
+    if (GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_PATHFINDING)
+        addUnitState(UNIT_STAT_IGNORE_PATHFINDING);
+
     Unit::AddToWorld();
 }
 
