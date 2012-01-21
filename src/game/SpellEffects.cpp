@@ -248,7 +248,7 @@ void Spell::EffectInstaKill(SpellEffectIndex /*eff_idx*/)
         m_caster->CastSpell(m_caster, spellID, true);
     }
 
-    if (m_caster == unitTarget)                             // prevent interrupt message
+    if (m_caster->GetTypeId() == TYPEID_PLAYER && m_caster == unitTarget)                             // prevent interrupt message
         finish();
 
     WorldObject* caster = GetCastingObject();               // we need the original casting object
