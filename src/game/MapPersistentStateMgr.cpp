@@ -936,10 +936,11 @@ void MapPersistentStateManager::LoadCreatureRespawnTimes()
         if (!data)
             continue;
 
-        if (mapId != data->mapid)
+        // Wenn Instanzspawn muss die mapid gleich sein
+        if (instanceId > 0 && mapId != data->mapid)
             continue;
 
-        MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
+        MapEntry const* mapEntry = sMapStore.LookupEntry(data->mapid);
         if (!mapEntry || (mapEntry->Instanceable() != (instanceId != 0)))
             continue;
 
