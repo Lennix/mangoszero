@@ -393,13 +393,15 @@ void DungeonResetScheduler::LoadResetTimes()
                 continue;
             }
 
+            uint64 resettime = fields[1].GetUInt64();
+
             // update the reset time if the hour in the configs changes
-            uint64 oldresettime = fields[1].GetUInt64();
+            /*uint64 oldresettime = fields[1].GetUInt64();
             uint64 newresettime = (oldresettime / DAY) * DAY + diff;
             if(oldresettime != newresettime)
-                CharacterDatabase.DirectPExecute("UPDATE instance_reset SET resettime = '"UI64FMTD"' WHERE mapid = '%u'", newresettime, mapid);
+                CharacterDatabase.DirectPExecute("UPDATE instance_reset SET resettime = '"UI64FMTD"' WHERE mapid = '%u'", newresettime, mapid);*/
 
-            SetResetTimeFor(mapid, newresettime);
+            SetResetTimeFor(mapid, resettime);
         } while(result->NextRow());
         delete result;
     }
@@ -434,8 +436,9 @@ void DungeonResetScheduler::LoadResetTimes()
         {
             // assume that expired instances have already been cleaned
             // calculate the next reset time
-            t = (t / DAY) * DAY;
-            t += ((today - t) / period + 1) * period + diff;
+            /*t = (t / DAY) * DAY;
+            t += ((today - t) / period + 1) * period + diff;*/
+            t += period;
             CharacterDatabase.DirectPExecute("UPDATE instance_reset SET resettime = '"UI64FMTD"' WHERE mapid = '%u'", (uint64)t, temp->map);
         }
 
