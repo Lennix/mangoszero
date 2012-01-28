@@ -187,9 +187,9 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                 case GAMEOBJECT_TYPE_TRAP:
                 {
                     // Arming Time for GAMEOBJECT_TYPE_TRAP (6)
-                    Unit* owner = GetOwner();
-                    if (owner && ((Player*)owner)->isInCombat())
-                        m_cooldownTime = time(NULL) + GetGOInfo()->trap.startDelay;
+                    uint32 startDelay = GetGOInfo()->trap.startDelay;
+                    if (startDelay > 0)
+                        m_cooldownTime = time(NULL) + startDelay;
                     m_lootState = GO_READY;
                     break;
                 }
