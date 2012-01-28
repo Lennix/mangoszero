@@ -304,6 +304,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                     // Note: this hack with search required until GO casting not implemented
                     // search unfriendly creature
+
                     if (goInfo->trap.charges > 0)  // hunter trap
                     {
                         if (owner)
@@ -341,8 +342,6 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                     if (ok)
                     {
-                        Unit *caster = owner ? owner : ok;
-
                         CastSpell(ok, goInfo->trap.spellId, owner);
                         // use template cooldown if provided
                         m_cooldownTime = time(NULL) + (goInfo->trap.cooldown ? goInfo->trap.cooldown : uint32(4));
@@ -783,6 +782,11 @@ void GameObject::CastSpell(Unit* target, uint32 spellId, Unit* caster)
     {
         Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
         casterUnit->SetName(GetName());
+        if (GetUInt32Value(GAMEOBJECT_LEVEL) > 0)
+            casterUnit->SetLevel(GetUInt32Value(GAMEOBJECT_LEVEL));
+        else if (Unit* owner = GetOwner())
+            casterUnit->SetLevel(owner->getLevel());
+
         casterUnit->CastSpell(target, spellId, true, NULL, NULL, GetObjectGuid());
     }
 }

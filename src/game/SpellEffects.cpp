@@ -3451,7 +3451,7 @@ void Spell::EffectSummonObjectWild(SpellEffectIndex eff_idx)
     GameObject* pGameObj = new GameObject;
 
     WorldObject* target = focusObject;
-    if( !target )
+    if (!target)
         target = m_caster;
 
     float x, y, z;
@@ -3477,6 +3477,7 @@ void Spell::EffectSummonObjectWild(SpellEffectIndex eff_idx)
 
     pGameObj->SetRespawnTime(duration > 0 ? duration/IN_MILLISECONDS : 0);
     pGameObj->SetSpellId(m_spellInfo->Id);
+    pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel() );
 
     // Wild object not have owner and check clickable by players
     map->Add(pGameObj);
