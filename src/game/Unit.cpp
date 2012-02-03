@@ -626,6 +626,10 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         pVictim->RemoveAura(126, EFFECT_INDEX_1);
     }
 
+    // Remove WSG restoration upon damage
+    if (pVictim->HasAura(23493))
+        pVictim->RemoveAurasDueToSpellByCancel(23493);
+
     // remove affects from attacker at any non-DoT damage (including 0 damage)
     if( damagetype != DOT)
     {
