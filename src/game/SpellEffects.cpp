@@ -3477,7 +3477,8 @@ void Spell::EffectSummonObjectWild(SpellEffectIndex eff_idx)
 
     pGameObj->SetRespawnTime(duration > 0 ? duration/IN_MILLISECONDS : 0);
     pGameObj->SetSpellId(m_spellInfo->Id);
-    pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel() );
+    if (pGameObj->GetGoType() == GAMEOBJECT_TYPE_TRAP)
+        pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel());
 
     // Wild object not have owner and check clickable by players
     map->Add(pGameObj);
