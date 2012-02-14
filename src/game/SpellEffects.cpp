@@ -825,6 +825,17 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
 
                     return;
                 }
+                case 21908:                                 // Lavaburst randomizer
+                {
+                    uint32 spellid = 21886;
+                    uint32 random_number = urand(0, 7);
+                    if (random_number != 0)
+                    {
+                        spellid = 21900 + random_number;     
+                    }
+                    m_caster->CastSpell(m_caster, spellid, true);
+                    return;
+                }
                 case 23019:                                 // Crystal Prison Dummy DND
                 {
                     if (!unitTarget || !unitTarget->isAlive() || unitTarget->GetTypeId() != TYPEID_UNIT || ((Creature*)unitTarget)->IsPet())
