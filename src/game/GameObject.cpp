@@ -343,6 +343,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                     if (ok)
                     {
                         CastSpell(ok, goInfo->trap.spellId, owner);
+                        SendGameObjectCustomAnim(GetObjectGuid());
                         // use template cooldown if provided
                         m_cooldownTime = time(NULL) + (goInfo->trap.cooldown ? goInfo->trap.cooldown : uint32(4));
 
