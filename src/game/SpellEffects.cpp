@@ -810,6 +810,13 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                         m_caster->CastSpell(m_caster, 20578, true, NULL);
                     return;
                 }
+                case 21108:
+                {
+                    for (uint32 i = 0; i<=7; i++)
+                        m_caster->CastSpell(m_caster,21110+i , true);
+
+                    return;
+                }
                 case 21147:                                 // Arcane Vacuum
                 {
                     if (!unitTarget)
@@ -830,10 +837,10 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     uint32 spellid = 21886;
                     uint32 random_number = urand(0, 7);
                     if (random_number != 0)
-                    {
                         spellid = 21900 + random_number;     
-                    }
+
                     m_caster->CastSpell(m_caster, spellid, true);
+
                     return;
                 }
                 case 23019:                                 // Crystal Prison Dummy DND
