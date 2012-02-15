@@ -5656,8 +5656,6 @@ uint32 Unit::SpellDamageBonusTaken(Unit *pCaster, SpellEntry const *spellProto, 
     float TakenTotalMod = 1.0f;
     int32 TakenTotal = 0;
 
-
-
     // ..taken
     TakenTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, schoolMask);
 
@@ -5679,50 +5677,6 @@ uint32 Unit::SpellDamageBonusTaken(Unit *pCaster, SpellEntry const *spellProto, 
     TakenTotal = SpellBonusWithCoeffs(spellProto, TakenTotal, TakenAdvertisedBenefit, 0, damagetype, false);
 
     float tmpDamage = (int32(pdamage) + TakenTotal * int32(stack)) * TakenTotalMod;
-    if (A && A->GetModifier()) //Apply Judgement of the Crusader bonus after other calculations are done	
-	{	
-	   A->GetModifier()->m_amount = saveAuraMod;	
-	   float coeff = 0.0f;	
-	switch (spellProto->SpellIconID) 	
-    {	
-      case 25:    	
-        if (spellProto->SpellVisual == 5622)    //Seal of Righteousness proc: 10% of maximum applied	
-          coeff = 0.1f;	
-        else                    //Judgement of Righteousness: 50% of maximum applied	
-          coeff = 0.5f;	
-        break;
-      case 292:                    //Exorcism: 43% of maximum applied	
-      case 302:                    //Hammer of Wrath: 43% of maximum applied	
-        coeff = 0.43f;	
-        break;	
-      case 156:                             	
-        if (spellProto->SpellVisual == 3400)
-        {
-          if (damagetype == DOT)        //Holy Fire DoT: 26% of maximum applied
-          coeff = 0.26f;	
-          else                  //Holy Fire Initial Damage: 32% of maximum applied  	
-          coeff = 0.32f;
-        }
-        else                    //Holy Shock: 43% of maximum applied	
-        coeff = 0.43f;	
-        break;	
-      case 51:                    //Consecration: 33% of maximum applied	
-        coeff = 0.33f;
-        break;	
-      case 158:                    //Holy Wrath: 19% of maximum applied
-        coeff = 0.19f;	
-        break;
-      case 237:                    //Smite: 32% of maximum applied	
-      case 1874:                  //Holy Nova: 32% of maximum applied
-        coeff = 0.32f;
-        break;
-      default:	
-       break;	
-    }
-    if (coeff > 0)
-      tmpDamage += tmpDamage*coeff > saveAuraMod ? saveAuraMod : tmpDamage*coeff;	
-  }
-
 
     if (A && A->GetModifier()) // Apply Judgement of the Crusader bonus after other calculations are done
     {
