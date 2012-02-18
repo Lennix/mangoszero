@@ -3863,7 +3863,7 @@ bool ChatHandler::HandleHonorShow(char* /*args*/)
     PSendSysMessage(LANG_HONOR_YESTERDAY, yesterday_kills, yesterday_honor);
     PSendSysMessage(LANG_HONOR_THIS_WEEK, this_week_kills, this_week_honor);
     PSendSysMessage(LANG_HONOR_LAST_WEEK, last_week_kills, last_week_honor, last_week_standing);
-    PSendSysMessage(LANG_HONOR_LIFE, target->GetRankPoints(), honorable_kills, dishonorable_kills, highest_rank, hrank_name);
+    PSendSysMessage(LANG_HONOR_LIFE, target->GetStoredHonor(), honorable_kills, dishonorable_kills, highest_rank, hrank_name);
 
     return true;
 }

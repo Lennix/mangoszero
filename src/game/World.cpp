@@ -1472,18 +1472,6 @@ void World::Update(uint32 diff)
     // update the instance reset times
     sMapPersistentStateMgr.Update();
 
-    if (m_MaintenanceTimeChecker < diff)
-    {
-        if (GetDateToday() >= m_NextMaintenanceDate)
-        {
-            ServerMaintenanceStart();
-            sObjectMgr.LoadStandingList();
-        }
-        m_MaintenanceTimeChecker = 600000; // check 10 minutes
-    }
-    else
-        m_MaintenanceTimeChecker -= diff;
-
     // And last, but not least handle the issued cli commands
     ProcessCliCommands();
 
@@ -1868,13 +1856,13 @@ void World::UpdateSessions( uint32 diff )
 void World::ServerMaintenanceStart()
 {
     uint32 LastWeekEnd    = GetDateLastMaintenanceDay();
-    m_NextMaintenanceDate   = LastWeekEnd + 7; // next maintenance begin
+    m_NextMaintenanceDate = LastWeekEnd + 7; // next maintenance begin
 
     if (m_NextMaintenanceDate <= GetDateToday() ) // avoid loop in manually case, maybe useless
         m_NextMaintenanceDate += 7;
 
-    //flushing rank points list ( standing must be reloaded after server maintenance )
-    sObjectMgr.FlushRankPoints(LastWeekEnd);
+    // Do the honor calculation of LastWeek (the last 7 days < today)
+    sObjectMgr.DoHonorCalculation(LastWeekEnd);
 
     // save and update all online players
     for (SessionMap::iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)

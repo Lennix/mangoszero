@@ -363,13 +363,15 @@ class HonorStanding
             honorPoints = 0;
             honorKills  = 0;
             guid        = 0;
-            rpEarning   = 0;
+            side        = TEAM_NONE;
+            rp          = 0.0f;
         }
 
         float honorPoints;
         uint32 honorKills;
         uint32 guid;
-        float rpEarning;
+        uint32 side;
+        float rp;
 
         HonorStanding *GetInfo() { return this; };
 
@@ -675,8 +677,8 @@ class ObjectMgr
         HonorStandingList* GetStandingListPointerBySide(uint32 side);
         uint32 GetHonorStandingPositionByGUID(uint32 guid,uint32 side);
         void UpdateHonorStandingByGuid(uint32 guid,HonorStanding standing,uint32 side) ;
-        void FlushRankPoints(uint32 dateTop);
-        void DistributeRankPoints(uint32 team,uint32 dateBegin , bool flush = false);
+        void DoHonorCalculation(uint32 dateTop);
+        void DistributeRankPoints(uint32 dateBegin);
         void LoadStandingList(uint32 dateBegin);
         void LoadStandingList();
 
@@ -1108,6 +1110,7 @@ class ObjectMgr
         // Standing System
         HonorStandingList HordeHonorStandingList;
         HonorStandingList AllyHonorStandingList;
+        HonorStandingList PlayerHonorStandingList;          // Every player with honor_cp > 0
 
         typedef std::map<uint32,std::vector<std::string> > HalfNameMap;
         HalfNameMap PetHalfName0;

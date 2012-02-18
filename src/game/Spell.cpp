@@ -2972,9 +2972,10 @@ void Spell::update(uint32 difftime)
             }
 
             // Check cast for non-player units
-            if( m_caster->GetTypeId() == TYPEID_UNIT && m_timer != 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat()
+            // [DEV 0050] Prevents Mobs that use EventAI from Casting while Fleeing.… - This breaks razorgore
+            /*if( m_caster->GetTypeId() == TYPEID_UNIT && m_timer != 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat()
                 && (m_caster->hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL) || m_caster->hasUnitState(UNIT_STAT_FLEEING_MOVE)))
-                cancel();
+                cancel();*/
 
             if(m_timer == 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat())
                 cast();

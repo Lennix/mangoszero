@@ -1691,8 +1691,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         HonorRankInfo GetHonorRankInfo() const { return m_honor_rank; }
         void SetHonorRankInfo(HonorRankInfo rank) { m_honor_rank = rank; }
         //Acessors of total honor points
-        void SetRankPoints(float rankPoints) { m_rank_points = rankPoints; }
-        float GetRankPoints(void) const { return m_rank_points; }
+        /*void SetRankPoints(float rankPoints) { m_rank_points = rankPoints; }
+        float GetRankPoints(void) const { return m_rank_points; }*/
         //Acessors of highest rank
         HonorRankInfo GetHonorHighestRankInfo() const { return m_highest_rank; }
         void SetHonorHighestRankInfo(HonorRankInfo hr) { m_highest_rank = hr; }

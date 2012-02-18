@@ -5880,7 +5880,7 @@ void Player::UpdateHonor()
                     yesterdayKills++;
                 yesterdayHonor += itr->honorPoints;
             }
-            if ( (itr->date >= thisWeekBegin) && (itr->date < today) )
+            if ( (itr->date >= thisWeekBegin) && (itr->date < thisWeekEnd) )
             {
                 if (itr->isKill)
                     thisWeekKills++;
@@ -5899,33 +5899,21 @@ void Player::UpdateHonor()
 
             if ( itr->date == today)
                 today_dishonorableKills++;
-
-            if ( itr->date > today)
+            else
                 itr->state = HK_OLD;
         }
     }
 
-    //STANDING
-    SetHonorLastWeekStandingPos(sObjectMgr.GetHonorStandingPositionByGUID(GetGUIDLow(),GetTeam()) );
-
-    //RANK POINTS
-    HonorStanding *standing = sObjectMgr.GetHonorStandingByGUID(GetGUIDLow(),GetTeam());
-    float rankP = GetStoredHonor();
-    if (standing)
-        rankP += standing->rpEarning;
-
-    SetRankPoints(rankP);
-
     //HIGHEST RANK
-    //If the new rank is highest then the old one, then m_highest_rank is updated
-    HonorRankInfo prk =  MaNGOS::Honor::CalculateHonorRank(GetRankPoints());
+    // Honor rank and highest honor rank needs to be calculated here
+    HonorRankInfo prk =  MaNGOS::Honor::CalculateHonorRank(GetStoredHonor());
     SetHonorRankInfo(prk);
     if (prk.visualRank > 0 && prk.visualRank > GetHonorHighestRankInfo().visualRank )
         SetHonorHighestRankInfo(prk);
 
     // rank points is sent to client with same size of uint8(255) for each rank
     // so we set it in correct rate:
-    uint32 RP = uint32( GetRankPoints() >= 0 ? GetRankPoints() : -1 * GetRankPoints() );
+    uint32 RP = uint32( GetStoredHonor() >= 0 ? GetStoredHonor() : -1 * GetStoredHonor() );
     RP = int8( ( (RP-prk.minRP)/(prk.maxRP-prk.minRP) ) * ( prk.positive ? 255 : -255) );
 
 
@@ -5933,7 +5921,7 @@ void Player::UpdateHonor()
     //PLAYER_FIELD_HONOR_BAR
     SetByteValue(PLAYER_FIELD_BYTES2, 0, RP);
     //RANK (Patent)
-    SetByteValue(PLAYER_BYTES_3, 3, GetHonorRankInfo().rank);
+    SetByteValue(PLAYER_BYTES_3, 3, prk.rank);
     //TODAY
     SetUInt16Value(PLAYER_FIELD_SESSION_KILLS, 0, today_honorableKills);
     SetUInt16Value(PLAYER_FIELD_SESSION_KILLS, 1, today_dishonorableKills);
@@ -5980,7 +5968,7 @@ void Player::ClearHonorInfo()
 uint32 Player::CalculateTotalKills(Unit *Victim,uint32 fromDate,uint32 toDate) const
 {
     uint32 total_kills = 0;
-    uint32 ID= 0;
+    uint32 ID = 0;
 
     if (!Victim)
         return 0;
@@ -6026,6 +6014,12 @@ bool Player::RewardHonor(Unit *uVictim,uint32 groupsize)
         Creature *cVictim = (Creature *)uVictim;
         if (cVictim->IsCivilian())
         {
+            WorldPacket data(SMSG_PVP_CREDIT, (4+8+4));
+            data << (uint32)0;
+            data << (uint64)cVictim->GetGUID();
+            data << (uint32)0;
+            GetSession()->SendPacket(&data);
+
             AddHonorCP(MaNGOS::Honor::DishonorableKillPoints(getLevel()),DISHONORABLE,cVictim->GetEntry(),TYPEID_UNIT);
             return true;
         }
@@ -6037,17 +6031,38 @@ bool Player::RewardHonor(Unit *uVictim,uint32 groupsize)
             return true;
         }
     }
-    else
-    if( uVictim->GetTypeId() == TYPEID_PLAYER )
+    else if( uVictim->GetTypeId() == TYPEID_PLAYER )
     {
         Player *pVictim = (Player *)uVictim;
 
         if( GetTeam() == pVictim->GetTeam() )
             return false;
 
-        if( getLevel() < (pVictim->getLevel()+5) )
+        if( isHonorOrXPTarget(pVictim) )
         {
-            AddHonorCP( MaNGOS::Honor::HonorableKillPoints( this, pVictim, groupsize),HONORABLE,pVictim->GetGUIDLow(),TYPEID_PLAYER);
+            float honor = MaNGOS::Honor::HonorableKillPoints( this, pVictim, groupsize);
+            if (!honor) // something went wrong
+                return false;
+
+            uint32 rank = (uint32)pVictim->GetHonorRankInfo().rank;
+            if (rank == 0) // Unranked players are considered rank 1
+                rank = 5;
+
+            WorldPacket data(SMSG_PVP_CREDIT, (4+8+4));
+            data << (uint32)honor;
+            data << (uint64)pVictim->GetGUID();
+            data << (uint32)rank;
+            GetSession()->SendPacket(&data);
+
+            // Diminishing return @25% (pre 1.12 formula, 1.12: 10%)
+            uint32 today = sWorld.GetDateToday();
+            int total_kills  = CalculateTotalKills(pVictim,today,today);
+
+            // Dimishing return
+            float coeff = total_kills >= 4 ? 0.0f : 1.0f - float(total_kills / 4);
+            honor *= coeff;
+
+            AddHonorCP(honor,HONORABLE,pVictim->GetGUIDLow(),TYPEID_PLAYER);
             return true;
         }
     }
@@ -6057,11 +6072,8 @@ bool Player::RewardHonor(Unit *uVictim,uint32 groupsize)
 
 bool Player::AddHonorCP(float honor,uint8 type,uint32 victim,uint8 victimType)
 {
-
     if (!honor)
         return false;
-
-    // CharacterDatabase.PExecute("INSERT INTO `character_honor_cp` (`guid`,`victim`,`victim_type`,`honor`,`date`,`type`) VALUES (%u, %u, %u, %f, %u, %u)", (uint32)GetGUIDLow(), (uint32)uVictim->GetEntry(),uVictim->GetType() (float)honor_points, (uint32)today, (uint8)kill_type);
 
     HonorCP CP;
     CP.date = sWorld.GetDateToday();
@@ -6070,13 +6082,13 @@ bool Player::AddHonorCP(float honor,uint8 type,uint32 victim,uint8 victimType)
     CP.victimType = victimType;
     CP.type = type;
 
-    //if (type == DISHONORABLE)
-    //{
-    //    // DK penalties are subtracted from your RP score immediately
-    //    // and are not included in weekly adjustment
-    //    float RP = GetRankPoints() > CP.honorPoints ? GetRankPoints() - CP.honorPoints : 0; // remove this check to have negative ranks
-    //    SetStoredHonor(RP);
-    //}
+    if (type == DISHONORABLE)
+    {
+        // DK penalties are subtracted from your RP score immediately
+        // and are not included in weekly adjustment
+        float RP = GetStoredHonor() > CP.honorPoints ? GetStoredHonor() - CP.honorPoints : 0; // remove this check to have negative ranks
+        SetStoredHonor(RP);
+    }
 
     CP.state  =  HK_NEW;
     CP.isKill =  isKill(victimType);
