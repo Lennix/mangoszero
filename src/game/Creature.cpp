@@ -166,6 +166,7 @@ m_regenHealth(true), m_AI_locked(false), m_isDeadByDefault(false),
 m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0), m_temporaryFactionFlags(TEMPFACTION_NONE),
 m_creatureInfo(NULL), m_splineFlags(SPLINEFLAG_WALKMODE), m_formation(NULL)
 {
+    m_aggrorange = 0;
     m_regenTimer = 200;
     m_valuesCount = UNIT_END;
 
@@ -1463,26 +1464,32 @@ void Creature::DeleteFromDB(uint32 lowguid, CreatureData const* data)
 
 float Creature::GetAttackDistance(Unit const* pl) const
 {
+    
     float aggroRate = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_AGGRO);
     if(aggroRate == 0)
         return 0.0f;
 
     uint32 playerlevel   = pl->GetLevelForTarget(this);
     uint32 creaturelevel = GetLevelForTarget(pl);
-
+    float RetDistance;
     int32 leveldif       = int32(playerlevel) - int32(creaturelevel);
+    if(m_aggrorange != 0)
+    {
+       RetDistance = m_aggrorange;
+    }
+    else
+    {
+        // "The maximum Aggro Radius has a cap of 25 levels under. Example: A level 30 char has the same Aggro Radius of a level 5 char on a level 60 mob."
+        if ( leveldif < - 25)
+            leveldif = -25;
 
-    // "The maximum Aggro Radius has a cap of 25 levels under. Example: A level 30 char has the same Aggro Radius of a level 5 char on a level 60 mob."
-    if ( leveldif < - 25)
-        leveldif = -25;
+        // "The aggro radius of a mob having the same level as the player is roughly 20 yards"
+        RetDistance = 20;
 
-    // "The aggro radius of a mob having the same level as the player is roughly 20 yards"
-    float RetDistance = 20;
-
-    // "Aggro Radius varies with level difference at a rate of roughly 1 yard/level"
-    // radius grow if playlevel < creaturelevel
-    RetDistance -= (float)leveldif;
-
+        // "Aggro Radius varies with level difference at a rate of roughly 1 yard/level"
+        // radius grow if playlevel < creaturelevel
+        RetDistance -= (float)leveldif;
+    }
     if(creaturelevel+5 <= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
     {
         // detect range auras
@@ -1979,7 +1986,7 @@ bool Creature::LoadCreatureAddon(bool reload)
 {
     CreatureDataAddon const *cainfo = GetCreatureAddon();
     if(!cainfo)
-        return false;
+        return false; 
 
     if (cainfo->mount != 0)
         Mount(cainfo->mount);
@@ -2032,6 +2039,9 @@ bool Creature::LoadCreatureAddon(bool reload)
             CastSpell(this, *cAura, true);
         }
     }
+    if (cainfo->aggrorange)
+        m_aggrorange = cainfo->aggrorange;
+
     return true;
 }
 

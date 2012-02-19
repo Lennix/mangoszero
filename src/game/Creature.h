@@ -214,6 +214,7 @@ struct CreatureDataAddon
     uint32 emote;
     uint32 move_flags;
     uint32 const* auras;                                    // loaded as char* "spell1 spell2 ... "
+    float aggrorange; 
 };
 
 struct CreatureModelInfo
@@ -755,7 +756,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         float m_combatStartX;
         float m_combatStartY;
         float m_combatStartZ;
-
+        float m_aggrorange;
         Position m_summonPos;
 
     private:
