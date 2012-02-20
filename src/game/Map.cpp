@@ -1539,7 +1539,7 @@ void DungeonMap::UnloadAll(bool pForce)
         }
     }
 
-    if(m_resetAfterUnload == true)
+    if(m_resetAfterUnload == true && !IsRaid())
         GetPersistanceState()->DeleteRespawnTimes();
 
     Map::UnloadAll(pForce);
