@@ -6891,7 +6891,7 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
 
     if (!IsWithinDist(viewPoint,visibleDistance))
     {
-        if (GetDistance(viewPoint) - visibleDistance <= 1.0f && u->GetTypeId() == TYPEID_UNIT)
+        if (u->GetTypeId() == TYPEID_UNIT && !u->isInCombat() && GetDistance(viewPoint) - visibleDistance <= 1.0f)
         {
             if (Creature* C = (Creature*)u)
             {
