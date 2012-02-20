@@ -781,12 +781,14 @@ void GameObject::CastSpell(Unit* target, uint32 spellId, Unit* caster)
         caster->CastSpell(target, spellId, true, NULL, NULL, caster->GetObjectGuid());
     else
     {
-        Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
+        Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ()+GetObjectBoundingRadius(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
         casterUnit->SetName(GetName());
         if (GetUInt32Value(GAMEOBJECT_LEVEL) > 0)
             casterUnit->SetLevel(GetUInt32Value(GAMEOBJECT_LEVEL));
         else if (Unit* owner = GetOwner())
             casterUnit->SetLevel(owner->getLevel());
+        else if (SpellEntry const* spellEntry = sSpellStore.LookupEntry(spellId))
+            casterUnit->SetLevel(spellEntry->spellLevel);
 
         casterUnit->CastSpell(target, spellId, true, NULL, NULL, GetObjectGuid());
     }
