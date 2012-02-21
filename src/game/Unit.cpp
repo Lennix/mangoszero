@@ -566,6 +566,16 @@ void Unit::RemoveSpellbyDamageTaken(AuraType auraType, uint32 damage)
     if(!HasAuraType(auraType))
         return;
 
+    //nefarian classcall rogue --> paralyze // dont remove spell by taking damage // teleport is handled at the nefarian.cpp script
+    for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end();)
+    {
+        SpellAuraHolder *holder = iter->second;
+        if (holder->GetId() == 23414)
+            return;
+        else
+            iter++;
+    }
+
     // Spells with SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY should not be removed by dmg
     bool found = false;
     AuraList const& mModRoot = GetAurasByType(auraType);

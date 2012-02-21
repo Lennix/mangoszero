@@ -1048,9 +1048,9 @@ GridMap * TerrainInfo::LoadMapAndVMap( const uint32 x, const uint32 y )
             //load VMAPs for current map/grid...
             const MapEntry * i_mapEntry = sMapStore.LookupEntry(m_mapId);
             const char* mapName = i_mapEntry ? i_mapEntry->name[sWorld.GetDefaultDbcLocale()] : "UNNAMEDMAP\x0";
-            // load new vmaps for Dire Maul (429) and Zul'Gurub (309) and Blackwing Lair (469)
+            // load new vmaps for Dire Maul (429) and Zul'Gurub (309)
             std::string folder;
-            if (m_mapId == 429 || m_mapId == 309 || m_mapId == 469)
+            if (m_mapId == 429 || m_mapId == 309)
                 folder = "vmaps2";
             else
                 folder = "vmaps";

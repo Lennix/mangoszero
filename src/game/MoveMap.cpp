@@ -98,7 +98,7 @@ namespace MMAP
             return true;
 
         std::string folder;
-        if (mapId == 429 || mapId == 309 || mapId == 469)
+        if (mapId == 429 || mapId == 309)
             folder = "mmaps2";
         else
             folder = "mmaps";
@@ -166,7 +166,7 @@ namespace MMAP
         }
 
         std::string folder;
-        if (mapId == 429 || mapId == 309 || mapId == 469)
+        if (mapId == 429 || mapId == 309)
             folder = "mmaps2";
         else
             folder = "mmaps";

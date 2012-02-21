@@ -870,6 +870,26 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     if (!unit)
         return;
 
+    //Nefarian ClassCalls only effects given class player
+    uint32 class_call = 0;
+    switch (m_spellInfo->Id)
+    {
+        case 23398: class_call = CLASS_DRUID;	break;
+        case 23397: class_call = CLASS_WARRIOR;	break;
+        case 23414: class_call = CLASS_ROGUE;	break;
+        case 23436: class_call = CLASS_HUNTER;	break;
+        case 23427: class_call = CLASS_WARLOCK;	break;
+        case 23410: class_call = CLASS_MAGE;	break;
+        case 23418: class_call = CLASS_PALADIN;	break;
+        case 23425: class_call = CLASS_SHAMAN;	break;
+        case 23401: class_call = CLASS_PRIEST;	break;
+    }
+    if (class_call)
+    {
+        if (unit->GetTypeId() != TYPEID_PLAYER || unit->getClass() != class_call)
+            return;
+    }
+
     if (m_spellInfo->speed == 0) // Calculate dmg for instant casts
         HandleDelayedSpellLaunch(target);
 
