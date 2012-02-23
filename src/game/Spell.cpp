@@ -942,7 +942,7 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 	else
 	{
         // refund energe and rage
-        if ((target->missCondition & (SPELL_MISS_DODGE|SPELL_MISS_PARRY|SPELL_MISS_BLOCK)))
+        if (target->missCondition == SPELL_MISS_DODGE || target->missCondition == SPELL_MISS_PARRY || target->missCondition == SPELL_MISS_BLOCK)
             switch (m_spellInfo->SpellFamilyName)
             {
                 case SPELLFAMILY_WARRIOR:					
