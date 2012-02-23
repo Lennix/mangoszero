@@ -302,7 +302,7 @@ void LoadDBCStores(const std::string& dataPath)
                     case 13019:
                     case 13020:
                     case 13021:
-                        notConstSpell->speed = 15.0f;
+                        notConstSpell->speed = 20.0f;
                         break;
                     // Holy light
                     case 635:
