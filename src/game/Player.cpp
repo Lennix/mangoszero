@@ -5033,7 +5033,7 @@ void Player::UpdateWeaponSkill(WeaponAttackType attType)
     UpdateAllCritPercentages();
 }
 
-void Player::UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool defence)
+void Player::UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool defense)
 {
     uint32 plevel = getLevel();                             // if defense than pVictim == attacker
     uint32 greylevel = MaNGOS::XP::GetGrayLevel(plevel);
@@ -5044,26 +5044,38 @@ void Player::UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool de
     if (moblevel > plevel + 5)
         moblevel = plevel + 5;
 
-    uint32 lvldif = moblevel - greylevel;
-    if(lvldif < 3)
-        lvldif = 3;
+    uint32 lvldiff = moblevel - greylevel;
+    if(lvldiff < 3)
+        lvldiff = 3;
 
-    int32 skilldif = 5 * plevel - (defence ? GetBaseDefenseSkillValue() : GetBaseWeaponSkillValue(attType));
-
+    // Get MaxSkillValues which also calculate racial boni instead of pLevel * 5
+    int32 skilldiff = 0;
+    if (defense)
+        skilldiff = GetMaxSkillValue(SKILL_DEFENSE) - GetBaseDefenseSkillValue();
+    else
+    {
+        Item* item = GetWeaponForAttack(attType,true,true);
+        uint32 skill = 0;
+        if(item && attType == BASE_ATTACK)
+        {
+            skill = item ? item->GetSkill() : uint32(SKILL_UNARMED);
+            skilldiff = GetMaxSkillValue(skill) - GetBaseSkillValue(skill);
+        }
+    }
     // Max skill reached for level.
     // Can in some cases be less than 0: having max skill and then .level -1 as example.
-    if (skilldif <= 0)
+    if (skilldiff <= 0)
         return;
 
-    float chance = float(3 * lvldif * skilldif) / plevel;
-    if(!defence)
+    float chance = float(3 * lvldiff * skilldiff) / plevel;
+    if(!defense)
         chance *= 0.1f * GetStat(STAT_INTELLECT);
 
     chance = chance < 1.0f ? 1.0f : chance;                 //minimum chance to increase skill is 1%
 
     if(roll_chance_f(chance))
     {
-        if(defence)
+        if(defense)
             UpdateDefense();
         else
             UpdateWeaponSkill(attType);
