@@ -922,16 +922,21 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 	else
 	{
         // refund energe and rage
-        if ((target->missCondition & (SPELL_MISS_DODGE|SPELL_MISS_PARRY|SPELL_MISS_BLOCK)))
+        if (target->missCondition == SPELL_MISS_DODGE || target->missCondition == SPELL_MISS_PARRY || target->missCondition == SPELL_MISS_BLOCK)
+        {
             switch (m_spellInfo->SpellFamilyName)
             {
-                case SPELLFAMILY_WARRIOR:					
+                case SPELLFAMILY_WARRIOR:
                     caster->ModifyPower(POWER_RAGE, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                     break;
                 case SPELLFAMILY_ROGUE:
+                {
                     if (!NeedsComboPoints(m_spellInfo))
                         caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
+                    else
+                        ((Player*)m_caster)->ClearComboPoints();
                     break;
+                }
                 case SPELLFAMILY_DRUID:
                     switch (m_spellInfo->powerType)
                     {
@@ -939,11 +944,26 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
                             caster->ModifyPower(POWER_RAGE, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                             break;
                         case POWER_ENERGY:
+                        {
                             if (!NeedsComboPoints(m_spellInfo))
                                 caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
+                            else
+                                ((Player*)m_caster)->ClearComboPoints(); 
                             break;
+                        }
                     }
             }
+        }
+        else if (target->missCondition == SPELL_MISS_MISS)
+        {
+            switch (m_spellInfo->SpellFamilyName)
+            {
+                case SPELLFAMILY_ROGUE:
+                case SPELLFAMILY_DRUID:
+                    if (m_spellInfo->powerType == POWER_ENERGY && NeedsComboPoints(m_spellInfo))
+                      ((Player*)m_caster)->ClearComboPoints();    
+            }
+        }
     }
 
     SpellMissInfo missInfo = target->missCondition;
