@@ -187,9 +187,9 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                 case GAMEOBJECT_TYPE_TRAP:
                 {
                     // Arming Time for GAMEOBJECT_TYPE_TRAP (6)
-                    Unit* owner = GetOwner();
-                    if (owner && ((Player*)owner)->isInCombat())
-                        m_cooldownTime = time(NULL) + GetGOInfo()->trap.startDelay;
+                    uint32 startDelay = GetGOInfo()->trap.startDelay;
+                    if (startDelay > 0)
+                        m_cooldownTime = time(NULL) + startDelay;
                     m_lootState = GO_READY;
                     break;
                 }
@@ -304,6 +304,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                     // Note: this hack with search required until GO casting not implemented
                     // search unfriendly creature
+
                     if (goInfo->trap.charges > 0)  // hunter trap
                     {
                         if (owner)
@@ -341,9 +342,8 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                     if (ok)
                     {
-                        Unit *caster = owner ? owner : ok;
-
                         CastSpell(ok, goInfo->trap.spellId, owner);
+                        SendGameObjectCustomAnim(GetObjectGuid());
                         // use template cooldown if provided
                         m_cooldownTime = time(NULL) + (goInfo->trap.cooldown ? goInfo->trap.cooldown : uint32(4));
 
@@ -781,8 +781,15 @@ void GameObject::CastSpell(Unit* target, uint32 spellId, Unit* caster)
         caster->CastSpell(target, spellId, true, NULL, NULL, caster->GetObjectGuid());
     else
     {
-        Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
+        Unit* casterUnit = SummonCreature(800004,GetPositionX(), GetPositionY(), GetPositionZ()+GetObjectBoundingRadius(), GetOrientation(), TEMPSUMMON_TIMED_DESPAWN, 10000);
         casterUnit->SetName(GetName());
+        if (GetUInt32Value(GAMEOBJECT_LEVEL) > 0)
+            casterUnit->SetLevel(GetUInt32Value(GAMEOBJECT_LEVEL));
+        else if (Unit* owner = GetOwner())
+            casterUnit->SetLevel(owner->getLevel());
+        else if (SpellEntry const* spellEntry = sSpellStore.LookupEntry(spellId))
+            casterUnit->SetLevel(spellEntry->spellLevel);
+
         casterUnit->CastSpell(target, spellId, true, NULL, NULL, GetObjectGuid());
     }
 }

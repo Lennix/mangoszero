@@ -645,11 +645,11 @@ void Channel::SetOwner(ObjectGuid guid, bool exclaim)
         MakeModeChange(&data, m_ownerGuid, oldFlag);
         SendToAll(&data);
 
-        if(exclaim)
+        /*if(exclaim)
         {
             MakeOwnerChanged(&data, m_ownerGuid);
             SendToAll(&data);
-        }
+        }*/
     }
 }
 

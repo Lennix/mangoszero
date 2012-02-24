@@ -33,7 +33,19 @@ void WorldSession::HandleJoinChannelOpcode(WorldPacket& recvPacket)
         return;
 
     recvPacket >> pass;
-    if(ChannelMgr* cMgr = channelMgr(_player->GetTeam()))
+
+    // Bei GMs beide managers
+    if(_player->GetSession()->GetSecurity() > SEC_MODERATOR)
+    {
+        if(ChannelMgr* cMgr = channelMgr(ALLIANCE))
+            if(Channel *chn = cMgr->GetJoinChannel(channelname, channel_id))
+                chn->Join(_player->GetObjectGuid(), pass.c_str());
+
+        if(ChannelMgr* cMgr = channelMgr(HORDE))
+            if(Channel *chn = cMgr->GetJoinChannel(channelname, channel_id))
+                chn->Join(_player->GetObjectGuid(), pass.c_str());
+    }
+    else if(ChannelMgr* cMgr = channelMgr(_player->GetTeam()))
         if(Channel *chn = cMgr->GetJoinChannel(channelname, channel_id)) // channel id seems to be useless but must be checked for LFG
             chn->Join(_player->GetObjectGuid(), pass.c_str());
 }

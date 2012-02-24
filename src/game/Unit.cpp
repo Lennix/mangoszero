@@ -329,6 +329,11 @@ void Unit::Update( uint32 update_diff, uint32 p_time )
         setAttackTimer(OFF_ATTACK, (update_diff >= base_att ? 0 : base_att - update_diff) );
     }
 
+    if (uint32 ranged_att = getAttackTimer(RANGED_ATTACK))
+    {
+        setAttackTimer(RANGED_ATTACK, (update_diff >= ranged_att ? 0 : ranged_att - update_diff) );
+    }
+
     // update abilities available only for fraction of time
     UpdateReactives( update_diff );
 
@@ -566,6 +571,16 @@ void Unit::RemoveSpellbyDamageTaken(AuraType auraType, uint32 damage)
     if(!HasAuraType(auraType))
         return;
 
+    //nefarian classcall rogue --> paralyze // dont remove spell by taking damage // teleport is handled at the nefarian.cpp script
+    for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end();)
+    {
+        SpellAuraHolder *holder = iter->second;
+        if (holder->GetId() == 23414)
+            return;
+        else
+            iter++;
+    }
+
     // Spells with SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY should not be removed by dmg
     bool found = false;
     AuraList const& mModRoot = GetAurasByType(auraType);
@@ -625,6 +640,10 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         // Eye of Kilrogg
         pVictim->RemoveAura(126, EFFECT_INDEX_1);
     }
+
+    // Remove WSG restoration upon damage
+    if (pVictim->HasAura(23493))
+        pVictim->RemoveAurasDueToSpellByCancel(23493);
 
     // remove affects from attacker at any non-DoT damage (including 0 damage)
     if( damagetype != DOT)
@@ -5652,8 +5671,6 @@ uint32 Unit::SpellDamageBonusTaken(Unit *pCaster, SpellEntry const *spellProto, 
     float TakenTotalMod = 1.0f;
     int32 TakenTotal = 0;
 
-
-
     // ..taken
     TakenTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, schoolMask);
 
@@ -5675,50 +5692,6 @@ uint32 Unit::SpellDamageBonusTaken(Unit *pCaster, SpellEntry const *spellProto, 
     TakenTotal = SpellBonusWithCoeffs(spellProto, TakenTotal, TakenAdvertisedBenefit, 0, damagetype, false);
 
     float tmpDamage = (int32(pdamage) + TakenTotal * int32(stack)) * TakenTotalMod;
-    if (A && A->GetModifier()) //Apply Judgement of the Crusader bonus after other calculations are done	
-	{	
-	   A->GetModifier()->m_amount = saveAuraMod;	
-	   float coeff = 0.0f;	
-	switch (spellProto->SpellIconID) 	
-    {	
-      case 25:    	
-        if (spellProto->SpellVisual == 5622)    //Seal of Righteousness proc: 10% of maximum applied	
-          coeff = 0.1f;	
-        else                    //Judgement of Righteousness: 50% of maximum applied	
-          coeff = 0.5f;	
-        break;
-      case 292:                    //Exorcism: 43% of maximum applied	
-      case 302:                    //Hammer of Wrath: 43% of maximum applied	
-        coeff = 0.43f;	
-        break;	
-      case 156:                             	
-        if (spellProto->SpellVisual == 3400)
-        {
-          if (damagetype == DOT)        //Holy Fire DoT: 26% of maximum applied
-          coeff = 0.26f;	
-          else                  //Holy Fire Initial Damage: 32% of maximum applied  	
-          coeff = 0.32f;
-        }
-        else                    //Holy Shock: 43% of maximum applied	
-        coeff = 0.43f;	
-        break;	
-      case 51:                    //Consecration: 33% of maximum applied	
-        coeff = 0.33f;
-        break;	
-      case 158:                    //Holy Wrath: 19% of maximum applied
-        coeff = 0.19f;	
-        break;
-      case 237:                    //Smite: 32% of maximum applied	
-      case 1874:                  //Holy Nova: 32% of maximum applied
-        coeff = 0.32f;
-        break;
-      default:	
-       break;	
-    }
-    if (coeff > 0)
-      tmpDamage += tmpDamage*coeff > saveAuraMod ? saveAuraMod : tmpDamage*coeff;	
-  }
-
 
     if (A && A->GetModifier()) // Apply Judgement of the Crusader bonus after other calculations are done
     {
@@ -5826,7 +5799,14 @@ bool Unit::IsSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
     switch(spellProto->DmgClass)
     {
         case SPELL_DAMAGE_CLASS_NONE:
+        {
+            if(spellProto->Id == 15290) //Vampiric Embrace can crit
+            {
+                crit_chance = ((Player*)this)->m_SpellCritPercentage[SPELL_SCHOOL_SHADOW];	
+                break;
+            }
             return false;
+        }
         case SPELL_DAMAGE_CLASS_MAGIC:
         {
             if (schoolMask & SPELL_SCHOOL_MASK_NORMAL)
@@ -6926,7 +6906,7 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
 
     if (!IsWithinDist(viewPoint,visibleDistance))
     {
-        if (GetDistance(viewPoint) - visibleDistance <= 1.0f && u->GetTypeId() == TYPEID_UNIT)
+        if (u->GetTypeId() == TYPEID_UNIT && !u->isInCombat() && GetDistance(viewPoint) - visibleDistance <= 1.0f)
         {
             if (Creature* C = (Creature*)u)
             {
@@ -7640,7 +7620,8 @@ int32 Unit::CalculateSpellDamage(Unit const* target, SpellEntry const* spellProt
             spellProto->Effect[effect_index] != SPELL_EFFECT_WEAPON_PERCENT_DAMAGE &&
             spellProto->Effect[effect_index] != SPELL_EFFECT_KNOCK_BACK &&
             (spellProto->Effect[effect_index] != SPELL_EFFECT_APPLY_AURA || spellProto->EffectApplyAuraName[effect_index] != SPELL_AURA_MOD_DECREASE_SPEED))
-        value = int32(value*0.25f*exp(getLevel()*(70-spellProto->spellLevel)/1000.0f));
+        //value = int32(value*0.25f*exp(getLevel()*(70-spellProto->spellLevel)/1000.0f));
+        value = int32(value*0.25f*exp(getLevel()*(60-spellProto->spellLevel)/1000.0f)); // value 70 for tbc?
 
     return value;
 }
@@ -7691,6 +7672,20 @@ void Unit::ApplyDiminishingToDuration(DiminishingGroup group, int32 &duration, U
 {
     if (duration == -1 || group == DIMINISHING_NONE || (!isReflected && caster->IsFriendlyTo(this)))
         return;
+
+    // [MOD] Duration of crowd control abilities on pvp target is limited by 10 sec. (after patch 2.2.0)
+    if(duration > 16*IN_MILLISECONDS && IsDiminishingReturnsGroupDurationLimited(group))
+    {
+        // test pet/charm masters instead pets/charmeds
+        Unit const* targetOwner = GetCharmerOrOwner();
+        Unit const* casterOwner = caster->GetCharmerOrOwner();
+
+        Unit const* target = targetOwner ? targetOwner : this;
+        Unit const* source = casterOwner ? casterOwner : caster;
+
+        if(target->GetTypeId() == TYPEID_PLAYER && source->GetTypeId() == TYPEID_PLAYER)
+            duration = 16000;
+    }
 
     float mod = 1.0f;
 
@@ -8813,7 +8808,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
         ((Player*)this)->SetClientControl(this, !apply);
 }
 
-void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 /*spellID*/)
+void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 spellID)
 {
     if (apply)
     {
@@ -8835,16 +8830,36 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 /*spellID*/)
         //SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);  [-ZERO] remove/replace ?
 
         SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
+        
+        // reset aggro
+        HostileRefManager& hrm = getHostileRefManager();
+        if (!hrm.isEmpty())
+        {
+            HostileReference* ref = hrm.getFirst();
+            HostileReference* next;
+            while(ref != NULL)
+            {
+                next = ref->next();
+                Unit* creature = ref->getSource()->getOwner();
+                // Only delete Reference if effect wasnt resisted
+                if (MagicSpellHitResult(creature, sSpellStore.LookupEntry(spellID)) == SPELL_MISS_NONE)
+                    hrm.deleteReference(creature);
+                ref = next;
+            }
+        }
+        // Stop combat if we dont have enemies anymore
+        if (hrm.isEmpty())
+		{
+			addUnitState(UNIT_STAT_DIED);
+            CombatStop();
+		}
 
-        addUnitState(UNIT_STAT_DIED);
-        CombatStop();
         RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_IMMUNE_OR_LOST_SELECTION);
 
         // prevent interrupt message
         if (casterGuid == GetObjectGuid())
             FinishSpell(CURRENT_GENERIC_SPELL,false);
         InterruptNonMeleeSpells(true);
-        getHostileRefManager().deleteReferences();
     }
     else
     {

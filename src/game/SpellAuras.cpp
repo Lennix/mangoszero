@@ -1667,8 +1667,8 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     }
                     else
                     {
-                        if (m_removeMode == AURA_REMOVE_BY_DEFAULT)
-                            return;
+                        //if (m_removeMode == AURA_REMOVE_BY_DEFAULT)
+                        //    return;
 
                         Unit* caster = GetCaster();
                         if (!caster)

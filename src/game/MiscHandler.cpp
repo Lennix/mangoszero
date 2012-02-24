@@ -663,6 +663,16 @@ void WorldSession::HandleResurrectResponseOpcode(WorldPacket & recv_data)
     if(!GetPlayer()->isRessurectRequestedBy(guid))
         return;
 
+    if (Player* rezzer = sObjectMgr.GetPlayer(guid))
+    {
+        // Wenn der Rezzende in einer Instanz ist muss er mit dem Spieler in einer Gruppe sein und auf der gleichen Map befinden wo der Rezz hin soll
+        if (sMapStore.LookupEntry(rezzer->GetMapId())->IsDungeon() && !rezzer->IsInSameRaidWith(GetPlayer()) && !(rezzer->GetMapId() != GetPlayer()->m_resurrectMap))
+        {
+            GetPlayer()->clearResurrectRequestData();           // reject
+            return;
+        }
+    }
+
     GetPlayer()->ResurectUsingRequestData();                // will call spawncorpsebones
 }
 

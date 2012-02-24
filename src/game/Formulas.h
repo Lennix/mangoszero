@@ -50,7 +50,6 @@ namespace MaNGOS
 
         inline HonorRankInfo CalculateRankInfo(HonorRankInfo prk)
         {
-
             if (prk.rank != 0)
             {
                 int8 rank = prk.positive ? prk.rank - NEGATIVE_HONOR_RANK_COUNT -1 : prk.rank - NEGATIVE_HONOR_RANK_COUNT;
@@ -123,7 +122,7 @@ namespace MaNGOS
 
             // get the WS scores at the top of each break point
             for (uint8 group=0; group<14; group++)
-              sc.BRK[group] = floor( (sc.BRK[group] * standingList.size()) + 0.5f);
+                sc.BRK[group] = floor( (sc.BRK[group] * standingList.size()) + 0.5f);
 
             // initialize RP array
             // set the low point
@@ -131,9 +130,8 @@ namespace MaNGOS
 
             // the Y values for each breakpoint are fixed
             sc.FY[ 1] = 400;
-            for (uint8 i=2;i<=13;i++) {
-              sc.FY[i] = (i-1) * 1000;
-            }
+            for (uint8 i=2;i<=13;i++)
+                sc.FY[i] = (i-1) * 1000;
 
             // and finally
             sc.FY[14] = 13000;   // ... gets 13000 RP
@@ -146,18 +144,19 @@ namespace MaNGOS
             // initialize CP array
             sc.FX[ 0] = 0;
 
-            for (uint8 i=1;i<=13;i++) {
-              honor = 0.0f;
-              tempSt = sObjectMgr.GetHonorStandingByPosition( sc.BRK[i],team );
-              if (tempSt)
-              {
-                  honor += tempSt->honorPoints;
-                  tempSt = sObjectMgr.GetHonorStandingByPosition( sc.BRK[i]+1, team );
-                  if (tempSt)
-                      honor += tempSt->honorPoints;
-              }
+            for (uint8 i=1;i<=13;i++)
+            {
+                honor = 0.0f;
+                tempSt = sObjectMgr.GetHonorStandingByPosition( sc.BRK[i],team );
+                if (tempSt)
+                {
+                    honor += tempSt->honorPoints;
+                    tempSt = sObjectMgr.GetHonorStandingByPosition( sc.BRK[i]+1, team );
+                    if (tempSt)
+                        honor += tempSt->honorPoints;
+                }
 
-              sc.FX[i] = honor ? honor / 2 : 0;
+                sc.FX[i] = honor ? honor / 2 : 0;
             }
 
             // set the high point if FX full filled before
@@ -180,28 +179,29 @@ namespace MaNGOS
 
         inline float CalculateRpDecay(float rpEarning,float RP)
         {
-            float Decay = floor( (0.4f * RP) + 0.5f);
+            float Decay = floor( (0.2f * RP) + 0.5f);
             float Delta = rpEarning - Decay;
-            if (Delta < 0) {
-               Delta = Delta / 2;
-            }
-            if (Delta < -5000) {
-               Delta = -5000;
-            }
+            if (Delta < 0)
+                Delta = Delta / 2;
+
+            if (Delta < -2500)
+                Delta = -2500;
+
             return RP + Delta;
         }
 
         inline float DishonorableKillPoints(int level)
         {
             float result = 10;
-            if(level >= 30 && level <= 35)
-                result = result + 1.5 * (level - 29);
-            if(level >= 36 && level <= 41)
-                result = result + 9 + 2 * (level - 35);
-            if(level >= 42 && level <= 50)
-                result = result + 21 + 3.2 * (level - 41);
             if(level >= 51)
                 result = result + 50 + 4 * (level - 50);
+            else if(level >= 42)
+                result = result + 21 + 3.2 * (level - 41);
+            else if(level >= 36)
+                result = result + 9 + 2 * (level - 35);
+            else if(level >= 30)
+                result = result + 1.5 * (level - 29);
+
             if(result > 100)
                 return 100.0;
             else
@@ -213,19 +213,48 @@ namespace MaNGOS
             if (!killer || !victim || !groupsize || (groupsize > 0 && groupsize < 1))
                 return 0.0;
 
-            uint32 today = sWorld.GetDateToday();
-
-            int total_kills  = killer->CalculateTotalKills(victim,today,today);
-            //int k_rank       = killer->CalculateHonorRank( killer->GetTotalHonor() );
             uint32 v_rank    = victim->GetHonorRankInfo().visualRank;
             uint32 k_level   = killer->getLevel();
-            //int v_level      = victim->getLevel();
-            float diff_honor = (victim->GetRankPoints() /(killer->GetRankPoints()+1))+1;
-            float diff_level = (victim->getLevel()*(1.0/( killer->getLevel() )));
 
-            int f = (10 - total_kills) >= 0 ? (10 - total_kills) : 0;
-            int honor_points = int(((float)(f * 0.25)*(float)((k_level+(v_rank*5+1))*(1+0.05*diff_honor)*diff_level)));
-            return (honor_points <= 400 ? honor_points : 400) / groupsize;
+            float honor = 0.0f;
+            // Dirty, but efficient
+            switch (v_rank)
+            {
+                case 1:
+                    honor = 198.0f; break;
+                case 2:
+                    honor = 210.0f; break;
+                case 3:
+                    honor = 221.0f; break;
+                case 4:
+                    honor = 233.0f; break;
+                case 5:
+                    honor = 246.0f; break;
+                case 6:
+                    honor = 260.0f; break;
+                case 7:
+                    honor = 274.0f; break;
+                case 8:
+                    honor = 289.0f; break;
+                case 9:
+                    honor = 305.0f; break;
+                case 10:
+                    honor = 321.0f; break;
+                case 11:
+                    honor = 339.0f; break;
+                case 12:
+                    honor = 357.0f; break;
+                case 13:
+                    honor = 377.0f; break;
+                case 14:
+                    honor = 398.0f; break;
+                default:
+                    honor = 198.0f; break;
+            }
+
+            honor /= groupsize;
+
+            return (honor <= 400 ? honor : 400);
         }
 
     }
@@ -241,10 +270,8 @@ namespace MaNGOS
                 return 0;
             else if( pl_level <= 39 )
                 return pl_level - 5 - pl_level/10;
-            else if( pl_level <= 59 )
-                return pl_level - 1 - pl_level/5;
             else
-                return pl_level - 9;
+                return pl_level - 1 - pl_level/5;
         }
 
         inline XPColorChar GetColorCode(uint32 pl_level, uint32 mob_level)

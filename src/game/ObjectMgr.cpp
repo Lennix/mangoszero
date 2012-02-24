@@ -2627,52 +2627,72 @@ void ObjectMgr::LoadStandingList(uint32 dateBegin)
     HonorStanding Standing;
 
     // needed for reload case
+    PlayerHonorStandingList.clear();
     AllyHonorStandingList.clear();
     HordeHonorStandingList.clear();
 
-    uint32 guid,kills,side;
+    uint32 guid,type,kills,side,honor;
 
     Field *fields = NULL;
-    QueryResult *result2 = NULL;
-    // this query create an ordered standing list
-    QueryResult *result = CharacterDatabase.PQuery("SELECT guid,SUM(honor) as honor_sum FROM character_honor_cp WHERE TYPE = %u AND date BETWEEN %u AND %u GROUP BY guid ORDER BY honor_sum DESC",HONORABLE,dateBegin,dateBegin+7);
+    // Get all characters which have RP or made kills last week
+    QueryResult *result = CharacterDatabase.PQuery("SELECT a.guid, stored_honor_rating, race FROM characters a LEFT JOIN character_honor_cp b ON a.guid = b.guid WHERE stored_honor_rating > 0 OR (date >= %u AND date < %u AND type = %u) GROUP BY a.guid", dateBegin, dateBegin + 7, HONORABLE);
+    QueryResult *honorResult;
+
     if (result)
     {
         BarGoLink bar(result->GetRowCount());
 
-        do
-        {
+        do {
             fields = result->Fetch();
-            guid  = fields[0].GetUInt32();
-            side = GetPlayerTeamByGUID(ObjectGuid(HIGHGUID_PLAYER, guid));
+            guid   = fields[0].GetUInt32();
+            side   = Player::TeamForRace(fields[2].GetUInt32());
+            honor  = 0;
+            kills  = 0;
 
-            kills=0;
-            // kills count with victim setted ( not zero value )
-            result2 = CharacterDatabase.PQuery("SELECT COUNT(*) FROM character_honor_cp WHERE guid = %u AND victim>0 AND TYPE = %u AND date BETWEEN %u AND %u",guid,HONORABLE,dateBegin,dateBegin+7);
-            if (result2)
-                kills = result2->Fetch()->GetUInt32();
+            Standing.guid           = guid;
+            Standing.rp             = fields[1].GetFloat();
+            Standing.side           = side;
 
-            // you need to reach CONFIG_UINT32_MIN_HONOR_KILLS to be added in standing list
-            if (kills < sWorld.getConfig(CONFIG_UINT32_MIN_HONOR_KILLS))
-                continue;
+            // InnerQuery for characters_honor_cp (only honorable kills)
+            honorResult = CharacterDatabase.PQuery("SELECT victim_type, count(honor), sum(honor) FROM character_honor_cp WHERE guid = %u AND TYPE = %u", guid, HONORABLE);
+            if (honorResult)
+            {
+                do
+                {
+                    fields = honorResult->Fetch();
+                    type   = fields[0].GetUInt32();
+                    if (type == TYPEID_PLAYER || type == TYPEID_UNIT) // Normal player kills
+                    {
+                        kills += fields[1].GetUInt32();
+                        honor += fields[2].GetUInt32();
+                    }
+                    else if (type == TYPEID_OBJECT) // Bonus honor
+                        honor += fields[2].GetUInt32();
+                }
+                while (honorResult->NextRow());
+            }
 
-            Standing.guid = guid;
-            Standing.honorPoints = fields[1].GetUInt32();
-            Standing.honorKills = kills;
+            // Everybody gets added to the list
+            Standing.honorPoints    = honor;
+            Standing.honorKills     = kills;
 
-            if (side == ALLIANCE)
-                AllyHonorStandingList.push_back(Standing);
-            else if (side == HORDE)
-                HordeHonorStandingList.push_back(Standing);
-
+            PlayerHonorStandingList.push_back(Standing);
+            if (kills >= 15)
+            {
+                if (side == ALLIANCE)
+                    AllyHonorStandingList.push_back(Standing);
+                else if (side == HORDE)
+                    HordeHonorStandingList.push_back(Standing);
+            }
             bar.step();
 
-        } while (result->NextRow());
+        }
+        while (result->NextRow());
 
         delete result;
-        delete result2;
 
         // make sure all things are sorted
+        PlayerHonorStandingList.sort();
         AllyHonorStandingList.sort();
         HordeHonorStandingList.sort();
     }
@@ -2680,121 +2700,114 @@ void ObjectMgr::LoadStandingList(uint32 dateBegin)
 
 void ObjectMgr::LoadStandingList()
 {
+    /*uint32 LastWeekBegin = sWorld.GetDateLastMaintenanceDay() - 7;
+    LoadStandingList(LastWeekBegin);*/
 
-    uint32 LastWeekBegin = sWorld.GetDateLastMaintenanceDay() - 7;
-    LoadStandingList(LastWeekBegin);
-
-    //distribution of RP earning without flushing table
-    DistributeRankPoints(ALLIANCE,LastWeekBegin);
-    DistributeRankPoints(HORDE,LastWeekBegin);
+    // We shouldnt need any standing list, make sure its cleared after calculation
+    HordeHonorStandingList.clear();
+    AllyHonorStandingList.clear();
 
     sLog.outString();
     sLog.outString( ">> Loaded %u Horde and %u Ally honor standing definitions", HordeHonorStandingList.size(), AllyHonorStandingList.size());
 }
 
 
-void ObjectMgr::FlushRankPoints(uint32 dateTop)
+void ObjectMgr::DoHonorCalculation(uint32 dateTop)
 {
-    // FLUSH CP
-    QueryResult *result = CharacterDatabase.PQuery("SELECT date FROM character_honor_cp WHERE TYPE = %u AND date <= %u GROUP BY date ORDER BY date DESC",HONORABLE,dateTop);
+    // Get all data from before WeekEnd and determine the oldest data
+    QueryResult *result = CharacterDatabase.PQuery("SELECT date FROM character_honor_cp WHERE TYPE = %u AND date < %u GROUP BY date ORDER BY date DESC",HONORABLE,dateTop);
     if (result)
     {
         uint32 date;
-        bool flush;
         uint32 WeekBegin = dateTop - 7;
         // search latest non-processed date if the server has been offline for different weeks
-        do {
+        // get the most least date within the killinformation (usually thats already LastWeek)
+        do
+        {
             date = result->Fetch()->GetUInt32();
-            while (WeekBegin && date < WeekBegin) {
+            while (WeekBegin && date < WeekBegin)
+            {
                 WeekBegin -= 7;
             }
-        } while (result->NextRow());
+        }
+        while (result->NextRow());
 
-        // start to flush from latest non-processed date to up
-        while (WeekBegin <= dateTop)
+        // this is just in case we lost a few weeks usually its LastWeek
+        // we will only process RP here
+        while (WeekBegin < dateTop)
         {
             LoadStandingList(WeekBegin);
-
-            flush = WeekBegin < dateTop - 7; // flush only with date < lastweek
-
-            DistributeRankPoints(ALLIANCE,WeekBegin,flush);
-            DistributeRankPoints(HORDE,WeekBegin,flush);
+            DistributeRankPoints(WeekBegin);
 
             WeekBegin += 7;
         }
     }
 
-    // FLUSH KILLS
+    // get all kills older than lastweek, sum them up, add them to the players total and delete them
     CharacterDatabase.BeginTransaction();
-    // process only HK ( victim_type > 0 )
-    result = CharacterDatabase.PQuery("SELECT guid,TYPE,COUNT(*) AS kills FROM character_honor_cp WHERE date <= %u AND victim_type>0 GROUP BY guid,type",dateTop - 7);
+    result = CharacterDatabase.PQuery("SELECT guid,COUNT(*) AS kills FROM character_honor_cp WHERE date < %u AND victim_type>0 AND TYPE = %u GROUP BY guid",dateTop - 7, HONORABLE);
     if (result)
     {
         uint32 guid,kills;
-        uint8 type;
         Field *fields = NULL;
         do {
             fields = result->Fetch();
             guid   = fields[0].GetUInt32();
-            type   = fields[1].GetUInt8();
-            kills  = fields[2].GetUInt32();
-
-            if (type == HONORABLE)
-                CharacterDatabase.PExecute("UPDATE characters SET stored_honorable_kills = stored_honorable_kills + %u WHERE guid = %u",kills,guid);
-            else if (type == DISHONORABLE)
-                CharacterDatabase.PExecute("UPDATE characters SET stored_dishonorable_kills = stored_dishonorable_kills + %u WHERE guid = %u",kills,guid);
-
+            kills  = fields[1].GetUInt32();
+            CharacterDatabase.PExecute("UPDATE characters SET stored_honorable_kills = stored_honorable_kills + %u WHERE guid = %u",kills,guid);
         } while (result->NextRow());
     }
+    CharacterDatabase.PExecute("DELETE FROM character_honor_cp WHERE date < %u",dateTop - 7);
+    CharacterDatabase.CommitTransaction();
 
-    // cleanin ALL cp before dateTop
-    CharacterDatabase.PExecute("DELETE FROM character_honor_cp WHERE date <= %u",dateTop - 7);
+    // save rp and standing
+    HonorStandingList* list = GetStandingListPointerBySide(TEAM_NONE);
+    uint32 standingA, standingH, standing;
+    standingA = 1;
+    standingH = 1;
+    CharacterDatabase.BeginTransaction();
+    for (HonorStandingList::iterator itr = list->begin();itr != list->end() ; ++itr)
+    {
+        standing = 0;
+        if (itr->honorKills >= 15)
+            standing = itr->side == ALLIANCE ? standingA++ : standingH++;
+
+        CharacterDatabase.PExecute("UPDATE characters SET stored_honor_rating = %f, honor_standing = %u WHERE guid = %u", finiteAlways(itr->rp), standing, itr->guid);
+    }
     CharacterDatabase.CommitTransaction();
 
     sLog.outString();
-    sLog.outString( ">> Flushed all ranking points");
+    sLog.outString( ">> Honor calculation done");
 
     delete result;
 }
 
-void ObjectMgr::DistributeRankPoints(uint32 team, uint32 dateBegin , bool flush /*false*/)
+void ObjectMgr::DistributeRankPoints(uint32 dateBegin)
 {
-    float RP;
-    uint32 HK;
+    // this week is usually last week
+    float rpEarning;
 
-    HonorStandingList list = GetStandingListBySide(team);
+    // HonorStandingList has yet been calculated for this week
+    HonorStandingList* list = GetStandingListPointerBySide(TEAM_NONE);
 
-    if ( list.empty() )
+    if (list->empty())
         return;
 
-    HonorScores scores = MaNGOS::Honor::GenerateScores(list,team);
+    // Now lets calculate (based on the standings) how everybody scored this week
+    HonorScores allyScores = MaNGOS::Honor::GenerateScores(GetStandingListBySide(ALLIANCE),ALLIANCE);
+    HonorScores hordeScores = MaNGOS::Honor::GenerateScores(GetStandingListBySide(HORDE),HORDE);
 
-    Field *fields = NULL;
-    QueryResult *result = NULL;
-    for (HonorStandingList::iterator itr = list.begin();itr != list.end() ; ++itr)
+    for (HonorStandingList::iterator itr = list->begin();itr != list->end() ; ++itr)
     {
-        RP = 0;
-        result = CharacterDatabase.PQuery("SELECT stored_honor_rating,stored_honorable_kills FROM characters WHERE guid = %u ",itr->guid);
-        if (!result)
-            continue; // not cleaned table?
+        rpEarning = 0;
 
-        fields = result->Fetch();
-        RP = fields[0].GetFloat();
-        HK = fields[1].GetUInt32();
+        // rpEarning of this week based on honorPoints and score
+        if (itr->honorKills >= 15)
+            rpEarning = MaNGOS::Honor::CalculateRpEarning(itr->honorPoints,itr->side == ALLIANCE ? allyScores : hordeScores);
 
-        itr->rpEarning = MaNGOS::Honor::CalculateRpEarning(itr->GetInfo()->honorPoints,scores);
-        RP             = MaNGOS::Honor::CalculateRpDecay(itr->rpEarning,RP);
-
-        if (flush)
-        {
-            CharacterDatabase.BeginTransaction();
-            CharacterDatabase.PExecute("DELETE FROM character_honor_cp WHERE guid = %u AND TYPE = %u AND date BETWEEN %u AND %u",itr->guid,HONORABLE,dateBegin,dateBegin+7);
-            CharacterDatabase.PExecute("UPDATE characters SET stored_honor_rating = %f , stored_honorable_kills = %u WHERE guid = %u",finiteAlways(RP+itr->rpEarning),HK+itr->honorKills,itr->guid);
-            CharacterDatabase.CommitTransaction();
-        }
+        // calculate RpDecay based on current earning and old RP
+        itr->rp = MaNGOS::Honor::CalculateRpDecay(rpEarning,itr->rp);
     }
-
-    delete result;
 }
 
 HonorStandingList ObjectMgr::GetStandingListBySide(uint32 side)
@@ -2803,7 +2816,17 @@ HonorStandingList ObjectMgr::GetStandingListBySide(uint32 side)
     {
         case ALLIANCE: return AllyHonorStandingList;
         case HORDE:    return HordeHonorStandingList;
-        default:       return AllyHonorStandingList; // mustn't happen
+        default:       return PlayerHonorStandingList;
+    }
+}
+
+HonorStandingList* ObjectMgr::GetStandingListPointerBySide(uint32 side)
+{
+    switch(side)
+    {
+        case ALLIANCE: return &AllyHonorStandingList;
+        case HORDE:    return &HordeHonorStandingList;
+        default:       return &PlayerHonorStandingList; // mustn't happen
     }
 }
 

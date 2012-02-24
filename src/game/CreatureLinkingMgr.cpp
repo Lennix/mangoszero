@@ -283,7 +283,7 @@ void CreatureLinkingHolder::DoCreatureLinkingEvent(CreatureLinkingEvent eventTyp
 
     switch (eventType)
     {
-        case LINKING_EVENT_AGGRO: eventFlagFilter = EVENT_MASK_ON_AGGRO;     reverseEventFlagFilter = FLAG_TO_AGGRO_ON_AGGRO;   break;
+        case LINKING_EVENT_AGGRO: eventFlagFilter = EVENT_MASK_ON_AGGRO | FLAG_CHECK_DISTANCE;     reverseEventFlagFilter = FLAG_TO_AGGRO_ON_AGGRO;   break;
         case LINKING_EVENT_EVADE: eventFlagFilter = EVENT_MASK_ON_EVADE;     reverseEventFlagFilter = FLAG_TO_RESPAWN_ON_EVADE; break;
         case LINKING_EVENT_DIE: eventFlagFilter = EVENT_MASK_ON_DIE;         reverseEventFlagFilter = 0;                        break;
         case LINKING_EVENT_RESPAWN: eventFlagFilter = EVENT_MASK_ON_RESPAWN; reverseEventFlagFilter = FLAG_FOLLOW;              break;
@@ -309,6 +309,9 @@ void CreatureLinkingHolder::DoCreatureLinkingEvent(CreatureLinkingEvent eventTyp
                     {
                         case LINKING_EVENT_AGGRO:
                             if (pMaster->IsControlledByPlayer())
+                                return;
+
+                            if (pInfo->linkingFlag & FLAG_CHECK_DISTANCE && !pSource->IsWithinDist(pMaster, 10.0))
                                 return;
 
                             if (pMaster->isInCombat())
@@ -369,6 +372,9 @@ void CreatureLinkingHolder::ProcessSlave(CreatureLinkingEvent eventType, Creatur
             if (flag & FLAG_AGGRO_ON_AGGRO)
             {
                 if (pSlave->IsControlledByPlayer())
+                    return;
+
+                if (flag & FLAG_CHECK_DISTANCE && !pSource->IsWithinDist(pSlave, 10.0))
                     return;
 
                 if (pSlave->isInCombat())

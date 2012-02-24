@@ -426,7 +426,18 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             if(msg.empty())
                 break;
 
-            if(ChannelMgr* cMgr = channelMgr(_player->GetTeam()))
+            // Bei GMs beide managers
+            if(_player->GetSession()->GetSecurity() > SEC_MODERATOR)
+            {
+                if(ChannelMgr* cMgr = channelMgr(ALLIANCE))
+                    if(Channel *chn = cMgr->GetChannel(channel, _player))
+                        chn->Say(_player->GetObjectGuid(), msg.c_str(), LANG_UNIVERSAL);
+
+                if(ChannelMgr* cMgr = channelMgr(HORDE))
+                    if(Channel *chn = cMgr->GetChannel(channel, _player))
+                        chn->Say(_player->GetObjectGuid(), msg.c_str(), LANG_UNIVERSAL);
+            }
+            else if(ChannelMgr* cMgr = channelMgr(_player->GetTeam()))
                 if(Channel *chn = cMgr->GetChannel(channel, _player))
                     chn->Say(_player->GetObjectGuid(), msg.c_str(), lang);
         } break;

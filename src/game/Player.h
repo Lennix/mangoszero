@@ -1627,7 +1627,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         void UpdateDefense();
         void UpdateWeaponSkill (WeaponAttackType attType);
-        void UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool defence);
+        void UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool defense);
 
         void SetSkill(uint16 id, uint16 currVal, uint16 maxVal, uint16 step = 0);
         uint16 GetMaxSkillValue(uint32 skill) const;        // max + perm. bonus + temp bonus
@@ -1691,8 +1691,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         HonorRankInfo GetHonorRankInfo() const { return m_honor_rank; }
         void SetHonorRankInfo(HonorRankInfo rank) { m_honor_rank = rank; }
         //Acessors of total honor points
-        void SetRankPoints(float rankPoints) { m_rank_points = rankPoints; }
-        float GetRankPoints(void) const { return m_rank_points; }
+        /*void SetRankPoints(float rankPoints) { m_rank_points = rankPoints; }
+        float GetRankPoints(void) const { return m_rank_points; }*/
         //Acessors of highest rank
         HonorRankInfo GetHonorHighestRankInfo() const { return m_highest_rank; }
         void SetHonorHighestRankInfo(HonorRankInfo hr) { m_highest_rank = hr; }

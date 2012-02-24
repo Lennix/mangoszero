@@ -76,7 +76,9 @@ enum CreatureLinkingFlags
     FLAG_CANT_SPAWN_IF_BOSS_DEAD    = 0x0400,
     FLAG_CANT_SPAWN_IF_BOSS_ALIVE   = 0x0800,
 
-    LINKING_FLAG_INVALID            = 0x1000,               // TODO adjust when other flags are implemented
+    FLAG_CHECK_DISTANCE             = 0x1000,
+
+    LINKING_FLAG_INVALID            = 0x2000,               // TODO adjust when other flags are implemented
 };
 
 // Structure holding the information for an entry

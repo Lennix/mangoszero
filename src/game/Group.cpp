@@ -1527,19 +1527,12 @@ void Group::ResetInstances(InstanceResetMethod method, Player* SendMsgTo)
         if (success || method == INSTANCE_RESET_GROUP_DISBAND)
         {
             // do not reset the instance, just unbind if others are permanently bound to it
-            if (success)
+            if (success && state->CanReset())
                 state->DeleteFromDB();
             else
             {
                 // Group disband but still bound to instance
                 CharacterDatabase.PExecute("DELETE FROM group_instance WHERE instance = '%u'", state->GetInstanceId());
-                //member_citerator guid_itr;
-                //for(member_citerator itr = m_memberSlots.begin(); itr != m_memberSlots.end(); ++itr)
-                //{
-                //	if (Player* pl = ObjectAccessor::FindPlayer(itr->guid))
-                //	{
-
-                //}
             }
             // i don't know for sure if hash_map iterators
             m_boundInstances.erase(itr);

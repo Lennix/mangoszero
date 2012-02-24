@@ -248,7 +248,7 @@ void Spell::EffectInstaKill(SpellEffectIndex /*eff_idx*/)
         m_caster->CastSpell(m_caster, spellID, true);
     }
 
-    if (m_caster == unitTarget)                             // prevent interrupt message
+    if (m_caster->GetTypeId() == TYPEID_PLAYER && m_caster == unitTarget)                             // prevent interrupt message
         finish();
 
     WorldObject* caster = GetCastingObject();               // we need the original casting object
@@ -810,6 +810,13 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                         m_caster->CastSpell(m_caster, 20578, true, NULL);
                     return;
                 }
+                case 21108:
+                {
+                    for (uint32 i = 0; i<=7; i++)
+                        m_caster->CastSpell(m_caster,21110+i , true);
+
+                    return;
+                }
                 case 21147:                                 // Arcane Vacuum
                 {
                     if (!unitTarget)
@@ -822,6 +829,17 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
 
                     // cast summon player
                     m_caster->CastSpell(unitTarget, 21150, true);
+
+                    return;
+                }
+                case 21908:                                 // Lavaburst randomizer
+                {
+                    uint32 spellid = 21886;
+                    uint32 random_number = urand(0, 7);
+                    if (random_number != 0)
+                        spellid = 21900 + random_number;     
+
+                    m_caster->CastSpell(m_caster, spellid, true);
 
                     return;
                 }
@@ -848,9 +866,9 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     }
 
                     pGameObj->SetRespawnTime(creatureTarget->GetRespawnTime()-time(NULL));
-                    pGameObj->SetOwnerGuid(m_caster->GetObjectGuid() );
-                    pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel() );
-                    pGameObj->SetSpellId(m_spellInfo->Id);
+                    //pGameObj->SetOwnerGuid(m_caster->GetObjectGuid() );
+                    //pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel() );
+                    //pGameObj->SetSpellId(m_spellInfo->Id);
 
                     creatureTarget->ForcedDespawn();
 
@@ -3451,7 +3469,7 @@ void Spell::EffectSummonObjectWild(SpellEffectIndex eff_idx)
     GameObject* pGameObj = new GameObject;
 
     WorldObject* target = focusObject;
-    if( !target )
+    if (!target)
         target = m_caster;
 
     float x, y, z;
@@ -3477,6 +3495,8 @@ void Spell::EffectSummonObjectWild(SpellEffectIndex eff_idx)
 
     pGameObj->SetRespawnTime(duration > 0 ? duration/IN_MILLISECONDS : 0);
     pGameObj->SetSpellId(m_spellInfo->Id);
+    if (pGameObj->GetGoType() == GAMEOBJECT_TYPE_TRAP)
+        pGameObj->SetUInt32Value(GAMEOBJECT_LEVEL, m_caster->getLevel());
 
     // Wild object not have owner and check clickable by players
     map->Add(pGameObj);
