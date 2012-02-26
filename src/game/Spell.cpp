@@ -966,15 +966,20 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 	{
         // refund energe and rage
         if (target->missCondition == SPELL_MISS_DODGE || target->missCondition == SPELL_MISS_PARRY || target->missCondition == SPELL_MISS_BLOCK)
+        {
             switch (m_spellInfo->SpellFamilyName)
             {
-                case SPELLFAMILY_WARRIOR:					
+                case SPELLFAMILY_WARRIOR:
                     caster->ModifyPower(POWER_RAGE, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                     break;
                 case SPELLFAMILY_ROGUE:
+                {
                     if (!NeedsComboPoints(m_spellInfo))
                         caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
+                    else
+                        ((Player*)m_caster)->ClearComboPoints();
                     break;
+                }
                 case SPELLFAMILY_DRUID:
                     switch (m_spellInfo->powerType)
                     {
@@ -982,11 +987,26 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
                             caster->ModifyPower(POWER_RAGE, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
                             break;
                         case POWER_ENERGY:
+                        {
                             if (!NeedsComboPoints(m_spellInfo))
                                 caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
+                            else
+                                ((Player*)m_caster)->ClearComboPoints(); 
                             break;
+                        }
                     }
             }
+        }
+        else if (target->missCondition == SPELL_MISS_MISS)
+        {
+            switch (m_spellInfo->SpellFamilyName)
+            {
+                case SPELLFAMILY_ROGUE:
+                case SPELLFAMILY_DRUID:
+                    if (m_spellInfo->powerType == POWER_ENERGY && NeedsComboPoints(m_spellInfo))
+                      ((Player*)m_caster)->ClearComboPoints();    
+            }
+        }
     }
 
     SpellMissInfo missInfo = target->missCondition;
@@ -3015,10 +3035,9 @@ void Spell::update(uint32 difftime)
             }
 
             // Check cast for non-player units
-            // [DEV 0050] Prevents Mobs that use EventAI from Casting while Fleeing.… - This breaks razorgore
-            /*if( m_caster->GetTypeId() == TYPEID_UNIT && m_timer != 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat()
+            if( m_caster->GetTypeId() == TYPEID_UNIT && m_timer != 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat()
                 && (m_caster->hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL) || m_caster->hasUnitState(UNIT_STAT_FLEEING_MOVE)))
-                cancel();*/
+                cancel();
 
             if(m_timer == 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat())
                 cast();
