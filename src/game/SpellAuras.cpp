@@ -1180,19 +1180,17 @@ void Aura::TriggerSpell()
                 }
                 break;
             }
-//            case SPELLFAMILY_WARRIOR:
-//            {
-//                switch(auraId)
-//                {
-//                    // Wild Magic
-//                    case 23410: break;
-//                    // Corrupted Totems
-//                    case 23425: break;
-//                    default:
-//                        break;
-//                }
-//                break;
-//            }
+            //case SPELLFAMILY_WARRIOR:
+            //{
+            //    switch(auraId)
+            //    {
+            //        //paladin classcall debuff expires after 30 seconds
+            //        case 23418:
+            //            target->CastSpell(GetCaster(), 23415, false);
+            //            return;
+            //    }
+            //    break;
+            //}
             case SPELLFAMILY_DRUID:
             {
                 switch(auraId)
@@ -1346,6 +1344,12 @@ void Aura::TriggerSpell()
                     int32 bpDamage = bpForTick[tick];
                     triggerTarget->CastCustomSpell(triggerTarget, 19698, &bpDamage, NULL, NULL, true, NULL, this, casterGUID);
                 }
+                return;
+            }
+            // Paladin Classcall trigger spell (Improved Blessing of Protection)
+            case 23418:
+            {
+                target->CastSpell(GetCaster(), 23415, false);
                 return;
             }
         }
