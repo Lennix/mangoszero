@@ -895,10 +895,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     }
 
     //Cleaner implementation while doing the epic quest as priest
-    if (unit->GetTypeId() == TYPEID_PLAYER && unit->getClass() == CLASS_PRIEST && ((Player*)unit)->GetQuestStatus(7622) == QUEST_STATUS_INCOMPLETE)
+    if (unit->GetTypeId() == TYPEID_PLAYER && m_caster->GetTypeId() == TYPEID_PLAYER && unit->getClass() == CLASS_PRIEST && ((Player*)unit)->GetQuestStatus(7622) == QUEST_STATUS_INCOMPLETE)
     {
         //cleaner wont join the fight if a player of the other team attacks the priest, makes quest area still to a pvp zone
-        if (m_caster != unit && unit->IsFriendlyTo(unit))
+        if (m_caster != unit && m_caster->IsFriendlyTo(unit))
         {
             if (Creature* theCleaner = m_caster->SummonCreature(14503, m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ(), 0, TEMPSUMMON_MANUAL_DESPAWN, 0))
             {
