@@ -870,6 +870,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
     if (!unit)
         return;
 
+    /////////////////////
+    // Custom handling //
+    /////////////////////
+
     //Nefarian ClassCalls only effects given class player
     uint32 class_call = 0;
     switch (m_spellInfo->Id)
@@ -889,6 +893,25 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
         if (unit->GetTypeId() != TYPEID_PLAYER || unit->getClass() != class_call)
             return;
     }
+
+    //Cleaner implementation while doing the epic quest as priest
+    if (unit->GetTypeId() == TYPEID_PLAYER && unit->getClass() == CLASS_PRIEST && ((Player*)unit)->GetQuestStatus(7622) == QUEST_STATUS_INCOMPLETE)
+    {
+        //cleaner wont join the fight if a player of the other team attacks the priest, makes quest area still to a pvp zone
+        if (m_caster != unit && unit->IsFriendlyTo(unitTarget))
+        {
+            if (Creature* theCleaner = m_caster->SummonCreature(14503, m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ(), 0, TEMPSUMMON_MANUAL_DESPAWN, 0))
+            {
+                theCleaner->AI()->AttackStart(m_caster);
+                // return? maybe we find something better
+                return;
+            }
+        }
+    }
+
+    /////////////////////////
+    // Custom handling end //
+    /////////////////////////
 
     if (m_spellInfo->speed == 0) // Calculate dmg for instant casts
         HandleDelayedSpellLaunch(target);
