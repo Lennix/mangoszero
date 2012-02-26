@@ -769,11 +769,11 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
                         return false;                       // but all single stun aura spells is negative
 
                     // Petrification
-                    if(spellproto->Id == 17624)
+                    if (spellproto->Id == 17624)
                         return false;
                     break;
                 case SPELL_AURA_MOD_PACIFY_SILENCE:
-                    if(spellproto->Id == 24740)             // Wisp Costume
+                    if (spellproto->Id == 24740)             // Wisp Costume
                         return true;
                     return false;
 				case SPELL_AURA_AURAS_VISIBLE:
@@ -785,8 +785,21 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
                 case SPELL_AURA_PERIODIC_DAMAGE_PERCENT:
                     return false;
                 case SPELL_AURA_PERIODIC_DAMAGE:            // used in positive spells also.
+                    //Artorius Demonic Doom
+                    if (spellproto->Id == 23298)
+                        return false;
                     // part of negative spell if casted at self (prevent cancel)
-                    if(spellproto->EffectImplicitTargetA[effIndex] == TARGET_SELF)
+                    else if (spellproto->EffectImplicitTargetA[effIndex] == TARGET_SELF)
+                        return false;
+                    break;
+                case SPELL_AURA_MOD_RANGED_ATTACK_POWER:
+                    //Simone Temptress' Kiss
+                    if (spellproto->Id == 23205)
+                        return false;
+                    break;
+                case SPELL_AURA_MOD_FEAR:
+                    //Solenor Dreadful Fright
+                    if (spellproto->Id == 23275)
                         return false;
                     break;
                 case SPELL_AURA_MOD_DECREASE_SPEED:         // used in positive spells also
