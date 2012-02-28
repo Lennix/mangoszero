@@ -5045,7 +5045,7 @@ void Player::UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool de
     {
         Item* item = GetWeaponForAttack(attType,true,true);
         uint32 skill = 0;
-        if(attType == BASE_ATTACK)
+        if(attType == BASE_ATTACK || attType == RANGED_ATTACK)
         {
             skill = item ? item->GetSkill() : uint32(SKILL_UNARMED);
             skilldiff = GetMaxSkillValue(skill) - GetBaseSkillValue(skill);
