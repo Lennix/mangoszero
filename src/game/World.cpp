@@ -1864,11 +1864,6 @@ void World::ServerMaintenanceStart()
     // Do the honor calculation of LastWeek (the last 7 days < today)
     sObjectMgr.DoHonorCalculation(LastWeekEnd);
 
-    // save and update all online players
-    for (SessionMap::iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
-        if(itr->second->GetPlayer() && itr->second->GetPlayer()->IsInWorld())
-            itr->second->GetPlayer()->SaveToDB();
-
     CharacterDatabase.PExecute("UPDATE saved_variables SET NextMaintenanceDate = '"UI64FMTD"'", uint64(m_NextMaintenanceDate));
 }
 
