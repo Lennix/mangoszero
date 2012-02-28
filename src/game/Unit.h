@@ -1371,6 +1371,8 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         bool AddSpellAuraHolder(SpellAuraHolder *holder);
         void AddAuraToModList(Aura *aura);
 
+        bool CanStackAura(SpellAuraHolder *holder);
+
         bool IsMorePowerfulSpellActive(uint32 spellId, Unit* caster);
 
         // removing specific aura stack

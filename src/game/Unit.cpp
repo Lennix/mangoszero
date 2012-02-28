@@ -3523,6 +3523,62 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
         return false;
     }
 
+    // Check if we can add that auraholder
+    if (!CanStackAura(holder))
+    {
+        delete holder;
+        return false;
+    }
+
+    // add aura, register in lists and arrays
+    holder->_AddSpellAuraHolder();
+    m_spellAuraHolders.insert(SpellAuraHolderMap::value_type(holder->GetId(), holder));
+
+    for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
+        if (Aura *aur = holder->GetAuraByEffectIndex(SpellEffectIndex(i)))
+            AddAuraToModList(aur);
+
+    holder->ApplyAuraModifiers(true, true);
+    DEBUG_LOG("Holder of spell %u now is in use", holder->GetId());
+
+    // if aura deleted before boosts apply ignore
+    // this can be possible it it removed indirectly by triggered spell effect at ApplyModifier
+    if (holder->IsDeleted())
+        return false;
+
+    holder->HandleSpellSpecificBoosts(true);
+
+    return true;
+}
+
+void Unit::AddAuraToModList(Aura *aura)
+{
+    if (aura->GetModifier()->m_auraname < TOTAL_AURAS)
+        m_modAuras[aura->GetModifier()->m_auraname].push_back(aura);
+}
+
+bool Unit::CanStackAura(SpellAuraHolder *holder)
+{
+    SpellEntry const* aurSpellInfo = holder->GetSpellProto();
+
+    //////////////////
+    // CUSTOM STUFF //
+    //////////////////
+
+    // ToDo:
+    // Greater Blessing should override Blessing
+    // Drain Soul can stack
+
+    // Blessing stuff
+    if (aurSpellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && aurSpellInfo->SpellFamilyFlags & 0x10000000)
+    {
+        Unit::AuraList existingAuras = holder->GetTarget()->GetAurasByType(AuraType(aurSpellInfo->EffectApplyAuraName[0]));
+        for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
+            // Checken obs gleiche SpellFamily ist (Blessing & Greater Blessing haben gleiche SpellFamily)
+            if ((*itr)->GetSpellProto()->IsFitToFamilyMask(aurSpellInfo->SpellFamilyFlags))
+                return false;
+    }
+
     // passive and persistent auras can stack with themselves any number of times
     if ((!holder->IsPassive() && !holder->IsPersistent()) || holder->IsAreaAura())
     {
@@ -3544,7 +3600,6 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
                 {
                     // can be created with >1 stack by some spell mods
                     foundHolder->ModStackAmount(holder->GetStackAmount());
-                    delete holder;
                     return false;
                 }
 
@@ -3601,7 +3656,6 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
     {
         if (!RemoveNoStackAurasDueToAuraHolder(holder))
         {
-            delete holder;
             return false;                                   // couldn't remove conflicting aura with higher rank
         }
     }
@@ -3638,31 +3692,69 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolder *holder)
         }
     }
 
-    // add aura, register in lists and arrays
-    holder->_AddSpellAuraHolder();
-    m_spellAuraHolders.insert(SpellAuraHolderMap::value_type(holder->GetId(), holder));
-
-    for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
-        if (Aura *aur = holder->GetAuraByEffectIndex(SpellEffectIndex(i)))
-            AddAuraToModList(aur);
-
-    holder->ApplyAuraModifiers(true, true);
-    DEBUG_LOG("Holder of spell %u now is in use", holder->GetId());
-
-    // if aura deleted before boosts apply ignore
-    // this can be possible it it removed indirectly by triggered spell effect at ApplyModifier
-    if (holder->IsDeleted())
-        return false;
-
-    holder->HandleSpellSpecificBoosts(true);
-
     return true;
-}
+    
+    /* Netter versuch
 
-void Unit::AddAuraToModList(Aura *aura)
-{
-    if (aura->GetModifier()->m_auraname < TOTAL_AURAS)
-        m_modAuras[aura->GetModifier()->m_auraname].push_back(aura);
+    // Auras of the same category may not stack
+    // So first lets loop through the AuraHolder to get each Aura and check it with existing auras
+    for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
+    {
+        Unit* holderTarget = holder->GetTarget();
+        // get all auras of that type
+        Unit::AuraList const &existingAuras = holderTarget->GetAurasByType(AuraType(aurSpellInfo->EffectApplyAuraName[i]));
+        for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
+        {
+            SpellEntry const* exAuraInfo = (*itr)->GetSpellProto();
+            SpellEffectIndex exIndex = (*itr)->GetEffIndex();
+            SpellEffectIndex aurIndex = SpellEffectIndex(i);
+            // MiscValues are interesting for auras of the same type, lets get them
+            uint32 exMiscValue = exAuraInfo->EffectMiscValue[exIndex];
+            uint32 aurMiscValue = aurSpellInfo->EffectMiscValue[i];
+
+            // At first check if we have auraMods, in that case they have to modify the same
+            if (aurSpellInfo->EffectApplyAuraName[i] == SPELLMOD_FLAT || aurSpellInfo->EffectApplyAuraName[i] == SPELLMOD_PCT)
+            {
+                if (exMiscValue != aurMiscValue)
+                    continue;
+                // if they modify the same stat lets check effectitem
+                else if (exAuraInfo->EffectItemType[exIndex] > 0 && aurSpellInfo->EffectItemType[aurIndex] > 0 && exAuraInfo->EffectItemType[exIndex] != aurSpellInfo->EffectItemType[aurIndex])
+                    continue;
+            }
+
+            if (exMiscValue > 0 && aurMiscValue > 0)
+            {
+                // Are we effecting the same area?
+                if (!(exMiscValue & aurMiscValue || aurMiscValue & exMiscValue))
+                    continue;
+            }
+
+            // anything that triggers spells may stack
+            if (aurSpellInfo->EffectTriggerSpell[aurIndex] > 0)
+                continue;
+
+            // we found an existing aura, currently we dont know how to check if its stronger
+            // we'll at first check by BasePoints
+            // existing aura (*itr) is stronger than new one (m_auras[i])
+            int32 diff = exAuraInfo->EffectBasePoints[(*itr)->GetEffIndex()] - aurSpellInfo->EffectBasePoints[i];
+            if (exAuraInfo->CalculateSimpleValue((*itr)->GetEffIndex()) < 0 && aurSpellInfo->CalculateSimpleValue(SpellEffectIndex(i)) < 0)
+                diff *= -1;
+
+            // diff > 0 => exAuraInfo > aurSpellInfo => existing aura is stronger, dont add new one
+            if (diff > 0)
+                holder->RemoveAura(SpellEffectIndex(i));
+            else
+                holderTarget->RemoveAura((*itr)->GetSpellProto()->Id, (*itr)->GetEffIndex());
+        }
+    }
+
+    if (holder->IsEmptyHolder())
+    {
+        delete holder;
+        return false;
+    }
+
+    */
 }
 
 bool Unit::IsMorePowerfulSpellActive(uint32 spellId, Unit* caster)
