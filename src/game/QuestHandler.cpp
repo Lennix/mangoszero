@@ -324,8 +324,9 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPacket& recv_data)
     {
         if(uint32 quest = _player->GetQuestSlotQuestId(slot))
         {
-            if(!_player->TakeQuestSourceItem( quest, true ))
-                return;                                     // can't un-equip some items, reject quest cancel
+            // Why remove source item on DELETE???
+            //if(!_player->TakeQuestSourceItem( quest, true ))
+            //    return;                                     // can't un-equip some items, reject quest cancel
 
             if (const Quest *pQuest = sObjectMgr.GetQuestTemplate(quest))
             {
