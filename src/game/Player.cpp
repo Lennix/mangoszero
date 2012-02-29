@@ -5044,12 +5044,13 @@ void Player::UpdateCombatSkills(Unit *pVictim, WeaponAttackType attType, bool de
     else
     {
         Item* item = GetWeaponForAttack(attType,true,true);
+        // unarmed only with base attack
+        if(attType != BASE_ATTACK && !item)
+            return;
+
         uint32 skill = 0;
-        if(attType == BASE_ATTACK || attType == RANGED_ATTACK)
-        {
-            skill = item ? item->GetSkill() : uint32(SKILL_UNARMED);
-            skilldiff = GetMaxSkillValue(skill) - GetBaseSkillValue(skill);
-        }
+        skill = item ? item->GetSkill() : uint32(SKILL_UNARMED);
+        skilldiff = GetMaxSkillValue(skill) - GetBaseSkillValue(skill);
     }
     // Max skill reached for level.
     // Can in some cases be less than 0: having max skill and then .level -1 as example.
