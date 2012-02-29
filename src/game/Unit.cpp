@@ -7346,6 +7346,18 @@ void Unit::SetHover(bool on)
         RemoveAurasDueToSpell(11010);
 }
 
+void Unit::SetWaterWalk(bool on)
+{
+    WorldPacket data;
+    if(on)
+        data.Initialize(SMSG_MOVE_WATER_WALK, 8+4);
+    else
+        data.Initialize(SMSG_MOVE_LAND_WALK, 8+4);
+    data << GetPackGUID();
+    data << uint32(0);
+    SendMessageToSet(&data, true);
+}
+
 void Unit::SetDeathState(DeathState s)
 {
     if (s != ALIVE && s!= JUST_ALIVED)

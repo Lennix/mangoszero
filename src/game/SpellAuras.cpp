@@ -1883,14 +1883,7 @@ void Aura::HandleAuraWaterWalk(bool apply, bool Real)
     if(!Real)
         return;
 
-    WorldPacket data;
-    if(apply)
-        data.Initialize(SMSG_MOVE_WATER_WALK, 8+4);
-    else
-        data.Initialize(SMSG_MOVE_LAND_WALK, 8+4);
-    data << GetTarget()->GetPackGUID();
-    data << uint32(0);
-    GetTarget()->SendMessageToSet(&data, true);
+    GetTarget()->SetWaterWalk(apply);
 }
 
 void Aura::HandleAuraFeatherFall(bool apply, bool Real)
@@ -4626,14 +4619,12 @@ void Aura::HandleAuraGhost(bool apply, bool /*Real*/)
     if(GetTarget()->GetTypeId() != TYPEID_PLAYER)
         return;
 
+    GetTarget()->SetWaterWalk(apply);
+
     if(apply)
-    {
         GetTarget()->SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST);
-    }
     else
-    {
         GetTarget()->RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST);
-    }
 }
 
 void Aura::HandleShieldBlockValue(bool apply, bool /*Real*/)
