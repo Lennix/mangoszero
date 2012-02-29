@@ -3566,8 +3566,6 @@ bool Unit::CanStackAura(SpellAuraHolder *holder)
     //////////////////
 
     // ToDo:
-    // Greater Blessing should override Blessing
-    // Drain Soul can stack
 
     switch (aurSpellInfo->SpellFamilyName)
     {
@@ -3583,8 +3581,30 @@ bool Unit::CanStackAura(SpellAuraHolder *holder)
                 Unit::AuraList existingAuras = holder->GetTarget()->GetAurasByType(AuraType(aurSpellInfo->EffectApplyAuraName[0]));
                 for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
                     // Checken obs gleiche SpellFamily ist (Blessing & Greater Blessing haben gleiche SpellFamily)
-                    if ((*itr)->GetSpellProto()->IsFitToFamilyMask(aurSpellInfo->SpellFamilyFlags))
+                    if ((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_PALADIN && (*itr)->GetSpellProto()->IsFitToFamilyMask(aurSpellInfo->SpellFamilyFlags))
                         return false;
+            }
+            // Fire Resistance Aura
+            else if (aurSpellInfo->SpellFamilyFlags & 0x4000000)
+            {
+                // Get any SPELL_AURA_MOD_RESISTANCE_EXCLUSIVE aura
+                Unit::AuraList existingAuras = holder->GetTarget()->GetAurasByType(SPELL_AURA_MOD_RESISTANCE_EXCLUSIVE);
+                for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
+                    // If MotW active remove the resistance part of it
+                    if ((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID && (*itr)->GetSpellProto()->SpellFamilyFlags & 0x40000)
+                        holder->GetTarget()->RemoveAura(*itr);
+            }
+            break;
+        case SPELLFAMILY_DRUID:
+            // MotW doesn't stack with Paladin fire resistance aura
+            if (aurSpellInfo->SpellFamilyFlags & 0x40000)
+            {
+                // Get any SPELL_AURA_MOD_RESISTANCE_EXCLUSIVE aura
+                Unit::AuraList existingAuras = holder->GetTarget()->GetAurasByType(SPELL_AURA_MOD_RESISTANCE_EXCLUSIVE);
+                for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
+                    // If FireResistanceAura active remove the resistance part of the auraholder
+                    if ((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_PALADIN && (*itr)->GetSpellProto()->SpellFamilyFlags & 0x4000000)
+                        holder->RemoveAura(EFFECT_INDEX_2);
             }
             break;
     }
