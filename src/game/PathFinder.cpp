@@ -52,10 +52,18 @@ PathInfo::PathInfo(const Unit* owner, const float destX, const float destY, cons
 
     createFilter();
 
-    if (m_navMesh && m_navMeshQuery && HaveTiles(endPoint) &&
-            !m_sourceUnit->hasUnitState(UNIT_STAT_IGNORE_PATHFINDING))
+    if (m_navMesh && m_navMeshQuery && HaveTiles(endPoint))
     {
         BuildPolyPath(startPoint, endPoint);
+        // If Ignore_Pathfinding use fallback method
+        if (m_type != PATHFIND_NORMAL)
+        {
+            if (m_sourceUnit->hasUnitState(UNIT_STAT_IGNORE_PATHFINDING))
+            {
+                BuildShortcut();
+                m_type = PathType(PATHFIND_NORMAL | PATHFIND_NOT_USING_PATH);
+            }
+        }
     }
     else
     {
