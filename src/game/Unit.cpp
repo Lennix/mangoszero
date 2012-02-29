@@ -3569,14 +3569,24 @@ bool Unit::CanStackAura(SpellAuraHolder *holder)
     // Greater Blessing should override Blessing
     // Drain Soul can stack
 
-    // Blessing stuff
-    if (aurSpellInfo->SpellFamilyName == SPELLFAMILY_PALADIN && aurSpellInfo->SpellFamilyFlags & 0x10000000)
+    switch (aurSpellInfo->SpellFamilyName)
     {
-        Unit::AuraList existingAuras = holder->GetTarget()->GetAurasByType(AuraType(aurSpellInfo->EffectApplyAuraName[0]));
-        for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
-            // Checken obs gleiche SpellFamily ist (Blessing & Greater Blessing haben gleiche SpellFamily)
-            if ((*itr)->GetSpellProto()->IsFitToFamilyMask(aurSpellInfo->SpellFamilyFlags))
-                return false;
+        case SPELLFAMILY_WARLOCK:
+            // Drain soul
+            if (aurSpellInfo->SpellFamilyFlags & 0x4000)
+                return true;
+            break;
+        case SPELLFAMILY_PALADIN:
+            // Greater blessing doesnt stack with blessings
+            if (aurSpellInfo->SpellFamilyFlags & 0x10000000)
+            {
+                Unit::AuraList existingAuras = holder->GetTarget()->GetAurasByType(AuraType(aurSpellInfo->EffectApplyAuraName[0]));
+                for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
+                    // Checken obs gleiche SpellFamily ist (Blessing & Greater Blessing haben gleiche SpellFamily)
+                    if ((*itr)->GetSpellProto()->IsFitToFamilyMask(aurSpellInfo->SpellFamilyFlags))
+                        return false;
+            }
+            break;
     }
 
     // passive and persistent auras can stack with themselves any number of times
