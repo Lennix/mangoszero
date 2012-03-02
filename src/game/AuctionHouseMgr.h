@@ -112,8 +112,8 @@ class AuctionHouseObject
 
         void Update();
 
-        void BuildListBidderItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount);
-        void BuildListOwnerItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount);
+        void BuildListBidderItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount, uint32 listfrom);
+        void BuildListOwnerItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount, uint32 listfrom);
         void BuildListAuctionItems(WorldPacket& data, Player* player,
             std::wstring const& searchedname, uint32 listfrom, uint32 levelmin, uint32 levelmax, uint32 usable,
             uint32 inventoryType, uint32 itemClass, uint32 itemSubClass, uint32 quality,

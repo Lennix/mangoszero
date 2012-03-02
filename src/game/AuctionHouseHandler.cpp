@@ -576,7 +576,7 @@ void WorldSession::HandleAuctionListBidderItems(WorldPacket & recv_data)
     uint32 outbiddedCount;                                  // count of outbidded auctions
 
     recv_data >> auctioneerGuid;
-    recv_data >> listfrom;                                  // not used in fact (this list not have page control in client)
+    recv_data >> listfrom;
     recv_data >> outbiddedCount;
     if (recv_data.size() != (16 + outbiddedCount * 4))
     {
@@ -605,15 +605,21 @@ void WorldSession::HandleAuctionListBidderItems(WorldPacket & recv_data)
         --outbiddedCount;
         uint32 outbiddedAuctionId;
         recv_data >> outbiddedAuctionId;
+
         AuctionEntry *auction = auctionHouse->GetAuction(outbiddedAuctionId);
-        if (auction && auction->BuildAuctionInfo(data))
+        if (auction)
         {
+            if (count < 50 && totalcount >= listfrom && auction->BuildAuctionInfo(data))
+                ++count;
+
             ++totalcount;
-            ++count;
         }
     }
 
-    auctionHouse->BuildListBidderItems(data, pl, count, totalcount);
+    // Dont fill list if outbidded items already filled it
+    if (count < 50)
+        auctionHouse->BuildListBidderItems(data, pl, count, totalcount, listfrom);
+
     data.put<uint32>(0, count);                             // add count to placeholder
     data << uint32(totalcount);
     SendPacket(&data);
@@ -628,7 +634,7 @@ void WorldSession::HandleAuctionListOwnerItems(WorldPacket & recv_data)
     uint32 listfrom;
 
     recv_data >> auctioneerGuid;
-    recv_data >> listfrom;                                  // not used in fact (this list not have page control in client)
+    recv_data >> listfrom;
 
     AuctionHouseEntry const* auctionHouseEntry = GetCheckedAuctionHouseForAuctioneer(auctioneerGuid);
     if (!auctionHouseEntry)
@@ -641,13 +647,13 @@ void WorldSession::HandleAuctionListOwnerItems(WorldPacket & recv_data)
     if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
 
-    WorldPacket data( SMSG_AUCTION_OWNER_LIST_RESULT, (4+4) );
+    WorldPacket data( SMSG_AUCTION_OWNER_LIST_RESULT, (4+4+4) );
     data << (uint32) 0;                                     // amount place holder
 
     uint32 count = 0;
     uint32 totalcount = 0;
 
-    auctionHouse->BuildListOwnerItems(data, _player, count, totalcount);
+    auctionHouse->BuildListOwnerItems(data, _player, count, totalcount, listfrom);
     data.put<uint32>(0, count);
     data << uint32(totalcount);
     SendPacket(&data);

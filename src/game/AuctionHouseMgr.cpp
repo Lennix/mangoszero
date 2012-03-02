@@ -534,29 +534,31 @@ void AuctionHouseObject::Update()
     }
 }
 
-void AuctionHouseObject::BuildListBidderItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount)
+void AuctionHouseObject::BuildListBidderItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount, uint32 listfrom)
 {
     for (AuctionEntryMap::const_iterator itr = AuctionsMap.begin();itr != AuctionsMap.end();++itr)
     {
         AuctionEntry *Aentry = itr->second;
         if (Aentry && Aentry->bidder == player->GetGUIDLow())
         {
-            if (itr->second->BuildAuctionInfo(data))
+            if (count < 50 && totalcount >= listfrom && itr->second->BuildAuctionInfo(data))
                 ++count;
+
             ++totalcount;
         }
     }
 }
 
-void AuctionHouseObject::BuildListOwnerItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount)
+void AuctionHouseObject::BuildListOwnerItems(WorldPacket& data, Player* player, uint32& count, uint32& totalcount, uint32 listfrom)
 {
     for (AuctionEntryMap::const_iterator itr = AuctionsMap.begin(); itr != AuctionsMap.end(); ++itr)
     {
         AuctionEntry *Aentry = itr->second;
         if (Aentry && Aentry->owner == player->GetGUIDLow())
         {
-            if (Aentry->BuildAuctionInfo(data))
+            if (count < 50 && totalcount >= listfrom && Aentry->BuildAuctionInfo(data))
                 ++count;
+
             ++totalcount;
         }
     }
