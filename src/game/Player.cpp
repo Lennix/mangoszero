@@ -4158,6 +4158,9 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     // update visibility of player for nearby cameras
     UpdateObjectVisibility();
 
+    // apply item mods
+    _ApplyAllItemMods();
+
     if(!applySickness)
         return;
 
@@ -14321,6 +14324,10 @@ void Player::_LoadAuras(QueryResult *result, uint32 timediff)
                 stackcount = spellproto->StackAmount;
             else if (!stackcount)
                 stackcount = 1;
+
+            // Enchants are applied later
+            if (spellproto->modalNextSpell != 0)
+                continue;
 
             SpellAuraHolder *holder = CreateSpellAuraHolder(spellproto, this, NULL);
             holder->SetLoadedState(caster_guid, ObjectGuid(HIGHGUID_ITEM, item_lowguid), stackcount, remaincharges, maxduration, remaintime);

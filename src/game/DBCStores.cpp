@@ -290,6 +290,8 @@ void LoadDBCStores(const std::string& dataPath)
 
             if (SpellEntry* notConstSpell = (SpellEntry*)spell)
             {
+                // The corresponding enchantID is saved in modalNextSpell which isn't used so set it to 0 to be save
+                notConstSpell->modalNextSpell = 0;
                 switch(notConstSpell->Id)
                 {
                     // Frost nova and blast wave all ranks
@@ -368,6 +370,30 @@ void LoadDBCStores(const std::string& dataPath)
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sSpellDurationStore,       dbcPath,"SpellDuration.dbc");
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sSpellFocusObjectStore,    dbcPath,"SpellFocusObject.dbc");
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sSpellItemEnchantmentStore,dbcPath,"SpellItemEnchantment.dbc");
+
+    // Loop through enchants and create an array for the resulting spells 
+    for(uint32 i = 1; i < sSpellItemEnchantmentStore.GetNumRows(); ++i)
+    {
+        SpellItemEnchantmentEntry const * spellItemEnchantment = sSpellItemEnchantmentStore.LookupEntry(i);
+        if(spellItemEnchantment)
+        {
+            for (uint32 j = 0; j < 3; ++j)
+            {
+                if (spellItemEnchantment->spellid[j] == 0)
+                    continue;
+
+                SpellEntry const * spell = sSpellStore.LookupEntry(spellItemEnchantment->spellid[j]);
+                if(spell)
+                {
+                    if (SpellEntry* notConstSpell = (SpellEntry*)spell)
+                    {
+                        notConstSpell->modalNextSpell = i;
+                    }
+                }
+            }
+        }
+    }
+
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sSpellRadiusStore,         dbcPath,"SpellRadius.dbc");
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sSpellRangeStore,          dbcPath,"SpellRange.dbc");
     LoadDBC(availableDbcLocales,bar,bad_dbc_files,sSpellShapeshiftFormStore, dbcPath,"SpellShapeshiftForm.dbc");

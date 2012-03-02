@@ -3614,6 +3614,9 @@ bool Unit::CanStackAura(SpellAuraHolder *holder)
     {
         SpellAuraHolderBounds spair = GetSpellAuraHolderBounds(aurSpellInfo->Id);
 
+        // Enchant counter
+        uint32 counter = 1;
+
         // take out same spell
         for (SpellAuraHolderMap::iterator iter = spair.first; iter != spair.second; ++iter)
         {
@@ -3635,6 +3638,10 @@ bool Unit::CanStackAura(SpellAuraHolder *holder)
 
                 // Check for coexisting Weapon-proced Auras
                 if (holder->IsWeaponBuffCoexistableWith(foundHolder))
+                    continue;
+
+                // enchants (of the same type) may stack
+                if (aurSpellInfo->modalNextSpell != 0)
                     continue;
 
                 // can be only single
