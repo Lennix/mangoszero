@@ -4159,7 +4159,7 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     UpdateObjectVisibility();
 
     // apply item mods
-    _ApplyAllItemMods();
+    //_ApplyAllItemMods();
 
     if(!applySickness)
         return;
