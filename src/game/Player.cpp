@@ -14326,8 +14326,8 @@ void Player::_LoadAuras(QueryResult *result, uint32 timediff)
                 stackcount = 1;
 
             // Enchants are applied later
-            if (spellproto->modalNextSpell != 0)
-                continue;
+            //if (spellproto->modalNextSpell != 0)
+            //    continue;
 
             SpellAuraHolder *holder = CreateSpellAuraHolder(spellproto, this, NULL);
             holder->SetLoadedState(caster_guid, ObjectGuid(HIGHGUID_ITEM, item_lowguid), stackcount, remaincharges, maxduration, remaintime);
