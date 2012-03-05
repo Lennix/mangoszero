@@ -374,7 +374,7 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                         damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK) * combo * 0.03f);
                     }
 
-                    // Improved Eviscerate, Aggression, AQ40 set bonus
+                    /* Improved Eviscerate, Aggression, AQ40 set bonus
                     float multiplier = 0;
                     Unit::AuraList const &mAddPctMod = m_caster->GetAurasByType(SPELL_AURA_ADD_PCT_MODIFIER);
                     for(Unit::AuraList::const_iterator itr = mAddPctMod.begin(); itr != mAddPctMod.end(); ++itr)
@@ -385,7 +385,7 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                         if ((*itr)->GetSpellProto()->EffectItemType[(*itr)->GetEffIndex()] & UI64LIT(0x00020000))
                             multiplier += (*itr)->GetModifier()->m_amount;
                     }
-                    damage *= (multiplier + 100) / 100.0f;
+                    damage *= (multiplier + 100) / 100.0f; */ // unnecessary code by craig (archaica)
                 }
                 break;
             }
