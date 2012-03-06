@@ -977,9 +977,14 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     m_caster->RemoveAurasDueToSpell(23170); // Brood Affliction: Bronze
                     return;
                 case 23725:                                 // Gift of Life (warrior bwl trinket)
-                    m_caster->CastSpell(m_caster, 23782, true);
-                    m_caster->CastSpell(m_caster, 23783, true);
+                {
+                    int32 healthModSpellBasePoints0 = int32(m_caster->GetMaxHealth()*0.15);
+                    m_caster->CastCustomSpell(m_caster, 23782, &healthModSpellBasePoints0, NULL, NULL, true, NULL);
+                    m_caster->CastCustomSpell(m_caster, 23783, &healthModSpellBasePoints0, NULL, NULL, true, NULL);
+                    //m_caster->CastSpell(m_caster, 23782, true);
+                    //m_caster->CastSpell(m_caster, 23783, true);
                     return;
+                }
                 case 24930:                                 // Hallow's End Treat
                 {
                     uint32 spell_id = 0;
