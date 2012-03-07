@@ -2371,7 +2371,11 @@ template <class T> T Player::ApplySpellMod(uint32 spellId, SpellModOp op, T &bas
         if (!IsAffectedBySpellmod(spellInfo,mod,spell))
             continue;
         if (mod->type == SPELLMOD_FLAT)
+        {
             totalflat += mod->value;
+            if (mod->op == SPELLMOD_THREAT)
+                totalflat /= 100;
+        }
         else if (mod->type == SPELLMOD_PCT)
         {
             // skip percent mods for null basevalue (most important for spell mods with charges )
