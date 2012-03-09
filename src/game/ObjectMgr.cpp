@@ -2654,7 +2654,7 @@ void ObjectMgr::LoadStandingList(uint32 dateBegin)
             Standing.side           = side;
 
             // InnerQuery for characters_honor_cp (only honorable kills)
-            honorResult = CharacterDatabase.PQuery("SELECT victim_type, count(honor), sum(honor) FROM character_honor_cp WHERE guid = %u AND TYPE = %u", guid, HONORABLE);
+            honorResult = CharacterDatabase.PQuery("SELECT victim_type, count(honor), sum(honor) FROM character_honor_cp WHERE guid = %u AND (date >= %u AND date < %u AND type = %u) GROUP BY victim_type", guid, dateBegin, dateBegin + 7, HONORABLE);
             if (honorResult)
             {
                 do
@@ -2714,38 +2714,13 @@ void ObjectMgr::LoadStandingList()
 
 void ObjectMgr::DoHonorCalculation(uint32 dateTop)
 {
-    // Get all data from before WeekEnd and determine the oldest data
-    QueryResult *result = CharacterDatabase.PQuery("SELECT date FROM character_honor_cp WHERE TYPE = %u AND date < %u GROUP BY date ORDER BY date DESC",HONORABLE,dateTop);
-    if (result)
-    {
-        uint32 date;
-        uint32 WeekBegin = dateTop - 7;
-        // search latest non-processed date if the server has been offline for different weeks
-        // get the most least date within the killinformation (usually thats already LastWeek)
-        do
-        {
-            date = result->Fetch()->GetUInt32();
-            while (WeekBegin && date < WeekBegin)
-            {
-                WeekBegin -= 7;
-            }
-        }
-        while (result->NextRow());
+    // dateTop = LastWeekEnd (today)
+    uint32 LastWeekBegin = dateTop - 7;
 
-        // this is just in case we lost a few weeks usually its LastWeek
-        // we will only process RP here
-        while (WeekBegin < dateTop)
-        {
-            LoadStandingList(WeekBegin);
-            DistributeRankPoints(WeekBegin);
-
-            WeekBegin += 7;
-        }
-    }
-
+    // First Cleanup from before lastweek
     // get all kills older than lastweek, sum them up, add them to the players total and delete them
     CharacterDatabase.BeginTransaction();
-    result = CharacterDatabase.PQuery("SELECT guid,COUNT(*) AS kills FROM character_honor_cp WHERE date < %u AND victim_type>0 AND TYPE = %u GROUP BY guid",dateTop - 7, HONORABLE);
+    QueryResult *result = CharacterDatabase.PQuery("SELECT guid,COUNT(*) AS kills FROM character_honor_cp WHERE date < %u AND victim_type > 0 AND TYPE = %u GROUP BY guid",LastWeekBegin, HONORABLE);
     if (result)
     {
         uint32 guid,kills;
@@ -2757,24 +2732,12 @@ void ObjectMgr::DoHonorCalculation(uint32 dateTop)
             CharacterDatabase.PExecute("UPDATE characters SET stored_honorable_kills = stored_honorable_kills + %u WHERE guid = %u",kills,guid);
         } while (result->NextRow());
     }
-    CharacterDatabase.PExecute("DELETE FROM character_honor_cp WHERE date < %u",dateTop - 7);
+    CharacterDatabase.PExecute("DELETE FROM character_honor_cp WHERE date < %u",LastWeekBegin);
     CharacterDatabase.CommitTransaction();
 
-    // save rp and standing
-    HonorStandingList* list = GetStandingListPointerBySide(TEAM_NONE);
-    uint32 standingA, standingH, standing;
-    standingA = 1;
-    standingH = 1;
-    CharacterDatabase.BeginTransaction();
-    for (HonorStandingList::iterator itr = list->begin();itr != list->end() ; ++itr)
-    {
-        standing = 0;
-        if (itr->honorKills >= 15)
-            standing = itr->side == ALLIANCE ? standingA++ : standingH++;
-
-        CharacterDatabase.PExecute("UPDATE characters SET stored_honor_rating = %f, honor_standing = %u WHERE guid = %u", finiteAlways(itr->rp), standing, itr->guid);
-    }
-    CharacterDatabase.CommitTransaction();
+    // actual honor calculation
+    LoadStandingList(LastWeekBegin);
+    DistributeRankPoints(LastWeekBegin);
 
     sLog.outString();
     sLog.outString( ">> Honor calculation done");
@@ -2797,17 +2760,29 @@ void ObjectMgr::DistributeRankPoints(uint32 dateBegin)
     HonorScores allyScores = MaNGOS::Honor::GenerateScores(GetStandingListBySide(ALLIANCE),ALLIANCE);
     HonorScores hordeScores = MaNGOS::Honor::GenerateScores(GetStandingListBySide(HORDE),HORDE);
 
+    uint32 standingA, standingH, standing;
+    standingA = 1;
+    standingH = 1;
+
+    CharacterDatabase.BeginTransaction();
     for (HonorStandingList::iterator itr = list->begin();itr != list->end() ; ++itr)
     {
         rpEarning = 0;
+        standing = 0;
 
         // rpEarning of this week based on honorPoints and score
         if (itr->honorKills >= 15)
+        {
             rpEarning = MaNGOS::Honor::CalculateRpEarning(itr->honorPoints,itr->side == ALLIANCE ? allyScores : hordeScores);
+            standing = itr->side == ALLIANCE ? standingA++ : standingH++;
+        }
 
         // calculate RpDecay based on current earning and old RP
         itr->rp = MaNGOS::Honor::CalculateRpDecay(rpEarning,itr->rp);
+
+        CharacterDatabase.PExecute("UPDATE characters SET stored_honor_rating = %f, honor_standing = %u WHERE guid = %u", finiteAlways(itr->rp), standing, itr->guid);
     }
+    CharacterDatabase.CommitTransaction();
 }
 
 HonorStandingList ObjectMgr::GetStandingListBySide(uint32 side)
