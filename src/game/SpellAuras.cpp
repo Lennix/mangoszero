@@ -4032,7 +4032,7 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
             }
             return;
         }
-        /*case 12976:                                         // Warrior Last Stand triggered spell
+        case 12976:                                         // Warrior Last Stand triggered spell
         {
             if(Real)
             {
@@ -4051,7 +4051,7 @@ void Aura::HandleAuraModIncreaseHealth(bool apply, bool Real)
                 }
             }
             return;
-        }*/
+        }
     }
 
     // generic case
