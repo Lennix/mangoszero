@@ -5127,6 +5127,11 @@ void Spell::EffectSummonDemon(SpellEffectIndex eff_idx)
         // Inferno effect
         Charmed->CastSpell(Charmed, 22703, true, 0);
     }
+    else if (m_spellInfo->EffectMiscValue[eff_idx] == 11859) // Doom Guard (Curse of Doom effect)
+    {
+        if (m_originalCaster && Charmed->AI())
+            Charmed->AI()->AttackStart(m_originalCaster);
+    }
 }
 
 void Spell::EffectSpiritHeal(SpellEffectIndex /*eff_idx*/)

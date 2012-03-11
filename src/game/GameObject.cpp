@@ -323,9 +323,35 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                             if (!ok)
                                 Cell::VisitWorldObjects(this, checker, radius);
 
-                            // If we have a specific faction then the trab is for creatures only
-                            if (ok && ok->GetTypeId() == TYPEID_PLAYER && goInfo->faction != 0)
-                                ok = NULL;
+							/* We have to create the FACTION BEHAVIOUR of traps completly new !!!
+							 * Take care this change will have major issues on the database cause the old core 
+							 * handle every faction without 0 only for creatures!
+							 * Moreover take care that the radius of each trap wont have overlays with other traps,
+							 * that will be bugged the UnitSearcher. If u know a better way change it!
+							 */
+							if (ok) 
+							{
+								switch (goInfo->faction)
+								{
+									//if we have faction 0 the trap is for everyone!
+									case 0:
+										break;
+									// If we have faction 14 then the trap is for players only!
+									case 14:
+									{
+										if (ok->GetTypeId() != TYPEID_PLAYER)
+											ok = NULL;
+										break;
+									}
+									// If we have a specific faction then the trap is for creatures only!
+									default:
+									{
+										if (ok->GetTypeId() == TYPEID_PLAYER)
+											ok = NULL;
+										break;
+									}
+								}
+							}
                         }
                     }
                     else                                    // environmental trap

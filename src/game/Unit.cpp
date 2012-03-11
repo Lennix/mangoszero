@@ -749,6 +749,10 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
     {
         DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE,"DealDamage: victim just died");
 
+        // Curse of Doom has around 5% chance to proc Curse Of Doom effect (Summon Doomguard)
+        if (spellProto && spellProto->Id == 603 && roll_chance_f(5.0f))
+            pVictim->CastSpell(pVictim, 18662, true, NULL, NULL, GetObjectGuid());
+
         // find player: owner of controlled `this` or `this` itself maybe
         // for loot will be sued only if group_tap==NULL
         Player *player_tap = GetCharmerOrOwnerPlayerOrPlayerItself();
@@ -1508,8 +1512,9 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
     // Disable parry, dodge, crushing, block and miss for non-physical attacks
     if (damageInfo->damageSchoolMask != SPELL_SCHOOL_MASK_NORMAL)
     {
-        if (damageInfo->hitOutCome == MELEE_HIT_PARRY) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
-        if (damageInfo->hitOutCome == MELEE_HIT_DODGE) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
+        // non-physical attacks are indeed parryable and dodgeable
+        //if (damageInfo->hitOutCome == MELEE_HIT_PARRY) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
+        //if (damageInfo->hitOutCome == MELEE_HIT_DODGE) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
         if (damageInfo->hitOutCome == MELEE_HIT_CRUSHING) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
         if (damageInfo->hitOutCome == MELEE_HIT_BLOCK) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
         if (damageInfo->hitOutCome == MELEE_HIT_MISS) damageInfo->hitOutCome = MELEE_HIT_NORMAL;
@@ -3581,7 +3586,7 @@ bool Unit::CanStackAura(SpellAuraHolder *holder)
                 Unit::AuraList existingAuras = holder->GetTarget()->GetAurasByType(AuraType(aurSpellInfo->EffectApplyAuraName[0]));
                 for(Unit::AuraList::const_iterator itr = existingAuras.begin(); itr != existingAuras.end(); ++itr)
                     // Checken obs gleiche SpellFamily ist (Blessing & Greater Blessing haben gleiche SpellFamily)
-                    if ((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_PALADIN && (*itr)->GetSpellProto()->IsFitToFamilyMask(aurSpellInfo->SpellFamilyFlags))
+                    if ((*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_PALADIN && (*itr)->GetSpellProto()->IsFitToFamilyMask(aurSpellInfo->SpellFamilyFlags) && (*itr)->GetSpellProto()->activeIconID != aurSpellInfo->activeIconID)
                         return false;
             }
             // Fire Resistance Aura
@@ -7364,10 +7369,14 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate, bool forced)
 
 void Unit::SetHover(bool on)
 {
+    WorldPacket data;
     if(on)
-        CastSpell(this, 11010, true);
+        data.Initialize(SMSG_MOVE_SET_HOVER, 8+4);
     else
-        RemoveAurasDueToSpell(11010);
+        data.Initialize(SMSG_MOVE_UNSET_HOVER, 8+4);
+    data << GetPackGUID();
+    data << uint32(0);
+    SendMessageToSet(&data, true);
 }
 
 void Unit::SetWaterWalk(bool on)
