@@ -58,8 +58,8 @@ enum CreatureFlagsExtra
     CREATURE_FLAG_EXTRA_GUARD           = 0x00000400,       // creature is a guard
     CREATURE_FLAG_EXTRA_GHOST           = 0x00000800,       // creature is a ghost
     CREATURE_FLAG_EXTRA_NO_PATHFINDING  = 0x00001000,       // creature has pathfinding disabled
-    CREATURE_FLAG_EXTRA_CAN_POISON      = 0x00002000,       // creature is not immune to poison
-    CREATURE_FLAG_EXTRA_CAN_DISEASE     = 0x00004000,       // creature is not immune to disease
+    CREATURE_FLAG_EXTRA_CAN_BE_POISONED = 0x00002000,       // creature is not immune to poison
+    CREATURE_FLAG_EXTRA_CAN_BE_DISEASED = 0x00004000,       // creature is not immune to disease
     CREATURE_FLAG_EXTRA_CAN_BLEED       = 0x00008000,       // creature can bleed
 };
 

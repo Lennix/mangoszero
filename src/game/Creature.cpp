@@ -1667,14 +1667,14 @@ bool Creature::IsImmuneToSpell(SpellEntry const* spellInfo)
     {
         if (spellInfo->Dispel == DISPEL_DISEASE)
         {
-            if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_DISEASE)
+            if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_BE_DISEASED)
                 return false;
             else
                 return true;
         }
         else if (spellInfo->Dispel == DISPEL_POISON)
         {
-            if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_POISON)
+            if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_BE_POISONED)
                 return false;
             else
                 return true;
