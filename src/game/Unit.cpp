@@ -566,45 +566,53 @@ void Unit::RemoveSpellsCausingAura(AuraType auraType, SpellAuraHolder* except)
 }
 
 /* Called by DealDamage for auras that have a chance to be dispelled on damage taken. */
-void Unit::RemoveSpellbyDamageTaken(AuraType auraType, uint32 damage)
+void Unit::RemoveSpellbyDamageTaken(uint32 damage)
 {
-    if(!HasAuraType(auraType))
-        return;
-
-    //nefarian classcall rogue --> paralyze // dont remove spell by taking damage // teleport is handled at the nefarian.cpp script
-    for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end();)
+    for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end(); ++iter)
     {
-        SpellAuraHolder *holder = iter->second;
-        if (holder->GetId() == 23414)
+        SpellEntry const* spell = iter->second->GetSpellProto();
+        if (spell->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
             return;
-        else
-            iter++;
-    }
-
-    // Spells with SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY should not be removed by dmg
-    bool found = false;
-    AuraList const& mModRoot = GetAurasByType(auraType);
-    for(AuraList::const_iterator itr = mModRoot.begin(); itr != mModRoot.end(); ++itr)
-    {
-        if ((*itr)->GetSpellProto()->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+        if (spell->Attributes & SPELL_ATTR_UNK30 || spell->Attributes & SPELL_ATTR_STOP_ATTACK_TARGET)
         {
-            found = true;
-            break;
+            bool instantBreak = false;
+            bool allow = false;
+            for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
+            {
+                switch(spell->EffectApplyAuraName[i])
+                {
+                    case SPELL_AURA_MOD_STUN:
+                    case SPELL_AURA_MOD_CONFUSE:
+                        instantBreak = true;
+                        allow = true;
+                        break;
+                    case SPELL_AURA_MOD_FEAR:
+                    case SPELL_AURA_MOD_ROOT:
+                    case SPELL_AURA_MOD_PACIFY_SILENCE:
+                        allow = true;
+                        break;
+                    default:
+                        break;
+                }
+
+                if(allow)
+                {
+                    uint32 dmg_done = damage + GetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]));
+
+                    // The chance to dispel an aura depends on the damage taken with respect to the casters level.
+                    uint32 max_dmg = getLevel() > 8 ? 25 * getLevel() - 150 : 50;
+                    float chance = float(dmg_done) / max_dmg * 100.0f;
+                    if (roll_chance_f(chance) || instantBreak)
+                    {
+                        RemoveAurasDueToSpell(spell->Id);
+                        iter = m_spellAuraHolders.begin();
+                    }
+                    else
+                        SetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]), true, damage);  
+                }
+            }
         }
     }
-
-    if (found)
-        return;
-
-    uint32 dmg_done = damage + GetDamageForAuraType(auraType);
-
-    // The chance to dispel an aura depends on the damage taken with respect to the casters level.
-    uint32 max_dmg = getLevel() > 8 ? 25 * getLevel() - 150 : 50;
-    float chance = float(dmg_done) / max_dmg * 100.0f;
-    if (roll_chance_f(chance))
-        RemoveSpellsCausingAura(auraType);
-    else
-        SetDamageForAuraType(auraType, true, damage);
 }
 
 void Unit::DealDamageMods(Unit *pVictim, uint32 &damage, uint32* absorb)
@@ -665,11 +673,8 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
 
         return 0;
     }
-    if (!spellProto || !IsAuraAddedBySpell(SPELL_AURA_MOD_FEAR, spellProto->Id))
-        pVictim->RemoveSpellbyDamageTaken(SPELL_AURA_MOD_FEAR, damage);
-    // root type spells do not dispel the root effect
-    if (!spellProto || !(spellProto->Mechanic == MECHANIC_ROOT || IsAuraAddedBySpell(SPELL_AURA_MOD_ROOT, spellProto->Id)))
-        pVictim->RemoveSpellbyDamageTaken(SPELL_AURA_MOD_ROOT, damage);
+
+    pVictim->RemoveSpellbyDamageTaken(damage);
 
     // no xp,health if type 8 /critters/
     if (pVictim->GetTypeId() == TYPEID_UNIT && pVictim->GetCreatureType() == CREATURE_TYPE_CRITTER)
@@ -990,19 +995,6 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             // if damage pVictim call AI reaction
             if(pVictim->GetTypeId()==TYPEID_UNIT && ((Creature*)pVictim)->AI())
                 ((Creature*)pVictim)->AI()->AttackedBy(this);
-        }
-
-        // polymorphed, hex and other negative transformed cases
-        uint32 morphSpell = pVictim->getTransForm();
-        if (morphSpell && !IsPositiveSpell(morphSpell))
-        {
-            if (SpellEntry const* morphEntry = sSpellStore.LookupEntry(morphSpell))
-            {
-                if (IsSpellHaveAura(morphEntry, SPELL_AURA_MOD_CONFUSE))
-                    pVictim->RemoveAurasDueToSpell(morphSpell);
-                else if (IsSpellHaveAura(morphEntry, SPELL_AURA_MOD_PACIFY_SILENCE))
-                    pVictim->RemoveSpellbyDamageTaken(SPELL_AURA_MOD_PACIFY_SILENCE, damage);
-            }
         }
 
         if(damagetype == DIRECT_DAMAGE || damagetype == SPELL_DIRECT_DAMAGE)
@@ -1990,6 +1982,7 @@ void Unit::CalculateDamageAbsorbAndResist(Unit *pCaster, SpellSchoolMask schoolM
         *resist = 0;
 
     int32 RemainingDamage = damage - *resist;
+    int32 RemainingDamageForBreakCC = RemainingDamage;
 
     // full absorb cases (by chance)
     /* none cases, but preserve for better backporting conflict resolve
@@ -2058,6 +2051,8 @@ void Unit::CalculateDamageAbsorbAndResist(Unit *pCaster, SpellSchoolMask schoolM
                 ++i;
         }
     }
+    else
+        RemoveSpellbyDamageTaken(RemainingDamageForBreakCC);
 
     // absorb by mana cost
     AuraList const& vManaShield = GetAurasByType(SPELL_AURA_MANA_SHIELD);
