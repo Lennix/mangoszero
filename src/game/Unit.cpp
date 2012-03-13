@@ -568,17 +568,18 @@ void Unit::RemoveSpellsCausingAura(AuraType auraType, SpellAuraHolder* except)
 /* Called by DealDamage for auras that have a chance to be dispelled on damage taken. */
 void Unit::RemoveSpellbyDamageTaken(uint32 damage)
 {
+    bool damageSaved = false;
     for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end(); ++iter)
     {
         SpellEntry const* spell = iter->second->GetSpellProto();
-        if (spell->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
-            return;
+        //if (spell->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+            //return;
         if (spell->Attributes & SPELL_ATTR_UNK30 || spell->Attributes & SPELL_ATTR_STOP_ATTACK_TARGET)
         {
-            bool instantBreak = false;
-            bool allow = false;
             for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
             {
+                bool instantBreak = false;
+                bool allow = false;
                 switch(spell->EffectApplyAuraName[i])
                 {
                     case SPELL_AURA_MOD_STUN:
@@ -595,9 +596,10 @@ void Unit::RemoveSpellbyDamageTaken(uint32 damage)
                         break;
                 }
 
-                if(allow)
+                if(allow && !damageSaved)
                 {
-                    uint32 dmg_done = damage + GetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]));
+                    uint32 dmg_aura = GetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]));
+                    uint32 dmg_done = damage + dmg_aura;
 
                     // The chance to dispel an aura depends on the damage taken with respect to the casters level.
                     uint32 max_dmg = getLevel() > 8 ? 25 * getLevel() - 150 : 50;
@@ -605,10 +607,15 @@ void Unit::RemoveSpellbyDamageTaken(uint32 damage)
                     if (roll_chance_f(chance) || instantBreak)
                     {
                         RemoveAurasDueToSpell(spell->Id);
+                        if(dmg_aura)
+                            SetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]), false, damage);
                         iter = m_spellAuraHolders.begin();
                     }
                     else
-                        SetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]), true, damage);  
+                    {
+                        SetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]), true, damage);
+                        damageSaved = true;
+                    }
                 }
             }
         }
@@ -673,8 +680,6 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
 
         return 0;
     }
-
-    pVictim->RemoveSpellbyDamageTaken(damage);
 
     // no xp,health if type 8 /critters/
     if (pVictim->GetTypeId() == TYPEID_UNIT && pVictim->GetCreatureType() == CREATURE_TYPE_CRITTER)
