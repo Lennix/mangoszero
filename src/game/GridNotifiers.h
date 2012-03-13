@@ -69,7 +69,7 @@ namespace MaNGOS
         template<class SKIP> void Visit(GridRefManager<SKIP> &) {}
     };
 
-    struct MessageDelivererExcept
+    struct MANGOS_DLL_DECL MessageDelivererExcept
     {
         WorldPacket*  i_message;
         Player const* i_skipped_receiver;
