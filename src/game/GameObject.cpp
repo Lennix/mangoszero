@@ -302,51 +302,27 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                         }
                     }
 
-                    //WE HAVE TO REWRITE THIS SYSTEM COMPLETLY CAUSE IT IS FUCKING BULLSHIT !
-                    // Note: this hack with search required until GO casting not implemented
-                    // search unfriendly creature
-
-                    /* !!! PAY ATTENTATION AT THIS !!!
-                     * DATA 4 == 0 --> FACTION influences nothing     --> TRAP is only for players
-                     * DATA 4 >  0 &&  FACTION != 0                   --> TRAP is only for creatures
-                     * DATA 4 >  0 &&  FACTION == 0                   --> TRAP is for players and creatures
-                     */
-                    if (goInfo->trap.charges > 0) 
+                    //Trap Faction Calculation
+                    if (goInfo->faction != 0)
                     {
-                        //the script will never catch here cause we get no owner!
-                        if (owner)
-                        {
-                            MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, owner, radius);
-                            MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
-                            Cell::VisitGridObjects(this, checker, radius);
-                            if (!ok)
-                                Cell::VisitWorldObjects(this, checker, radius);
-                        }
-                        else
-                        {
-                            MaNGOS::AnyUnitInObjectRangeCheck u_check(this, radius);
-                            MaNGOS::UnitSearcher<MaNGOS::AnyUnitInObjectRangeCheck> checker(ok, u_check);
-                            Cell::VisitGridObjects(this, checker, radius);
-                            if (!ok)
-                                Cell::VisitWorldObjects(this, checker, radius);
-
-							// If we have a specific faction then the trab is for creatures only
-                           if (ok && ok->GetTypeId() == TYPEID_PLAYER && goInfo->faction != 0)
-                                ok = NULL;
-                        }
+                        //if we have a faction get unfriendly targets to trigger the trap
+                        MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, radius);
+                        MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
+                        Cell::VisitGridObjects(this, checker, radius);
+                        if (!ok)
+                            Cell::VisitWorldObjects(this, checker, radius);
                     }
-                    else                                    // environmental trap
+                    else
                     {
-                        // environmental damage spells already have around enemies targeting but this not help in case nonexistent GO casting support
-
-                        // affect only players
-                        Player* p_ok = NULL;
-                        MaNGOS::AnyPlayerInObjectRangeCheck p_check(this, radius);
-                        MaNGOS::PlayerSearcher<MaNGOS::AnyPlayerInObjectRangeCheck>  checker(p_ok, p_check);
-                        Cell::VisitWorldObjects(this,checker, radius);
-                        ok = p_ok;
+                        //if we have no faction trigger in every case
+                        MaNGOS::AnyUnitInObjectRangeCheck u_check(this, radius);
+                        MaNGOS::UnitSearcher<MaNGOS::AnyUnitInObjectRangeCheck> checker(ok, u_check);
+                        Cell::VisitGridObjects(this, checker, radius);
+                        if (!ok)
+                            Cell::VisitWorldObjects(this, checker, radius);
                     }
-
+			        
+                    //Trigger Trap
                     if (ok)
                     {
                         CastSpell(ok, goInfo->trap.spellId, owner);
