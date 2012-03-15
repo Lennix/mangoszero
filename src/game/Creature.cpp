@@ -1689,10 +1689,13 @@ bool Creature::IsImmuneToSpell(SpellEntry const* spellInfo)
     }
     else if (GetCreatureInfo()->type == CREATURE_TYPE_UNDEAD || GetCreatureInfo()->type == CREATURE_TYPE_MECHANICAL)
     {
-        if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_BLEED)
-            return false;
-        else
-            return true;
+        if(spellInfo->Mechanic == MECHANIC_BLEED)
+        {
+            if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_BLEED)
+                return false;
+            else
+                return true;
+        }
     }
 
     return Unit::IsImmuneToSpell(spellInfo);
