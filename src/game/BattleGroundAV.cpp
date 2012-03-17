@@ -78,7 +78,9 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_H, m_RepCaptain, HORDE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), HORDE);
             UpdateScore(BG_TEAM_ALLIANCE, (-1) * BG_AV_RES_CAPTAIN);
-            // spawn destroyed aura
+            //buff horde if alliance captain is killed at first
+            if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
+                BuffTeam(HORDE, BG_AV_CAPTAIN_H_BUFF);
             SpawnEvent(BG_AV_NodeEventCaptainDead_A, 0, true);
             break;
         case BG_AV_CAPTAIN_H:
@@ -87,7 +89,9 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_A, m_RepCaptain, ALLIANCE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), ALLIANCE);
             UpdateScore(BG_TEAM_HORDE, (-1) * BG_AV_RES_CAPTAIN);
-            // spawn destroyed aura
+            //buff alliance if horde captain is killed at first
+            if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
+                BuffTeam(ALLIANCE, BG_AV_CAPTAIN_A_BUFF);
             SpawnEvent(BG_AV_NodeEventCaptainDead_H, 0, true);
             break;
         case BG_AV_MINE_BOSSES_NORTH:
@@ -238,6 +242,16 @@ void BattleGroundAV::UpdateScore(BattleGroundTeamIndex teamIdx, int32 points )
     UpdateWorldState(((teamIdx == BG_TEAM_HORDE) ? BG_AV_Horde_Score : BG_AV_Alliance_Score), m_TeamScores[teamIdx]);
 }
 
+void BattleGroundAV::BuffTeam(uint32 Team, uint32 SpellId)
+{
+    for(BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
+    {
+        Player *plr = sObjectMgr.GetPlayer(itr->first);
+        if (plr && plr->isAlive() && plr->GetTeam() == Team)
+            plr->CastSpell(plr, SpellId, true);
+    }
+}
+
 void BattleGroundAV::Update(uint32 diff)
 {
     BattleGround::Update(diff);
@@ -274,6 +288,23 @@ void BattleGroundAV::Update(uint32 diff)
             else
                 EventPlayerDestroyedPoint(i);
         }
+    }
+
+    //handle team captain buff every 3 minutes until he will be dead
+    if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0) || !IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
+    {
+        if (m_CaptainBuffTimer <= diff)
+        {
+            if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
+                BuffTeam(HORDE, BG_AV_CAPTAIN_H_BUFF);
+
+            if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
+                BuffTeam(ALLIANCE, BG_AV_CAPTAIN_A_BUFF);
+
+            m_CaptainBuffTimer = 180000;
+        }
+        else
+            m_CaptainBuffTimer -= diff;
     }
 }
 
@@ -800,6 +831,8 @@ void BattleGroundAV::Reset()
     m_RepSurviveCaptain   = (isBGWeekend) ? BG_AV_REP_SURVIVING_CAPTAIN_HOLIDAY : BG_AV_REP_SURVIVING_CAPTAIN;
     m_RepSurviveTower     = (isBGWeekend) ? BG_AV_REP_SURVIVING_TOWER_HOLIDAY : BG_AV_REP_SURVIVING_TOWER;
     m_RepOwnedMine        = (isBGWeekend) ? BG_AV_REP_OWNED_MINE_HOLIDAY    : BG_AV_REP_OWNED_MINE;
+
+    m_CaptainBuffTimer    = 180000;
 
     for(uint8 i = 0; i < BG_TEAMS_COUNT; i++)
     {

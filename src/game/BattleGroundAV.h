@@ -69,6 +69,12 @@
 #define BG_AV_REP_OWNED_MINE                24
 #define BG_AV_REP_OWNED_MINE_HOLIDAY        36
 
+enum BG_AV_Buffs
+{
+    BG_AV_CAPTAIN_A_BUFF                = 23693,  
+    BG_AV_CAPTAIN_H_BUFF                = 22751
+};
+
 enum BG_AV_Sounds
 {
     BG_AV_SOUND_NEAR_LOSE               = 8456,             // not confirmed yet
@@ -363,6 +369,8 @@ class BattleGroundAV : public BattleGround
 
         void PopulateNode(BG_AV_Nodes node);
 
+        void BuffTeam(uint32 Team, uint32 SpellId);
+
         uint32 GetNodeName(BG_AV_Nodes node);
         const bool IsTower(BG_AV_Nodes node) { return (node == BG_AV_NODES_ERROR)? false : m_Nodes[node].Tower; }
         const bool IsGrave(BG_AV_Nodes node) { return (node == BG_AV_NODES_ERROR)? false : !m_Nodes[node].Tower; }
@@ -396,6 +404,8 @@ class BattleGroundAV : public BattleGround
         uint32 m_RepOwnedMine;
         uint32 m_RepSurviveCaptain;
         uint32 m_RepSurviveTower;
+
+        uint32 m_CaptainBuffTimer;
 };
 
 #endif
