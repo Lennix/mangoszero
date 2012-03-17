@@ -287,10 +287,7 @@ void BattleGroundAV::StartingEventOpenDoors()
     OpenDoorEvent(BG_EVENT_DOOR);
 
 	for (BG_AV_Nodes node = BG_AV_NODES_FIRSTAID_STATION; node < BG_AV_NODES_MAX; ++node)
-    {
 		UpdateWorldState(BG_AV_NodeWorldStates[node][GetWorldStateType(m_Nodes[node].State,m_Nodes[node].Owner)], 1);
-		//UpdateNodeWorldState((BG_AV_Nodes)i);
-    }
 }
 
 void BattleGroundAV::AddPlayer(Player *plr)
@@ -299,6 +296,12 @@ void BattleGroundAV::AddPlayer(Player *plr)
     // create score and add it to map, default values are set in constructor
     BattleGroundAVScore* sc = new BattleGroundAVScore;
     m_PlayerScores[plr->GetObjectGuid()] = sc;
+}
+
+void BattleGroundAV::SetAVMapToPlayer(Player *Source)
+{
+    for (BG_AV_Nodes node = BG_AV_NODES_FIRSTAID_STATION; node < BG_AV_NODES_MAX; ++node)
+        UpdateWorldStateForPlayer(BG_AV_NodeWorldStates[node][GetWorldStateType(m_Nodes[node].State,m_Nodes[node].Owner)], 1, Source);
 }
 
 void BattleGroundAV::EndBattleGround(Team winner)

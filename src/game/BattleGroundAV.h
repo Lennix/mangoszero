@@ -323,6 +323,7 @@ class BattleGroundAV : public BattleGround
 
         /* inherited from BattlegroundClass */
         virtual void AddPlayer(Player *plr);
+        virtual void SetAVMapToPlayer(Player *Source);
 
         virtual void StartingEventCloseDoors();
         virtual void StartingEventOpenDoors();

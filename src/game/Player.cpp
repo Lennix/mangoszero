@@ -7817,7 +7817,12 @@ void Player::SendInitWorldStates(uint32 zoneid)
             break;
             case 2597:                                          // AV
                 if (bg && bg->GetTypeID() == BATTLEGROUND_AV)
+                {
                     bg->FillInitialWorldStates(data, count);
+                    BattleGroundAV* bgAV = (BattleGroundAV*)bg;
+                    if (bgAV && bgAV->GetStatus() == STATUS_IN_PROGRESS)
+                        bgAV->SetAVMapToPlayer(this);
+                }
                 else
                     FillInitialWorldState(data,count, AV_world_states);
                 break;
