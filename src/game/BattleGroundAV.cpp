@@ -78,6 +78,7 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_H, m_RepCaptain, HORDE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), HORDE);
             UpdateScore(BG_TEAM_ALLIANCE, (-1) * BG_AV_RES_CAPTAIN);
+            //sound emote and yell to all is missing
             //buff horde if alliance captain is killed at first
             if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
                 BuffTeam(HORDE, BG_AV_CAPTAIN_H_BUFF);
@@ -89,6 +90,7 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_A, m_RepCaptain, ALLIANCE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), ALLIANCE);
             UpdateScore(BG_TEAM_HORDE, (-1) * BG_AV_RES_CAPTAIN);
+            //sound emote and yell to all is missing
             //buff alliance if horde captain is killed at first
             if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
                 BuffTeam(ALLIANCE, BG_AV_CAPTAIN_A_BUFF);
@@ -291,17 +293,28 @@ void BattleGroundAV::Update(uint32 diff)
     }
 
     //handle team captain buff every 3 minutes until he will be dead
-    if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0) || !IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
+    if (m_CaptainBuffTimer != 0)
     {
         if (m_CaptainBuffTimer <= diff)
         {
+            uint8 buffCounter = 0;
+
             if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
+            {
                 BuffTeam(HORDE, BG_AV_CAPTAIN_H_BUFF);
+                buffCounter++;
+            }
 
             if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
+            {
                 BuffTeam(ALLIANCE, BG_AV_CAPTAIN_A_BUFF);
+                buffCounter++;
+            }
 
-            m_CaptainBuffTimer = 180000;
+            if (buffCounter > 0)
+                m_CaptainBuffTimer = 180000;
+            else
+                m_CaptainBuffTimer = 0;
         }
         else
             m_CaptainBuffTimer -= diff;
