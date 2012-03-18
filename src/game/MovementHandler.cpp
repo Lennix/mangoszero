@@ -434,14 +434,14 @@ void WorldSession::HandleMoveKnockBackAck( WorldPacket & recv_data )
 
     HandleMoverRelocation(movementInfo);
 
-    /*WorldPacket data(MSG_MOVE_KNOCK_BACK, recv_data.size() + 15);
+    WorldPacket data(MSG_MOVE_KNOCK_BACK, recv_data.size() + 15);
     data << ObjectGuid(mover->GetObjectGuid());
     data << movementInfo;
     data << movementInfo.GetJumpInfo().sinAngle;
     data << movementInfo.GetJumpInfo().cosAngle;
     data << movementInfo.GetJumpInfo().xyspeed;
     data << movementInfo.GetJumpInfo().velocity;
-    mover->SendMessageToSetExcept(&data, _player);*/
+    mover->SendMessageToSetExcept(&data, _player);
 }
 
 void WorldSession::HandleMoveHoverAck( WorldPacket& recv_data )
