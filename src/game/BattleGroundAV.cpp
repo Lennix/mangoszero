@@ -125,6 +125,13 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             reputation = 1;
             if( m_Team_QuestStatus[teamIdx][0] == 500 || m_Team_QuestStatus[teamIdx][0] == 1000 || m_Team_QuestStatus[teamIdx][0] == 1500 ) //25,50,75 turn ins
             {
+                /*
+                 * normally u have to speak with the team smeed to activate the new guards and buffs
+                 * but dont know how to implement gossip in relationship to the core!
+                 * furthermore the sound and text emote is missing!
+                 */
+                m_GeneralBuffTimer = 1000;
+
                 DEBUG_LOG("BattleGroundAV: Quest %i completed starting with unit upgrading..", questid);
                 for (BG_AV_Nodes i = BG_AV_NODES_FIRSTAID_STATION; i <= BG_AV_NODES_FROSTWOLF_HUT; ++i)
                     if (m_Nodes[i].Owner == teamIdx && m_Nodes[i].State == POINT_CONTROLLED)
@@ -292,32 +299,43 @@ void BattleGroundAV::Update(uint32 diff)
         }
     }
 
-    //handle team captain buff every 3 minutes until he will be dead
+    //handle team captain buffs every 3 minutes until they are dead
     if (m_CaptainBuffTimer != 0)
     {
         if (m_CaptainBuffTimer <= diff)
         {
-            uint8 buffCounter = 0;
-
             if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
-            {
                 BuffTeam(HORDE, BG_AV_CAPTAIN_H_BUFF);
-                buffCounter++;
-            }
 
             if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
-            {
                 BuffTeam(ALLIANCE, BG_AV_CAPTAIN_A_BUFF);
-                buffCounter++;
-            }
 
-            if (buffCounter > 0)
-                m_CaptainBuffTimer = 180000;
-            else
-                m_CaptainBuffTimer = 0;
+            m_CaptainBuffTimer = 180000;
         }
         else
             m_CaptainBuffTimer -= diff;
+    }
+
+    //handle general warcry buff every 3 minutes if enough armor scraps are gathered
+    if (m_GeneralBuffTimer != 0)
+    {
+        if (m_GeneralBuffTimer <= diff)
+        {
+            uint32 team[2] = {ALLIANCE, HORDE};
+            for (uint8 i = 0; i < 2; i++)
+            {
+                if (m_Team_QuestStatus[i][0] < 1000)
+                    BuffTeam(team[i], BG_AV_WARCRY_BUFF_1);
+                else if (m_Team_QuestStatus[i][0] < 1500 )
+                    BuffTeam(team[i], BG_AV_WARCRY_BUFF_2);
+                else if (m_Team_QuestStatus[i][0] >= 1500 )
+                    BuffTeam(team[i], BG_AV_WARCRY_BUFF_3);
+            }
+
+            m_GeneralBuffTimer = 180000;
+        }
+        else
+            m_GeneralBuffTimer -= diff;
     }
 }
 
@@ -550,7 +568,7 @@ void BattleGroundAV::PopulateNode(BG_AV_Nodes node)
         if (m_Team_QuestStatus[teamIdx][0] < 500 )
             graveDefenderType = 0;
         else if (m_Team_QuestStatus[teamIdx][0] < 1000 )
-            graveDefenderType = 1;
+            graveDefenderType = 1;      
         else if (m_Team_QuestStatus[teamIdx][0] < 1500 )
             graveDefenderType = 2;
         else
@@ -846,6 +864,7 @@ void BattleGroundAV::Reset()
     m_RepOwnedMine        = (isBGWeekend) ? BG_AV_REP_OWNED_MINE_HOLIDAY    : BG_AV_REP_OWNED_MINE;
 
     m_CaptainBuffTimer    = 180000;
+    m_GeneralBuffTimer    = 0;
 
     for(uint8 i = 0; i < BG_TEAMS_COUNT; i++)
     {

@@ -72,7 +72,10 @@
 enum BG_AV_Buffs
 {
     BG_AV_CAPTAIN_A_BUFF                = 23693,  
-    BG_AV_CAPTAIN_H_BUFF                = 22751
+    BG_AV_CAPTAIN_H_BUFF                = 22751,
+    BG_AV_WARCRY_BUFF_1                 = 28418,
+    BG_AV_WARCRY_BUFF_2                 = 28419,
+    BG_AV_WARCRY_BUFF_3                 = 28420
 };
 
 enum BG_AV_Sounds
@@ -406,6 +409,7 @@ class BattleGroundAV : public BattleGround
         uint32 m_RepSurviveTower;
 
         uint32 m_CaptainBuffTimer;
+        uint32 m_GeneralBuffTimer;
 };
 
 #endif
