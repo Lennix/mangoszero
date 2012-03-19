@@ -78,10 +78,9 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_H, m_RepCaptain, HORDE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), HORDE);
             UpdateScore(BG_TEAM_ALLIANCE, (-1) * BG_AV_RES_CAPTAIN);
-            //sound emote and yell to all is missing
             //buff horde if alliance captain is killed at first
             if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
-                BuffTeam(HORDE, BG_AV_CAPTAIN_H_BUFF);
+                m_CaptainBuffTimer[1] = 1000;
             SpawnEvent(BG_AV_NodeEventCaptainDead_A, 0, true);
             break;
         case BG_AV_CAPTAIN_H:
@@ -90,10 +89,9 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_A, m_RepCaptain, ALLIANCE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), ALLIANCE);
             UpdateScore(BG_TEAM_HORDE, (-1) * BG_AV_RES_CAPTAIN);
-            //sound emote and yell to all is missing
             //buff alliance if horde captain is killed at first
             if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
-                BuffTeam(ALLIANCE, BG_AV_CAPTAIN_A_BUFF);
+                m_CaptainBuffTimer[0] = 1000;
             SpawnEvent(BG_AV_NodeEventCaptainDead_H, 0, true);
             break;
         case BG_AV_MINE_BOSSES_NORTH:
@@ -121,17 +119,22 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
         case BG_AV_QUEST_A_SCRAPS2:
         case BG_AV_QUEST_H_SCRAPS1:
         case BG_AV_QUEST_H_SCRAPS2:
+            //ToDo: We have to handle the supply crates!
             m_Team_QuestStatus[teamIdx][0] += 20;
             reputation = 1;
             if( m_Team_QuestStatus[teamIdx][0] == 500 || m_Team_QuestStatus[teamIdx][0] == 1000 || m_Team_QuestStatus[teamIdx][0] == 1500 ) //25,50,75 turn ins
             {
-                /*
-                 * normally u have to speak with the team smeed to activate the new guards and buffs
-                 * but dont know how to implement gossip in relationship to the core!
-                 * furthermore the sound and text emote is missing!
-                 */
-                m_GeneralBuffTimer = 1000;
+                //get team smith
+                Creature* Smith = 0;
+                if (teamIdx == BG_TEAM_ALLIANCE)
+                    Smith = player->GetMap()->GetCreature(GetSingleCreatureGuid(BG_AV_Smith_A, 0));
+                else if (teamIdx == BG_TEAM_HORDE)
+                    Smith = player->GetMap()->GetCreature(GetSingleCreatureGuid(BG_AV_Smith_H, 0));
 
+                //here we call the scriptevzero battleground.cpp to handle the smith gossip
+                if (Smith)
+                    Smith->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+                
                 DEBUG_LOG("BattleGroundAV: Quest %i completed starting with unit upgrading..", questid);
                 for (BG_AV_Nodes i = BG_AV_NODES_FIRSTAID_STATION; i <= BG_AV_NODES_FROSTWOLF_HUT; ++i)
                     if (m_Nodes[i].Owner == teamIdx && m_Nodes[i].State == POINT_CONTROLLED)
@@ -251,15 +254,7 @@ void BattleGroundAV::UpdateScore(BattleGroundTeamIndex teamIdx, int32 points )
     UpdateWorldState(((teamIdx == BG_TEAM_HORDE) ? BG_AV_Horde_Score : BG_AV_Alliance_Score), m_TeamScores[teamIdx]);
 }
 
-void BattleGroundAV::BuffTeam(uint32 Team, uint32 SpellId)
-{
-    for(BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-    {
-        Player *plr = sObjectMgr.GetPlayer(itr->first);
-        if (plr && plr->isAlive() && plr->GetTeam() == Team)
-            plr->CastSpell(plr, SpellId, true);
-    }
-}
+void BattleGroundAV::HandleGeneralBuff(uint8 team) { m_GeneralBuffTimer[team] = 1000; }
 
 void BattleGroundAV::Update(uint32 diff)
 {
@@ -299,43 +294,64 @@ void BattleGroundAV::Update(uint32 diff)
         }
     }
 
-    //handle team captain buffs every 3 minutes until they are dead
-    if (m_CaptainBuffTimer != 0)
+    for (uint8 i = 0; i < 2; i++)
     {
-        if (m_CaptainBuffTimer <= diff)
+        //handle team captain buffs every 3 + random minutes until they are dead
+        if (m_CaptainBuffTimer[i] != 0)
         {
-            if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
-                BuffTeam(HORDE, BG_AV_CAPTAIN_H_BUFF);
-
-            if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
-                BuffTeam(ALLIANCE, BG_AV_CAPTAIN_A_BUFF);
-
-            m_CaptainBuffTimer = 180000;
-        }
-        else
-            m_CaptainBuffTimer -= diff;
-    }
-
-    //handle general warcry buff every 3 minutes if enough armor scraps are gathered
-    if (m_GeneralBuffTimer != 0)
-    {
-        if (m_GeneralBuffTimer <= diff)
-        {
-            uint32 team[2] = {ALLIANCE, HORDE};
-            for (uint8 i = 0; i < 2; i++)
+            if (m_CaptainBuffTimer[i] <= diff)
             {
-                if (m_Team_QuestStatus[i][0] < 1000)
-                    BuffTeam(team[i], BG_AV_WARCRY_BUFF_1);
-                else if (m_Team_QuestStatus[i][0] < 1500 )
-                    BuffTeam(team[i], BG_AV_WARCRY_BUFF_2);
-                else if (m_Team_QuestStatus[i][0] >= 1500 )
-                    BuffTeam(team[i], BG_AV_WARCRY_BUFF_3);
-            }
+                if (i > 0)
+                {
+                    if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
+                    {
+                        //text is missing / we cannot handle DoScriptText in core -> alterac valley/galvangar -> yell_buff
+                        CastSpellOnTeam(BG_AV_CAPTAIN_H_BUFF, HORDE);
+                        PlaySoundToAll(BG_AV_SOUND_HORDE_CAPTAIN); //probably wrong sound
+                    }
+                } 
+                else 
+                {
+                    if(!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
+                    {
+                        //text is missing / we cannot handle DoScriptText in core -> alterac valley/balinda -> yell_buff
+                        CastSpellOnTeam(BG_AV_CAPTAIN_A_BUFF, ALLIANCE);
+                        PlaySoundToAll(BG_AV_SOUND_ALLIANCE_CAPTAIN); //probably wrong sound
+                    }
+                }
 
-            m_GeneralBuffTimer = 180000;
+                m_CaptainBuffTimer[i] = (180000 + (urand(0,6) * 10000));
+            }
+            else
+                m_CaptainBuffTimer[i] -= diff;
         }
-        else
-            m_GeneralBuffTimer -= diff;
+
+        //handle general warcry buff every 3 minutes + random if enough armor scraps are gathered
+        if (m_GeneralBuffTimer[i] != 0)
+        {
+            if (m_GeneralBuffTimer[i] <= diff)
+            {   
+                Team team[2] = {ALLIANCE, HORDE};
+
+                if (i > 0)
+                    //text is missing / we cannot handle DoScriptText in core -> alterac valley/drekthar -> yell_random
+                    PlaySoundToAll(BG_AV_SOUND_HORDE_GOOD); //probably wrong sound
+                else
+                    //text is missing / we cannot handle DoScriptText in core -> alterac valley/vanndar -> yell_random
+                    PlaySoundToAll(BG_AV_SOUND_ALLIANCE_GOOD); //probably wrong sound
+
+                if (m_Team_QuestStatus[i][0] < 1000)
+                    CastSpellOnTeam(BG_AV_WARCRY_BUFF_1, team[i]);
+                else if (m_Team_QuestStatus[i][0] < 1500 )
+                    CastSpellOnTeam(BG_AV_WARCRY_BUFF_2, team[i]);
+                else if (m_Team_QuestStatus[i][0] >= 1500 )
+                    CastSpellOnTeam(BG_AV_WARCRY_BUFF_3, team[i]);
+
+                m_GeneralBuffTimer[i] = (180000 + (urand(0,6) * 10000));
+            }
+            else
+                m_GeneralBuffTimer[i] -= diff;
+        }
     }
 }
 
@@ -863,8 +879,10 @@ void BattleGroundAV::Reset()
     m_RepSurviveTower     = (isBGWeekend) ? BG_AV_REP_SURVIVING_TOWER_HOLIDAY : BG_AV_REP_SURVIVING_TOWER;
     m_RepOwnedMine        = (isBGWeekend) ? BG_AV_REP_OWNED_MINE_HOLIDAY    : BG_AV_REP_OWNED_MINE;
 
-    m_CaptainBuffTimer    = 180000;
-    m_GeneralBuffTimer    = 0;
+    m_CaptainBuffTimer[0]    = (180000 + (urand(0,6) * 10000));
+    m_CaptainBuffTimer[1]    = (180000 + (urand(0,6) * 10000));
+    m_GeneralBuffTimer[0]    = 0;
+    m_GeneralBuffTimer[1]    = 0;   
 
     for(uint8 i = 0; i < BG_TEAMS_COUNT; i++)
     {
@@ -884,6 +902,8 @@ void BattleGroundAV::Reset()
         m_Mine_Timer[i] = BG_AV_MINE_TICK_TIMER;
     }
 
+    m_ActiveEvents[BG_AV_Smith_A] = 0;
+    m_ActiveEvents[BG_AV_Smith_H] = 0;
     m_ActiveEvents[BG_AV_CAPTAIN_A] = 0;
     m_ActiveEvents[BG_AV_CAPTAIN_H] = 0;
     m_ActiveEvents[BG_AV_HERALD] = 0;

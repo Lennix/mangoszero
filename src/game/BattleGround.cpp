@@ -20,6 +20,7 @@
 #include "Object.h"
 #include "Player.h"
 #include "BattleGround.h"
+#include "BattleGroundAV.h"
 #include "BattleGroundMgr.h"
 #include "Creature.h"
 #include "MapManager.h"
@@ -451,6 +452,36 @@ void BattleGround::Update(uint32 diff)
 
     //update start time
     m_StartTime += diff;
+}
+
+void BattleGround::SetGossipStatus(GossipIndex Index, GossipStatus Status, BattleGroundTypeId bg) 
+{ 
+    m_gossipStatus[Index] = Status;
+
+    switch (bg)
+    {
+        case BATTLEGROUND_WS:
+            break;
+        case BATTLEGROUND_AB:
+            break;
+        case BATTLEGROUND_AV:
+        {
+            BattleGroundAV* bgAV = (BattleGroundAV*)this;
+            if (bgAV)
+            {
+                switch (Index)
+                {
+                    //team smiths
+                    case GOSSIP_CHANNEL1:
+                    case GOSSIP_CHANNEL2:
+                        if (Status != STATUS_WAIT_ACTION)
+                            bgAV->HandleGeneralBuff(Index);
+                        break;
+                }
+            }
+            break;
+        }
+    }
 }
 
 void BattleGround::SetTeamStartLoc(Team team, float X, float Y, float Z, float O)
@@ -972,6 +1003,9 @@ void BattleGround::Reset()
     for(BattleGroundScoreMap::const_iterator itr = m_PlayerScores.begin(); itr != m_PlayerScores.end(); ++itr)
         delete itr->second;
     m_PlayerScores.clear();
+
+    m_gossipStatus[GOSSIP_CHANNEL1] = STATUS_WAIT_ACTION;
+    m_gossipStatus[GOSSIP_CHANNEL2] = STATUS_WAIT_ACTION;
 }
 
 void BattleGround::StartBattleGround()

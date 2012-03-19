@@ -101,6 +101,7 @@ enum BG_AV_OTHER_VALUES
     BG_AV_FACTION_A             = 730,
     BG_AV_FACTION_H             = 729,
 };
+
 #define BG_AV_MAX_MINES 2
 
 enum BG_AV_ObjectIds
@@ -169,6 +170,9 @@ enum BG_AV_Nodes
 #define BG_AV_BOSS_H            62
 #define BG_AV_NodeEventCaptainDead_A 63
 #define BG_AV_NodeEventCaptainDead_H 64
+
+#define BG_AV_Smith_A 65
+#define BG_AV_Smith_H 66
 
 enum BG_AV_Graveyards
 {
@@ -330,6 +334,8 @@ class BattleGroundAV : public BattleGround
         ~BattleGroundAV();
         void Update(uint32 diff);
 
+        virtual void HandleGeneralBuff(uint8 team);
+
         /* inherited from BattlegroundClass */
         virtual void AddPlayer(Player *plr);
         virtual void SetAVMapToPlayer(Player *Source);
@@ -372,8 +378,6 @@ class BattleGroundAV : public BattleGround
 
         void PopulateNode(BG_AV_Nodes node);
 
-        void BuffTeam(uint32 Team, uint32 SpellId);
-
         uint32 GetNodeName(BG_AV_Nodes node);
         const bool IsTower(BG_AV_Nodes node) { return (node == BG_AV_NODES_ERROR)? false : m_Nodes[node].Tower; }
         const bool IsGrave(BG_AV_Nodes node) { return (node == BG_AV_NODES_ERROR)? false : !m_Nodes[node].Tower; }
@@ -408,8 +412,8 @@ class BattleGroundAV : public BattleGround
         uint32 m_RepSurviveCaptain;
         uint32 m_RepSurviveTower;
 
-        uint32 m_CaptainBuffTimer;
-        uint32 m_GeneralBuffTimer;
+        uint32 m_CaptainBuffTimer[2];
+        uint32 m_GeneralBuffTimer[2];
 };
 
 #endif

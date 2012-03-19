@@ -27,7 +27,7 @@
 #include "ObjectGuid.h"
 
 // magic event-numbers
-#define BG_EVENT_NONE 255
+#define BG_EVENT_NONE 25
 // those generic events should get a high event id
 #define BG_EVENT_DOOR 254
 
@@ -117,6 +117,25 @@ enum BattleGroundStatus
     STATUS_WAIT_JOIN    = 2,                                // this means, that BG has already started and it is waiting for more players
     STATUS_IN_PROGRESS  = 3,                                // means bg is running
     STATUS_WAIT_LEAVE   = 4                                 // means some faction has won BG and it is ending
+};
+
+/**
+  * GOSSIP CHANNELING BY ZERO
+  * call scriptdev0 from core
+  * call core from scriptdevzer0
+  */
+enum GossipIndex
+{
+    GOSSIP_CHANNEL1     = 0,
+    GOSSIP_CHANNEL2     = 1
+};
+
+enum GossipStatus
+{
+    STATUS_WAIT_ACTION  = 0,
+    STATUS_ACTION1      = 1,
+    STATUS_ACTION2      = 2,
+    STATUS_ACTION3      = 3
 };
 
 struct BattleGroundPlayer
@@ -284,6 +303,7 @@ class BattleGround
         uint8 GetWinner() const             { return m_Winner; }
         uint32 GetBattlemasterEntry() const;
         uint32 GetBonusHonorFromKill(uint32 kills) const;
+        uint8 GetGossipStatus(GossipIndex Index) { return m_gossipStatus[Index]; }
 
         // Set methods:
         void SetName(char const* Name)      { m_Name = Name; }
@@ -425,6 +445,8 @@ class BattleGround
         virtual void RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool SendPacket);
                                                             // can be extended in in BG subclass
 
+        virtual void SetGossipStatus(GossipIndex Index, GossipStatus Status, BattleGroundTypeId bg); 
+
         /* event related */
         // called when a creature gets added to map (NOTE: only triggered if
         // a player activates the cell of the creature)
@@ -555,6 +577,9 @@ class BattleGround
         float m_TeamStartLocY[BG_TEAMS_COUNT];
         float m_TeamStartLocZ[BG_TEAMS_COUNT];
         float m_TeamStartLocO[BG_TEAMS_COUNT];
+
+        /* Gossip Status - we will need more than one status for AV(we start with two channel) */
+        uint32 m_gossipStatus[2];
 };
 
 // helper functions for world state list fill
