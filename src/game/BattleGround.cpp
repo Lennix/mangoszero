@@ -413,9 +413,7 @@ void BattleGround::Update(uint32 diff)
             SendMessageToAll(m_StartMessageIds[BG_STARTING_EVENT_FOURTH], CHAT_MSG_BG_SYSTEM_NEUTRAL);
             SetStatus(STATUS_IN_PROGRESS);
             SetStartDelayTime(m_StartDelayTimes[BG_STARTING_EVENT_FOURTH]);
-
             {
-
                 PlaySoundToAll(SOUND_BG_START);
 
                 //Announce BG starting

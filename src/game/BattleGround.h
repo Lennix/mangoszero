@@ -50,7 +50,7 @@ struct BattleGroundEventIdx
 enum BattleGroundSounds
 {
     SOUND_HORDE_WINS                = 8454,
-    SOUND_ALLIANCE_WINS             = 8455,
+    SOUND_ALLIANCE_WINS             = 8455,         
     SOUND_BG_START                  = 3439
 };
 

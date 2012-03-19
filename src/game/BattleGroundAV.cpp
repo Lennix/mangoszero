@@ -62,6 +62,7 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             CastSpellOnTeam(BG_AV_BOSS_KILL_QUEST_SPELL, HORDE);   // this is a spell which finishes a quest where a player has to kill the boss
             RewardReputationToTeam(BG_AV_FACTION_H, m_RepBoss, HORDE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_BOSS), HORDE);
+            PlaySoundToAll(BG_AV_SOUND_HORDE_GOOD);
             SendYellToAll(LANG_BG_AV_A_GENERAL_DEAD, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 0));
             EndBattleGround(HORDE);
             break;
@@ -69,6 +70,7 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             CastSpellOnTeam(BG_AV_BOSS_KILL_QUEST_SPELL, ALLIANCE); // this is a spell which finishes a quest where a player has to kill the boss
             RewardReputationToTeam(BG_AV_FACTION_A, m_RepBoss, ALLIANCE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_BOSS), ALLIANCE);
+            PlaySoundToAll(BG_AV_SOUND_ALLIANCE_GOOD);
             SendYellToAll(LANG_BG_AV_H_GENERAL_DEAD, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 0));
             EndBattleGround(ALLIANCE);
             break;
@@ -78,6 +80,7 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_H, m_RepCaptain, HORDE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), HORDE);
             UpdateScore(BG_TEAM_ALLIANCE, (-1) * BG_AV_RES_CAPTAIN);
+            PlaySoundToAll(BG_AV_SOUND_HORDE_GOOD);
             //buff horde if alliance captain is killed at first
             if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_H, 0))
                 m_CaptainBuffTimer[1] = 1000;
@@ -89,6 +92,7 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             RewardReputationToTeam(BG_AV_FACTION_A, m_RepCaptain, ALLIANCE);
             RewardHonorToTeam(GetBonusHonorFromKill(BG_AV_KILL_CAPTAIN), ALLIANCE);
             UpdateScore(BG_TEAM_HORDE, (-1) * BG_AV_RES_CAPTAIN);
+            PlaySoundToAll(BG_AV_SOUND_ALLIANCE_GOOD);
             //buff alliance if horde captain is killed at first
             if (!IsActiveEvent(BG_AV_NodeEventCaptainDead_A, 0))
                 m_CaptainBuffTimer[0] = 1000;
@@ -246,7 +250,6 @@ void BattleGroundAV::UpdateScore(BattleGroundTeamIndex teamIdx, int32 points )
         else if (!m_IsInformedNearLose[teamIdx] && m_TeamScores[teamIdx] < BG_AV_SCORE_NEAR_LOSE)
         {
             SendMessageToAll((teamIdx == BG_TEAM_HORDE) ? LANG_BG_AV_H_NEAR_LOSE : LANG_BG_AV_A_NEAR_LOSE, CHAT_MSG_BG_SYSTEM_NEUTRAL);
-            PlaySoundToAll(BG_AV_SOUND_NEAR_LOSE);
             m_IsInformedNearLose[teamIdx] = true;
         }
     }
@@ -307,7 +310,7 @@ void BattleGroundAV::Update(uint32 diff)
                     {
                         //text is missing / we cannot handle DoScriptText in core -> alterac valley/galvangar -> yell_buff
                         CastSpellOnTeam(BG_AV_CAPTAIN_H_BUFF, HORDE);
-                        PlaySoundToAll(BG_AV_SOUND_HORDE_CAPTAIN); //probably wrong sound
+                        //PlaySoundToAll(); //probably wrong sound
                     }
                 } 
                 else 
@@ -316,7 +319,7 @@ void BattleGroundAV::Update(uint32 diff)
                     {
                         //text is missing / we cannot handle DoScriptText in core -> alterac valley/balinda -> yell_buff
                         CastSpellOnTeam(BG_AV_CAPTAIN_A_BUFF, ALLIANCE);
-                        PlaySoundToAll(BG_AV_SOUND_ALLIANCE_CAPTAIN); //probably wrong sound
+                        //PlaySoundToAll(); //probably wrong sound
                     }
                 }
 
@@ -336,13 +339,13 @@ void BattleGroundAV::Update(uint32 diff)
                 if (i > 0)
                 {
                     //text is missing / we cannot handle DoScriptText in core -> alterac valley/drekthar -> yell_random
-                    PlaySoundToAll(BG_AV_SOUND_HORDE_GOOD); //probably wrong sound
+                    //PlaySoundToAll(); //probably wrong sound
                     Channel = GOSSIP_CHANNEL2;
                 }
                 else
                 {
                     //text is missing / we cannot handle DoScriptText in core -> alterac valley/vanndar -> yell_random
-                    PlaySoundToAll(BG_AV_SOUND_ALLIANCE_GOOD); //probably wrong sound
+                    //PlaySoundToAll(); //probably wrong sound
                     Channel = GOSSIP_CHANNEL1;
                 }
 
@@ -540,6 +543,7 @@ void BattleGroundAV::EventPlayerDestroyedPoint(BG_AV_Nodes node)
     {
         SendYell2ToAll(LANG_BG_AV_GRAVE_TAKEN, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 0), GetNodeName(node), (ownerTeam == ALLIANCE) ? LANG_BG_ALLY : LANG_BG_HORDE);
     }
+    PlaySoundToAll((ownerTeam == BG_AV_TEAM_ALLIANCE) ? BG_AV_SOUND_ALLIANCE_GOOD : BG_AV_SOUND_HORDE_GOOD);
 }
 
 void BattleGroundAV::ChangeMineOwner(uint8 mine, BattleGroundAVTeamIndex teamIdx)
@@ -661,17 +665,16 @@ void BattleGroundAV::EventPlayerDefendsPoint(Player* player, BG_AV_Nodes node)
             GetNodeName(node),
             ( teamIdx == BG_TEAM_ALLIANCE ) ? LANG_BG_ALLY:LANG_BG_HORDE);
         UpdatePlayerScore(player, SCORE_TOWERS_DEFENDED, 1);
-        PlaySoundToAll(BG_AV_SOUND_BOTH_TOWER_DEFEND);
     }
     else
-    {
+    {     
         SendYell2ToAll(LANG_BG_AV_GRAVE_DEFENDED, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 0),
             GetNodeName(node),
             ( teamIdx == BG_TEAM_ALLIANCE ) ? LANG_BG_ALLY:LANG_BG_HORDE);
         UpdatePlayerScore(player, SCORE_GRAVEYARDS_DEFENDED, 1);
-    // update the statistic for the defending player
-        PlaySoundToAll((teamIdx == BG_TEAM_ALLIANCE)?BG_AV_SOUND_ALLIANCE_GOOD:BG_AV_SOUND_HORDE_GOOD);
+    // update the statistic for the defending player 
     }
+    PlaySoundToAll(BG_AV_SOUND_BOTH_TOWER_DEFEND);
 }
 
 void BattleGroundAV::EventPlayerAssaultsPoint(Player* player, BG_AV_Nodes node)
@@ -702,7 +705,7 @@ void BattleGroundAV::EventPlayerAssaultsPoint(Player* player, BG_AV_Nodes node)
         UpdatePlayerScore(player, SCORE_GRAVEYARDS_ASSAULTED, 1);
     }
 
-    PlaySoundToAll((teamIdx == BG_TEAM_ALLIANCE) ? BG_AV_SOUND_ALLIANCE_ASSAULTS : BG_AV_SOUND_HORDE_ASSAULTS);
+    PlaySoundToAll((teamIdx == BG_TEAM_ALLIANCE) ? BG_AV_SOUND_ALLIANCE_CAPTURE : BG_AV_SOUND_HORDE_CAPTURE);
 }
 
 void BattleGroundAV::FillInitialWorldStates(WorldPacket& data, uint32& count)
