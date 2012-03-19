@@ -7731,16 +7731,19 @@ void Player::SendInitWorldStates(uint32 zoneid)
 
     switch(zoneid)
     {
-        case 139:
+        case 139:   // EPL
             NumberOfFields = 39;
             break;
-        case 1377:
+        case 1377:  // Silithus
             NumberOfFields = 13;
             break;
-        case 3277:
+        case 2597:  // AV
+            NumberOfFields = 71;
+            break;
+        case 3277:  // Warsong
             NumberOfFields = 14;
             break;
-        case 3358:
+        case 3358:  // AB
             NumberOfFields = 38;
             break;
         default:
@@ -7817,12 +7820,7 @@ void Player::SendInitWorldStates(uint32 zoneid)
             break;
             case 2597:                                          // AV
                 if (bg && bg->GetTypeID() == BATTLEGROUND_AV)
-                {
                     bg->FillInitialWorldStates(data, count);
-                    BattleGroundAV* bgAV = (BattleGroundAV*)bg;
-                    if (bgAV && bgAV->GetStatus() == STATUS_IN_PROGRESS)
-                        bgAV->SetAVMapToPlayer(this);
-                }
                 else
                     FillInitialWorldState(data,count, AV_world_states);
                 break;
