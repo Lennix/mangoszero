@@ -131,7 +131,7 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
                 else if (teamIdx == BG_TEAM_HORDE)
                     Smith = player->GetMap()->GetCreature(GetSingleCreatureGuid(BG_AV_Smith_H, 0));
 
-                //here we call the scriptevzero battleground.cpp to handle the smith gossip
+                //here we call the scriptevzero alterac valley.cpp to handle the smith gossip
                 if (Smith)
                     Smith->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
                 
@@ -332,19 +332,25 @@ void BattleGroundAV::Update(uint32 diff)
             if (m_GeneralBuffTimer[i] <= diff)
             {   
                 Team team[2] = {ALLIANCE, HORDE};
-
+                GossipIndex Channel;
                 if (i > 0)
+                {
                     //text is missing / we cannot handle DoScriptText in core -> alterac valley/drekthar -> yell_random
                     PlaySoundToAll(BG_AV_SOUND_HORDE_GOOD); //probably wrong sound
+                    Channel = GOSSIP_CHANNEL2;
+                }
                 else
+                {
                     //text is missing / we cannot handle DoScriptText in core -> alterac valley/vanndar -> yell_random
                     PlaySoundToAll(BG_AV_SOUND_ALLIANCE_GOOD); //probably wrong sound
+                    Channel = GOSSIP_CHANNEL1;
+                }
 
-                if (m_Team_QuestStatus[i][0] < 1000)
+                if (GetGossipStatus(Channel) == STATUS_ACTION1)
                     CastSpellOnTeam(BG_AV_WARCRY_BUFF_1, team[i]);
-                else if (m_Team_QuestStatus[i][0] < 1500 )
+                else if (GetGossipStatus(Channel) == STATUS_ACTION2)
                     CastSpellOnTeam(BG_AV_WARCRY_BUFF_2, team[i]);
-                else if (m_Team_QuestStatus[i][0] >= 1500 )
+                else if (GetGossipStatus(Channel) == STATUS_ACTION3)
                     CastSpellOnTeam(BG_AV_WARCRY_BUFF_3, team[i]);
 
                 m_GeneralBuffTimer[i] = (180000 + (urand(0,6) * 10000));
