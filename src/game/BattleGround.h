@@ -27,7 +27,7 @@
 #include "ObjectGuid.h"
 
 // magic event-numbers
-#define BG_EVENT_NONE 25
+#define BG_EVENT_NONE 255
 // those generic events should get a high event id
 #define BG_EVENT_DOOR 254
 
