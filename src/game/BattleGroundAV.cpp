@@ -126,7 +126,7 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             //ToDo: We have to handle the supply crates!
             m_Team_QuestStatus[teamIdx][0] += 20;
             reputation = 1;
-            if( m_Team_QuestStatus[teamIdx][0] == 500 || m_Team_QuestStatus[teamIdx][0] == 1000 || m_Team_QuestStatus[teamIdx][0] == 1500 ) //25,50,75 turn ins
+            if( m_Team_QuestStatus[teamIdx][0] == 500 || m_Team_QuestStatus[teamIdx][0] == 1500 || m_Team_QuestStatus[teamIdx][0] == 3000)
             {
                 //get team smith
                 Creature* Smith = 0;
@@ -522,8 +522,10 @@ void BattleGroundAV::EventPlayerDestroyedPoint(BG_AV_Nodes node)
     if (IsTower(node))
     {
         uint8 tmp = node - BG_AV_NODES_DUNBALDAR_SOUTH;
-        // despawn marshal (one of those guys protecting the boss)
+        // despawn marshal or warmaster (one of those guys protecting the boss)
         SpawnEvent(BG_AV_MARSHAL_A_SOUTH + tmp, 0, false);
+        // spawn marshal or warmaster (one of those guys protecting the boss)
+        SpawnEvent(BG_AV_MARSHAL_H_SOUTH + tmp, 0, true);
 
         UpdateScore(GetOtherTeamIndex(ownerTeamIdx), (-1) * BG_AV_RES_TOWER);
         RewardReputationToTeam((ownerTeam == ALLIANCE) ? BG_AV_FACTION_A : BG_AV_FACTION_H, m_RepTowerDestruction, ownerTeam);
@@ -534,7 +536,7 @@ void BattleGroundAV::EventPlayerDestroyedPoint(BG_AV_Nodes node)
     {
         SendYell2ToAll(LANG_BG_AV_GRAVE_TAKEN, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 0), GetNodeName(node), (ownerTeam == ALLIANCE) ? LANG_BG_ALLY : LANG_BG_HORDE);
     }
-    PlaySoundToAll((ownerTeam == BG_AV_TEAM_ALLIANCE) ? BG_AV_SOUND_ALLIANCE_GOOD : BG_AV_SOUND_HORDE_GOOD);
+    PlaySoundToAll((GetOtherTeamIndex(ownerTeamIdx) == BG_AV_TEAM_ALLIANCE) ? BG_AV_SOUND_ALLIANCE_GOOD : BG_AV_SOUND_HORDE_GOOD);
 }
 
 void BattleGroundAV::ChangeMineOwner(uint8 mine, BattleGroundAVTeamIndex teamIdx)
@@ -910,7 +912,14 @@ void BattleGroundAV::Reset()
     m_ActiveEvents[BG_AV_BOSS_A] = 0;
     m_ActiveEvents[BG_AV_BOSS_H] = 0;
     for(BG_AV_Nodes i = BG_AV_NODES_DUNBALDAR_SOUTH; i <= BG_AV_NODES_FROSTWOLF_WTOWER; ++i)   // towers
-        m_ActiveEvents[BG_AV_MARSHAL_A_SOUTH + i - BG_AV_NODES_DUNBALDAR_SOUTH] = 0;
+    {
+        uint8 tmp = i - BG_AV_NODES_DUNBALDAR_SOUTH;
+        //marshall and warmaster of the own towers are spawned at the beginning
+        m_ActiveEvents[BG_AV_MARSHAL_A_SOUTH + tmp] = 0;
+        //marshall and warmaster of the enemy towers are despawned at the beginning
+        m_ActiveEvents[BG_AV_MARSHAL_H_SOUTH + tmp] = 0;
+        SpawnEvent(BG_AV_MARSHAL_H_SOUTH + tmp, 0, false);
+    }
 
     for(BG_AV_Nodes i = BG_AV_NODES_FIRSTAID_STATION; i <= BG_AV_NODES_STONEHEART_GRAVE; ++i)   // alliance graves
         InitNode(i, BG_AV_TEAM_ALLIANCE, false);
