@@ -175,7 +175,17 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
             m_Team_QuestStatus[teamIdx][4]++;
             reputation += 1;
             if (m_Team_QuestStatus[teamIdx][4] >= 200)
-                DEBUG_LOG("BattleGroundAV: Quest %i completed (need to implement some events here", questid);
+            {
+                //get team smith
+                Creature* summonMaster = 0;
+                if (teamIdx == BG_TEAM_ALLIANCE)
+                    summonMaster = player->GetMap()->GetCreature(GetSingleCreatureGuid(BG_AV_BOSS_SUMMON_MASTER_A, 0));
+                else if (teamIdx == BG_TEAM_HORDE)
+                    summonMaster = player->GetMap()->GetCreature(GetSingleCreatureGuid(BG_AV_BOSS_SUMMON_MASTER_H, 0));
+
+                if (summonMaster)
+                    summonMaster->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_OUTDOORPVP);
+            }
             break;
         case BG_AV_QUEST_A_NEAR_MINE:
         case BG_AV_QUEST_H_NEAR_MINE:
@@ -906,6 +916,8 @@ void BattleGroundAV::Reset()
 
     m_ActiveEvents[BG_AV_Smith_A] = 0;
     m_ActiveEvents[BG_AV_Smith_H] = 0;
+    m_ActiveEvents[BG_AV_BOSS_SUMMON_MASTER_A] = 0;
+    m_ActiveEvents[BG_AV_BOSS_SUMMON_MASTER_H] = 0;
     m_ActiveEvents[BG_AV_CAPTAIN_A] = 0;
     m_ActiveEvents[BG_AV_CAPTAIN_H] = 0;
     m_ActiveEvents[BG_AV_HERALD] = 0;

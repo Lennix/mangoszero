@@ -183,6 +183,9 @@ enum BG_AV_Nodes
 #define BG_AV_MARSHAL_A_ETOWER  73
 #define BG_AV_MARSHAL_A_WTOWER  74
 
+#define BG_AV_BOSS_SUMMON_MASTER_A 75
+#define BG_AV_BOSS_SUMMON_MASTER_H 76
+
 enum BG_AV_Graveyards
 {
     BG_AV_GRAVE_STORM_AID          = 751,
