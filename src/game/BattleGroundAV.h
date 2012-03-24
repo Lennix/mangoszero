@@ -154,6 +154,7 @@ enum BG_AV_Nodes
 #define BG_AV_MINE_EVENT_NORTH  50
 #define BG_AV_MINE_EVENT_SOUTH  51
 
+//here we have all marshals(A) and warmasters(H) who will be despawned if a tower of their own team is destroyed
 #define BG_AV_MARSHAL_A_SOUTH   52
 #define BG_AV_MARSHAL_A_NORTH   53
 #define BG_AV_MARSHAL_A_ICE     54
@@ -171,6 +172,19 @@ enum BG_AV_Nodes
 
 #define BG_AV_Smith_A 65
 #define BG_AV_Smith_H 66
+
+//here we have all marshals(A) and warmasters(H) who will be spawned if a tower of the enemy team is destroyed
+#define BG_AV_MARSHAL_H_SOUTH   67
+#define BG_AV_MARSHAL_H_NORTH   68
+#define BG_AV_MARSHAL_H_ICE2    69
+#define BG_AV_MARSHAL_H_STONE   70
+#define BG_AV_MARSHAL_A_ICE2    71
+#define BG_AV_MARSHAL_A_TOWER   72
+#define BG_AV_MARSHAL_A_ETOWER  73
+#define BG_AV_MARSHAL_A_WTOWER  74
+
+#define BG_AV_BOSS_SUMMON_MASTER_A 75
+#define BG_AV_BOSS_SUMMON_MASTER_H 76
 
 enum BG_AV_Graveyards
 {
