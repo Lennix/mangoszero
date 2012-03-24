@@ -7704,15 +7704,13 @@ int32 Unit::CalculateSpellDamage(Unit const* target, SpellEntry const* spellProt
 
     uint8 comboPoints = unitPlayer ? unitPlayer->GetComboPoints() : 0;
 
-    /*int32 level = int32(getLevel());
+    int32 level = int32(getLevel());
     if (level > (int32)spellProto->maxLevel && spellProto->maxLevel > 0)
         level = (int32)spellProto->maxLevel;
     else if (level < (int32)spellProto->baseLevel)
         level = (int32)spellProto->baseLevel;
 
-    level-= (int32)spellProto->spellLevel;*/
-    // based on MANGOS-OLDSVN-3462: "// currently the damage should not be increased by level"
-    int32 level = 0;
+    level-= (int32)spellProto->spellLevel;
 
     int32 baseDice = int32(spellProto->EffectBaseDice[effect_index]);
     float basePointsPerLevel = spellProto->EffectRealPointsPerLevel[effect_index];
