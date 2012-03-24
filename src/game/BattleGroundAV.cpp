@@ -174,7 +174,8 @@ void BattleGroundAV::HandleQuestComplete(uint32 questid, Player *player)
         case BG_AV_QUEST_H_BOSS2:
             m_Team_QuestStatus[teamIdx][4]++;
             reputation += 1;
-            if (m_Team_QuestStatus[teamIdx][4] >= 200)
+            //Zero: this feature isn't completly finished and stable
+            if (m_Team_QuestStatus[teamIdx][4] >= 20000)
             {
                 //get team smith
                 Creature* summonMaster = 0;
