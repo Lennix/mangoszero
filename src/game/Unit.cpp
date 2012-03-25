@@ -568,9 +568,10 @@ void Unit::RemoveSpellsCausingAura(AuraType auraType, SpellAuraHolder* except)
 /* Called by DealDamage for auras that have a chance to be dispelled on damage taken. */
 void Unit::RemoveSpellbyDamageTaken(uint32 damage)
 {
-    bool damageSaved = false;
-    for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end(); ++iter)
+    bool damageSaved = false, broken = false;
+    for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end();)
     {
+        broken = false;
         SpellEntry const* spell = iter->second->GetSpellProto();
         //if (spell->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
             //return;
@@ -610,6 +611,8 @@ void Unit::RemoveSpellbyDamageTaken(uint32 damage)
                         if(dmg_aura)
                             SetDamageForAuraType(AuraType(spell->EffectApplyAuraName[i]), false, damage);
                         iter = m_spellAuraHolders.begin();
+                        broken = true;
+                        break;
                     }
                     else
                     {
@@ -619,6 +622,8 @@ void Unit::RemoveSpellbyDamageTaken(uint32 damage)
                 }
             }
         }
+        if (!broken)
+            ++iter;
     }
 }
 
