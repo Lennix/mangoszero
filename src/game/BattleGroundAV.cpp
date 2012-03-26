@@ -547,7 +547,7 @@ void BattleGroundAV::EventPlayerDestroyedPoint(BG_AV_Nodes node)
     {
         SendYell2ToAll(LANG_BG_AV_GRAVE_TAKEN, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 0), GetNodeName(node), (ownerTeam == ALLIANCE) ? LANG_BG_ALLY : LANG_BG_HORDE);
     }
-    PlaySoundToAll((GetOtherTeamIndex(ownerTeamIdx) == BG_AV_TEAM_ALLIANCE) ? BG_AV_SOUND_ALLIANCE_GOOD : BG_AV_SOUND_HORDE_GOOD);
+    PlaySoundToAll(ownerTeam == ALLIANCE ? BG_AV_SOUND_ALLIANCE_GOOD : BG_AV_SOUND_HORDE_GOOD);
 }
 
 void BattleGroundAV::ChangeMineOwner(uint8 mine, BattleGroundAVTeamIndex teamIdx)
