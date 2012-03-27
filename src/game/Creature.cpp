@@ -1679,7 +1679,7 @@ bool Creature::IsImmuneToSpell(SpellEntry const* spellInfo)
             else
                 return true;
         }
-        else if (spellInfo->Mechanic == MECHANIC_BLEED)
+        else if (spellInfo->Mechanic == MECHANIC_BLEED || spellInfo->EffectMechanic[1] == MECHANIC_BLEED)   // Only Rake has MECHANOC_BLEED in EFFECT_INDEX_1
         {
             if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_BLEED)
                 return false;
@@ -1689,7 +1689,7 @@ bool Creature::IsImmuneToSpell(SpellEntry const* spellInfo)
     }
     else if (GetCreatureInfo()->type == CREATURE_TYPE_UNDEAD || GetCreatureInfo()->type == CREATURE_TYPE_MECHANICAL)
     {
-        if(spellInfo->Mechanic == MECHANIC_BLEED)
+        if(spellInfo->Mechanic == MECHANIC_BLEED || spellInfo->EffectMechanic[EFFECT_INDEX_1] == MECHANIC_BLEED)    // Only Rake has MECHANOC_BLEED in EFFECT_INDEX_1
         {
             if(GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_CAN_BLEED)
                 return false;
