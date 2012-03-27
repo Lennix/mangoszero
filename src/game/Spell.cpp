@@ -1042,9 +1042,12 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
             if (!unit->isInCombat() && real_caster->GetTypeId() != TYPEID_PLAYER && ((Creature*)real_caster)->AI())
                 real_caster->AddThreat(unit);
 
-            unit->AddThreat(real_caster);
-            unit->SetInCombatWith(real_caster);
-            real_caster->SetInCombatWith(unit);
+            if (missInfo == SPELL_MISS_MISS || missInfo == SPELL_MISS_RESIST)
+            {
+                unit->AddThreat(real_caster);
+                unit->SetInCombatWith(real_caster);
+                real_caster->SetInCombatWith(unit);
+            }
         }
     }
 
