@@ -4209,7 +4209,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                         target_hostile = m_caster->IsHostileTo(target);
                     }
 
-                    if(target_hostile)
+                    if(target_hostile && !(m_spellInfo->Category == SPELLCATEGORY_DEVOUR_MAGIC))
                         return SPELL_FAILED_BAD_TARGETS;
                 }
                 else
@@ -5147,7 +5147,7 @@ SpellCastResult Spell::CheckPetCast(Unit* target)
             if (!_target->isTargetableForAttack())
                 return SPELL_FAILED_BAD_TARGETS;            // guessed error
 
-            if(IsPositiveSpell(m_spellInfo->Id))
+            if(IsPositiveSpell(m_spellInfo->Id) && !(m_spellInfo->Category == SPELLCATEGORY_DEVOUR_MAGIC))
             {
                 if(m_caster->IsHostileTo(_target))
                     return SPELL_FAILED_BAD_TARGETS;
