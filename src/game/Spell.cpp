@@ -4490,10 +4490,17 @@ SpellCastResult Spell::CheckCast(bool strict)
 
     // Nothing to dispel
     if(Unit *target = m_targets.getUnitTarget())
-        if (m_spellInfo->Effect[EFFECT_INDEX_0] == SPELL_EFFECT_DISPEL && !m_IsTriggeredSpell)
-            if(!(m_spellInfo->Effect[EFFECT_INDEX_1] || m_spellInfo->Effect[EFFECT_INDEX_2]))
-                if (!(target->HasAuraWithDispelType(DispelType(m_spellInfo->EffectMiscValue[EFFECT_INDEX_0]), m_caster)))
-                    return SPELL_FAILED_NOTHING_TO_DISPEL;
+        if(!m_IsTriggeredSpell && m_spellInfo->Attributes & SPELL_ATTR_NOT_SHAPESHIFT)      //should be correct in most cases - maybe not 100%
+        {
+            bool found = false;
+            for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
+                if(m_spellInfo->Effect[i] == SPELL_EFFECT_DISPEL)
+                    if (target->HasAuraWithDispelType(DispelType(m_spellInfo->EffectMiscValue[i]), m_caster))
+                        found = true;
+
+            if(!found )
+                return SPELL_FAILED_NOTHING_TO_DISPEL;
+        }
 
     if (m_spellInfo->SpellFamilyName == SPELLFAMILY_ROGUE)
     {
