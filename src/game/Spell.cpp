@@ -4498,7 +4498,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                     if (target->HasAuraWithDispelType(DispelType(m_spellInfo->EffectMiscValue[i]), m_caster))
                         found = true;
 
-            if(!found )
+            if(!found && !(m_spellInfo->Attributes & SPELL_ATTR_UNK11))
                 return SPELL_FAILED_NOTHING_TO_DISPEL;
         }
 
