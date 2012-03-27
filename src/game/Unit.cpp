@@ -4536,6 +4536,34 @@ bool Unit::HasAura(uint32 spellId, SpellEffectIndex effIndex) const
     return false;
 }
 
+bool Unit::HasAuraWithDispelType(DispelType type, Unit const* unit)
+{
+    SpellAuraHolderMap& auras = GetSpellAuraHolderMap();
+    for (SpellAuraHolderMap::iterator itr = auras.begin(); itr != auras.end(); ++itr)
+    {
+        SpellAuraHolder *holder = itr->second;
+        if (holder->GetSpellProto()->Dispel == type)
+        {
+            if(holder->GetSpellProto()->Dispel == DISPEL_MAGIC)
+            {
+                bool positive = true;
+                if (!holder->IsPositive())
+                    positive = false;
+                else
+                    positive = (holder->GetSpellProto()->AttributesEx & SPELL_ATTR_EX_NEGATIVE)==0;
+
+                // do not remove positive auras if friendly target
+                //               negative auras if non-friendly target
+                if (positive == IsFriendlyTo(unit))
+                    continue;
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void Unit::AddDynObject(DynamicObject* dynObj)
 {
     m_dynObjGUIDs.push_back(dynObj->GetObjectGuid());

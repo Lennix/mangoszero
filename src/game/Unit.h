@@ -1231,6 +1231,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         {
             return m_spellAuraHolders.find(spellId) != m_spellAuraHolders.end();
         }
+        bool HasAuraWithDispelType(DispelType type, Unit const* unit);
 
         bool virtual HasSpell(uint32 /*spellID*/) const { return false; }
 

@@ -4488,6 +4488,12 @@ SpellCastResult Spell::CheckCast(bool strict)
             return castResult;
     }
 
+    // Nothing to dispel
+    if(Unit *target = m_targets.getUnitTarget())
+        if (m_spellInfo->Effect[EFFECT_INDEX_0] == SPELL_EFFECT_DISPEL && !m_IsTriggeredSpell)
+            if (!(target->HasAuraWithDispelType(DispelType(m_spellInfo->EffectMiscValue[EFFECT_INDEX_0]), m_caster)))
+                return SPELL_FAILED_NOTHING_TO_DISPEL;
+
     if (m_spellInfo->SpellFamilyName == SPELLFAMILY_ROGUE)
     {
         if (!m_caster->HasInArc(M_PI_F, m_targets.getUnitTarget())
