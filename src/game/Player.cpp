@@ -1025,7 +1025,7 @@ void Player::HandleDrowning(uint32 time_diff)
             m_MirrorTimer[FIRE_TIMER]-=time_diff;
             if (m_MirrorTimer[FIRE_TIMER] < 0)
             {
-                m_MirrorTimer[FIRE_TIMER]+= 1*IN_MILLISECONDS;
+                m_MirrorTimer[FIRE_TIMER]+= 2*IN_MILLISECONDS;
                 // Calculate and deal damage
                 // TODO: Check this formula
                 uint32 damage = urand(600, 700);
