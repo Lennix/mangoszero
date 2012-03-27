@@ -4492,13 +4492,22 @@ SpellCastResult Spell::CheckCast(bool strict)
     if(Unit *target = m_targets.getUnitTarget())
         if(!m_IsTriggeredSpell && m_spellInfo->Attributes & SPELL_ATTR_NOT_SHAPESHIFT)      //should be correct in most cases - maybe not 100%
         {
-            bool found = false;
+            bool foundSpellToDispell = false;
+            bool isDispelSpell = false;
             for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
+            {
                 if(m_spellInfo->Effect[i] == SPELL_EFFECT_DISPEL)
+                {
+                    isDispelSpell = true;
                     if (target->HasAuraWithDispelType(DispelType(m_spellInfo->EffectMiscValue[i]), m_caster))
-                        found = true;
+                    {
+                        foundSpellToDispell = true;
+                        break;
+                    }
+                }
+            }
 
-            if(!found && !(m_spellInfo->Attributes & SPELL_ATTR_UNK11))
+            if(!foundSpellToDispell && isDispelSpell && !(m_spellInfo->Attributes & SPELL_ATTR_UNK11))
                 return SPELL_FAILED_NOTHING_TO_DISPEL;
         }
 
