@@ -719,10 +719,6 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
                 }   break;
                 case SPELL_AURA_MOD_DAMAGE_DONE:            // dependent from base point sign (negative -> negative)
                 case SPELL_AURA_MOD_RESISTANCE:
-                case SPELL_AURA_MOD_TARGET_RESISTANCE:
-                    if(spellproto->CalculateSimpleValue(effIndex) < 0)
-                        return true;
-                    break;
                 case SPELL_AURA_MOD_STAT:
                 case SPELL_AURA_MOD_SKILL:
                 case SPELL_AURA_MOD_DODGE_PERCENT:
@@ -731,7 +727,9 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
                     if(spellproto->CalculateSimpleValue(effIndex) < 0)
                         return false;
                     break;
-                case SPELL_AURA_MOD_DAMAGE_TAKEN:           // dependent from bas point sign (positive -> negative)
+                case SPELL_AURA_MOD_TARGET_RESISTANCE:      // dependent from base point sign (positive -> negative)
+                case SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN:
+                case SPELL_AURA_MOD_DAMAGE_TAKEN:
                     if (spellproto->CalculateSimpleValue(effIndex) < 0)
                         return true;
                     // let check by target modes (for Amplify Magic cases/etc)
