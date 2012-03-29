@@ -4559,13 +4559,6 @@ void Spell::EffectAddExtraAttacks(SpellEffectIndex /*eff_idx*/)
 
     if (!pVictim)
         return;
-
-    while(unitTarget->m_extraAttacks)
-    {
-        unitTarget->AttackerStateUpdate(pVictim, BASE_ATTACK, true);
-        if (unitTarget->m_extraAttacks > 0)
-            --unitTarget->m_extraAttacks;
-    }
 }
 
 void Spell::EffectParry(SpellEffectIndex /*eff_idx*/)

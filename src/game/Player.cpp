@@ -6816,6 +6816,10 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType)
                 continue;
             }
 
+            bool IsExtraAttack = IsSpellHaveEffect(spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS);
+            if(IsExtraAttack && m_extraAttacks)
+                return;
+
             // Use first rank to access spell item enchant procs
             float ppmRate = sSpellMgr.GetItemEnchantProcChance(spellInfo->Id);
 
@@ -6823,26 +6827,22 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType)
                 ? GetPPMProcChance(proto->Delay, ppmRate)
                 : pEnchant->amount[s] != 0 ? float(pEnchant->amount[s]) : GetWeaponProcChance();
 
-
             ApplySpellMod(spellInfo->Id,SPELLMOD_CHANCE_OF_SUCCESS, chance);
 
             if (roll_chance_f(chance))
             {
                 if (IsPositiveSpell(spellInfo->Id))
                 {
-                        CastSpell(this, spellInfo->Id, true, item);
-                        for (int i = 0; i < MAX_EFFECT_INDEX; i++)  // instantly do extra attacks, not on next swing!
+                    CastSpell(this, spellInfo->Id, true, item);
+                    if(IsExtraAttack)
+                    {
+                        while(m_extraAttacks)
                         {
-                                if (spellInfo->Effect[i] == SPELL_EFFECT_ADD_EXTRA_ATTACKS)
-                                {
-                                        if (m_extraAttacks > 0)
-                                        {
-                                                --m_extraAttacks;
-                                                AttackerStateUpdate(Target,BASE_ATTACK,false);
-                                        }
-                                        break;
-                                }
+                            AttackerStateUpdate(Target, BASE_ATTACK, true);
+                            if (m_extraAttacks > 0)
+                                --m_extraAttacks;
                         }
+                    }
                 }
                 else
                     CastSpell(Target, spellInfo->Id, true, item);
