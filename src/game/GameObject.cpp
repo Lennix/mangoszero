@@ -302,24 +302,36 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                         }
                     }
 
-                    //Trap Faction Calculation
-                    if (goInfo->faction != 0)
+                    //battleground traps are special, so trap faction doesnt matter, we will always and only trigger with player
+                    if (IsBattleGroundTrap)
                     {
-                        //if we have a faction get unfriendly targets to trigger the trap
-                        MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, radius);
-                        MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
-                        Cell::VisitGridObjects(this, checker, radius);
-                        if (!ok)
-                            Cell::VisitWorldObjects(this, checker, radius);
+                        Player* p_ok = NULL;
+                        MaNGOS::AnyPlayerInObjectRangeCheck p_check(this, radius);
+                        MaNGOS::PlayerSearcher<MaNGOS::AnyPlayerInObjectRangeCheck>  checker(p_ok, p_check);
+                        Cell::VisitWorldObjects(this,checker, radius);
+                        ok = p_ok;
                     }
                     else
                     {
-                        //if we have no faction trigger in every case
-                        MaNGOS::AnyUnitInObjectRangeCheck u_check(this, radius);
-                        MaNGOS::UnitSearcher<MaNGOS::AnyUnitInObjectRangeCheck> checker(ok, u_check);
-                        Cell::VisitGridObjects(this, checker, radius);
-                        if (!ok)
-                            Cell::VisitWorldObjects(this, checker, radius);
+                        //Trap Faction Calculation
+                        if (goInfo->faction != 0)
+                        {
+                            //if we have a faction get unfriendly targets to trigger the trap
+                            MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, radius);
+                            MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
+                            Cell::VisitGridObjects(this, checker, radius);
+                            if (!ok)
+                                Cell::VisitWorldObjects(this, checker, radius);
+                        }
+                        else
+                        {
+                            //if we have no faction trigger in every case
+                            MaNGOS::AnyUnitInObjectRangeCheck u_check(this, radius);
+                            MaNGOS::UnitSearcher<MaNGOS::AnyUnitInObjectRangeCheck> checker(ok, u_check);
+                            Cell::VisitGridObjects(this, checker, radius);
+                            if (!ok)
+                                Cell::VisitWorldObjects(this, checker, radius);
+                        }
                     }
 			        
                     //Trigger Trap
