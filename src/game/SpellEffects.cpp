@@ -3149,7 +3149,7 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
         return;
     }
 
-    Pet* NewSummon = new Pet;
+    Pet* NewSummon = new Pet(m_caster->getClass() == CLASS_HUNTER ? HUNTER_PET : SUMMON_PET);
 
     // petentry==0 for hunter "call pet" (current pet summoned if any)
     if(m_caster->GetTypeId() == TYPEID_PLAYER && NewSummon->LoadPetFromDB((Player*)m_caster,petentry))
