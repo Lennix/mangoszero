@@ -4555,6 +4555,13 @@ SpellCastResult Spell::CheckCast(bool strict)
             return SPELL_FAILED_UNIT_NOT_INFRONT;
     }
 
+    // prevent spellcasting of spells which might kill the player (like Health Funnel/Hellfire/Flee/Dark//Demonic Rune)
+    if(m_caster->GetTypeId() == TYPEID_PLAYER)
+        if(BattleGround const *bg = ((Player*)m_caster)->GetBattleGround())
+            if(bg->GetStatus() != STATUS_IN_PROGRESS)
+                if(m_spellInfo->Id == 5024 || m_spellInfo->Id == 16666 || m_spellInfo->Id == 27869 || (m_spellInfo->SpellFamilyName == SPELLFAMILY_WARLOCK && m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000001000040)))
+                    return SPELL_FAILED_CANT_DO_THAT_YET;
+
     for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
     {
         // for effects of spells that have only one target
@@ -4949,7 +4956,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 if(m_caster->GetTypeId() == TYPEID_PLAYER)
                     if(BattleGround const *bg = ((Player*)m_caster)->GetBattleGround())
                         if(bg->GetStatus() != STATUS_IN_PROGRESS)
-                            return SPELL_FAILED_TRY_AGAIN;
+                            return SPELL_FAILED_CANT_DO_THAT_YET;
                 break;
             }
             default:break;
