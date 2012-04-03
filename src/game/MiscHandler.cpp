@@ -635,6 +635,12 @@ void WorldSession::HandleReclaimCorpseOpcode(WorldPacket &recv_data)
     if (!corpse->IsWithinDistInMap(GetPlayer(), CORPSE_RECLAIM_RADIUS, true))
         return;
 
+    // prevent cheating
+    if(GetPlayer()->InBattleGround())
+        if(BattleGround const *bg = GetPlayer()->GetBattleGround())
+            if(bg->GetStatus() != STATUS_IN_PROGRESS)
+                return;
+
     // resurrect
     GetPlayer()->ResurrectPlayer(GetPlayer()->InBattleGround() ? 1.0f : 0.5f);
 
