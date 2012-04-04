@@ -4490,7 +4490,7 @@ SpellCastResult Spell::CheckCast(bool strict)
 
     // Nothing to dispel
     if(Unit *target = m_targets.getUnitTarget())
-        if(!m_IsTriggeredSpell && m_spellInfo->Attributes & SPELL_ATTR_NOT_SHAPESHIFT && !(m_spellInfo->Attributes & SPELL_ATTR_ABILITY))      //should be correct in most cases - maybe not 100%
+        if(!m_IsTriggeredSpell && m_spellInfo->Attributes & SPELL_ATTR_NOT_SHAPESHIFT && !(m_spellInfo->Attributes & SPELL_ATTR_ABILITY) && !(m_spellInfo->Attributes & SPELL_ATTR_UNK11))      //should be correct in most cases - maybe not 100%
         {
             bool foundSpellToDispell = false;
             bool isDispelSpell = false;
@@ -4507,7 +4507,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 }
             }
 
-            if(!foundSpellToDispell && isDispelSpell && !(m_spellInfo->Attributes & SPELL_ATTR_UNK11))
+            if(!foundSpellToDispell && isDispelSpell)
                 return SPELL_FAILED_NOTHING_TO_DISPEL;
         }
 

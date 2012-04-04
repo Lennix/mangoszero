@@ -4548,9 +4548,14 @@ bool Unit::HasAuraWithDispelType(DispelType type, Unit const* unit)
             {
                 bool positive = true;
                 if (!holder->IsPositive())
+                {
                     positive = false;
+                }
                 else
-                    positive = (holder->GetSpellProto()->AttributesEx & SPELL_ATTR_EX_NEGATIVE)==0;
+                {
+                    if (!(holder->GetSpellProto()->Id == 19714))
+                        positive = (holder->GetSpellProto()->AttributesEx & SPELL_ATTR_EX_NEGATIVE)==0;
+                }
 
                 // do not remove positive auras if friendly target
                 //               negative auras if non-friendly target

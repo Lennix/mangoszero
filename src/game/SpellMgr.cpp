@@ -728,7 +728,6 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
                         return false;
                     break;
                 case SPELL_AURA_MOD_TARGET_RESISTANCE:      // dependent from base point sign (positive -> negative)
-                case SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN:
                 case SPELL_AURA_MOD_DAMAGE_TAKEN:
                     if (spellproto->CalculateSimpleValue(effIndex) < 0)
                         return true;
