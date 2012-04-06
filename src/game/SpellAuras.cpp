@@ -5909,7 +5909,7 @@ void SpellAuraHolder::Update(uint32 diff)
         }
 
         // heartbeat implementation
-        if (GetAllSpellMechanicMask(GetSpellProto()) && GetSpellProto()->Attributes & SPELL_ATTR_UNK30)
+        if (m_target->GetTypeId() == TYPEID_PLAYER && GetAllSpellMechanicMask(GetSpellProto()) && GetSpellProto()->Attributes & SPELL_ATTR_UNK30)
         {
             m_heartbeat -= diff;
             if (m_heartbeat <= 0)
