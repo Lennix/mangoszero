@@ -5372,7 +5372,7 @@ bool Aura::IsLastAuraOnHolder()
 SpellAuraHolder::SpellAuraHolder(SpellEntry const* spellproto, Unit *target, WorldObject *caster, Item *castItem) :
 m_spellProto(spellproto), m_target(target), m_castItemGuid(castItem ? castItem->GetObjectGuid() : ObjectGuid()),
 m_auraSlot(MAX_AURAS), m_auraLevel(1), m_procCharges(0),
-m_stackAmount(1), m_removeMode(AURA_REMOVE_BY_DEFAULT), m_AuraDRGroup(DIMINISHING_NONE), m_timeCla(1000),
+m_stackAmount(1), m_removeMode(AURA_REMOVE_BY_DEFAULT), m_AuraDRGroup(DIMINISHING_NONE), m_timeCla(1000), m_heartbeat(1000),
 m_permanent(false), m_isRemovedOnShapeLost(true), m_deleted(false), m_in_use(0)
 {
     MANGOS_ASSERT(target);
@@ -5908,6 +5908,23 @@ void SpellAuraHolder::Update(uint32 diff)
             }
         }
 
+        // heartbeat implementation
+        if (GetAllSpellMechanicMask(GetSpellProto()) && GetSpellProto()->Attributes & SPELL_ATTR_UNK30)
+        {
+            m_heartbeat -= diff;
+            if (m_heartbeat <= 0)
+            {
+                uint32 chanceToBreak = 5;
+                if(m_duration<(m_maxDuration-15000))
+                    chanceToBreak *= 2;
+                uint32 chance = urand(0,100);
+                if(chance < chanceToBreak)
+                    m_target->RemoveAurasDueToSpell(GetId());
+
+                m_heartbeat = 1*IN_MILLISECONDS;
+            }
+        }
+
         m_timeCla -= diff;
 
         if (m_timeCla <= 0)
@@ -5928,8 +5945,8 @@ void SpellAuraHolder::Update(uint32 diff)
             }
         }
         
-        // Spell add to diminishing group after 15 sec
-        if (((m_maxDuration - m_duration) > 15000) && m_target->GetDiminishing(m_AuraDRGroup) == DIMINISHING_LEVEL_1)
+        // Spell add to diminishing group
+        if (m_target->GetDiminishing(m_AuraDRGroup) == DIMINISHING_LEVEL_1)
         {
             if ((GetDiminishingReturnsGroupType(m_AuraDRGroup) == DRTYPE_PLAYER && m_target->GetTypeId() == TYPEID_PLAYER) ||
                 GetDiminishingReturnsGroupType(m_AuraDRGroup) == DRTYPE_ALL)
@@ -5946,6 +5963,7 @@ void SpellAuraHolder::Update(uint32 diff)
     {
         Unit* caster = GetCaster();
         if(!caster)
+
         {
             m_target->RemoveAurasByCasterSpell(GetId(), GetCasterGuid());
             return;

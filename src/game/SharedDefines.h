@@ -2099,6 +2099,8 @@ enum DiminishingGroup
     DIMINISHING_TRIGGER_ROOT,                               // Immobilizing effects from triggered spells like Frostbite
     DIMINISHING_FEAR,                                       // Non-warlock fears
     DIMINISHING_CHARM,
+    // Shaman Specific
+    DIMINISHING_FROST_SHOCK,
     // Mage Specific
     DIMINISHING_POLYMORPH,
     // Rogue Specific

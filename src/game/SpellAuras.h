@@ -180,6 +180,7 @@ class MANGOS_DLL_SPEC SpellAuraHolder
         int32 m_maxDuration;                                // Max aura duration
         int32 m_duration;                                   // Current time
         int32 m_timeCla;                                    // Timer for power per sec calculation
+        int32 m_heartbeat;                                  // heartbeat timer
 
         AuraRemoveMode m_removeMode:8;                      // Store info for know remove aura reason
         DiminishingGroup m_AuraDRGroup:8;                   // Diminishing

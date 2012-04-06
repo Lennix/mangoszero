@@ -3918,7 +3918,7 @@ DiminishingGroup GetDiminishingReturnsGroupForSpell(SpellEntry const* spellproto
         {
             // Frost Shock - limit duration in PvP
             if (spellproto->SpellFamilyFlags & UI64LIT(0x00080000000))
-                return DIMINISHING_LIMITONLY;
+                return DIMINISHING_FROST_SHOCK;
             break;
         }
         default:
@@ -3934,6 +3934,8 @@ DiminishingGroup GetDiminishingReturnsGroupForSpell(SpellEntry const* spellproto
         return triggered ? DIMINISHING_TRIGGER_STUN : DIMINISHING_CONTROL_STUN;
     if (mechanic & (1<<(MECHANIC_SLEEP-1)))
         return DIMINISHING_SLEEP;
+    if (spellproto->SpellFamilyName == SPELLFAMILY_SHAMAN && spellproto->SpellFamilyFlags & UI64LIT(0x0000000080000000))
+        return DIMINISHING_FROST_SHOCK;
     if (mechanic & (1<<(MECHANIC_POLYMORPH-1)))
         return DIMINISHING_POLYMORPH;
     if (mechanic & (1<<(MECHANIC_ROOT-1)))
@@ -3971,6 +3973,7 @@ bool IsDiminishingReturnsGroupDurationLimited(DiminishingGroup group)
         case DIMINISHING_FEAR:
         case DIMINISHING_WARLOCK_FEAR:
         case DIMINISHING_CHARM:
+        case DIMINISHING_FROST_SHOCK:
         case DIMINISHING_POLYMORPH:
         case DIMINISHING_FREEZE:
         case DIMINISHING_KNOCKOUT:
@@ -3998,6 +4001,7 @@ DiminishingReturnsType GetDiminishingReturnsGroupType(DiminishingGroup group)
         case DIMINISHING_TRIGGER_ROOT:
         case DIMINISHING_FEAR:
         case DIMINISHING_CHARM:
+        case DIMINISHING_FROST_SHOCK:
         case DIMINISHING_POLYMORPH:
         case DIMINISHING_SILENCE:
         case DIMINISHING_DISARM:
