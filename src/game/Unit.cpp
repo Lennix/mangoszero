@@ -2763,6 +2763,9 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit *pVictim, SpellEntry const *spell)
 //   Resist
 SpellMissInfo Unit::SpellHitResult(Unit *pVictim, SpellEntry const *spell, bool CanReflect)
 {
+    // Return SPELL_MISS_NONE if spell flagged with attribute SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY
+    if (spell->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+        return SPELL_MISS_NONE;
     // Return evade for units in evade mode
     if (pVictim->GetTypeId()==TYPEID_UNIT && ((Creature*)pVictim)->IsInEvadeMode())
         return SPELL_MISS_EVADE;
@@ -6293,7 +6296,7 @@ bool Unit::IsImmunedToDamage(SpellSchoolMask shoolMask)
 
 bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo)
 {
-    if (!spellInfo || spellInfo->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+    if (!spellInfo)
         return false;
 
     //TODO add spellEffect immunity checks!, player with flag in bg is immune to immunity buffs from other friendly players!
@@ -6332,6 +6335,8 @@ bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo)
 
 bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index) const
 {
+    if (spellInfo->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+        return false;
     //If m_immuneToEffect type contain this effect type, IMMUNE effect.
     uint32 effect = spellInfo->Effect[index];
     SpellImmuneList const& effectList = m_spellImmune[IMMUNITY_EFFECT];
