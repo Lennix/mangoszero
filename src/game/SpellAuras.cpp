@@ -5909,16 +5909,16 @@ void SpellAuraHolder::Update(uint32 diff)
         }
 
         // heartbeat implementation
-        if (m_target->GetTypeId() == TYPEID_PLAYER && GetAllSpellMechanicMask(GetSpellProto()) && GetSpellProto()->Attributes & SPELL_ATTR_UNK30)
+        if (m_target->GetTypeId() == TYPEID_PLAYER && GetAllSpellMechanicMask(GetSpellProto()) && GetSpellProto()->Attributes & SPELL_ATTR_UNK30 && m_maxDuration>10*IN_MILLISECONDS)
         {
             m_heartbeat -= diff;
             if (m_heartbeat <= 0)
             {
                 uint32 chanceToBreak = 5;
-                if(m_duration<(m_maxDuration-15000))
+                if(m_duration<(m_maxDuration-15*IN_MILLISECONDS))   //increase chance if effect lasts longer than 15 sec
                     chanceToBreak *= 2;
                 uint32 chance = urand(0,100);
-                if(chance < chanceToBreak)
+                if((chance < chanceToBreak) && m_duration<(m_maxDuration-10*IN_MILLISECONDS)) //start heartbeating at 10 sec
                     m_target->RemoveAurasDueToSpell(GetId());
 
                 m_heartbeat = 1*IN_MILLISECONDS;

@@ -575,7 +575,7 @@ void Unit::RemoveSpellbyDamageTaken(uint32 damage)
         SpellEntry const* spell = iter->second->GetSpellProto();
         //if (spell->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
             //return;
-        if (spell->Attributes & SPELL_ATTR_UNK30 || spell->Attributes & SPELL_ATTR_STOP_ATTACK_TARGET)
+        if (spell->Attributes & SPELL_ATTR_UNK30 || spell->Attributes & SPELL_ATTR_STOP_ATTACK_TARGET || spell->Id == 5246)
         {
             for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
             {
@@ -596,6 +596,9 @@ void Unit::RemoveSpellbyDamageTaken(uint32 damage)
                     default:
                         break;
                 }
+
+                if(spell->Id == 5246)   // Intimidating Shout
+                    instantBreak = true;
 
                 if(allow && !damageSaved)
                 {
