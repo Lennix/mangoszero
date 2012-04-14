@@ -4338,6 +4338,11 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                                 if (p_GameObject)
                                 {
+                                    //razorgore egg needs active check
+                                    //not sure if this has to be a global check cause which object should be able to trigger if it is despawned ???
+                                    if (p_GameObject->GetEntry() == 177807 && p_GameObject->GetRespawnTime() != 0)
+                                        break;
+
                                     // remember found target and range, next attempt will find more near target with another entry
                                     creatureScriptTarget = NULL;
                                     goScriptTarget = p_GameObject;
