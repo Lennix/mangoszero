@@ -4920,18 +4920,22 @@ SpellCastResult Spell::CheckCast(bool strict)
                     return SPELL_FAILED_BAD_TARGETS;
 
                 // check if our map is dungeon
-                if( sMapStore.LookupEntry(m_caster->GetMapId())->IsDungeon() )
+                if (sMapStore.LookupEntry(m_caster->GetMapId())->IsDungeon())
                 {
                     // Caster instance and target instance
                     InstanceTemplate const* instanceCaster = ObjectMgr::GetInstanceTemplate(m_caster->GetMapId());
                     InstanceTemplate const* instanceTarget = ObjectMgr::GetInstanceTemplate(target->GetMapId());
-                    if(!instanceCaster || !instanceTarget || m_caster->GetMapId() != target->GetMapId())
+                    if (!instanceCaster || !instanceTarget || m_caster->GetMapId() != target->GetMapId())
                         return SPELL_FAILED_TARGET_NOT_IN_INSTANCE;
-                    if ( instanceCaster->levelMin > target->getLevel() )
+                    if (instanceCaster->levelMin > target->getLevel())
                         return SPELL_FAILED_LOWLEVEL;
-                    if ( instanceCaster->levelMax && instanceCaster->levelMax < target->getLevel() )
+                    if (instanceCaster->levelMax && instanceCaster->levelMax < target->getLevel())
                         return SPELL_FAILED_HIGHLEVEL;
                 }
+                // Summon player not in battlegrounds
+                else if (sMapStore.LookupEntry(m_caster->GetMapId())->IsBattleGround())
+                    return SPELL_FAILED_PREVENTED_BY_MECHANIC;
+
                 break;
             }
             case SPELL_EFFECT_LEAP:
