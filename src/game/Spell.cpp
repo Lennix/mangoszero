@@ -3040,11 +3040,6 @@ void Spell::update(uint32 difftime)
                     m_timer -= difftime;
             }
 
-            // Check cast for non-player units
-            if( m_caster->GetTypeId() == TYPEID_UNIT && m_timer != 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat()
-                && (m_caster->hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL) || m_caster->hasUnitState(UNIT_STAT_FLEEING_MOVE)))
-                cancel();
-
             if(m_timer == 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat())
                 cast();
         } break;
