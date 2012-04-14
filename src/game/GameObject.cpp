@@ -178,16 +178,18 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
         return;
     }
 
+    GameObjectInfo const* goInfo = GetGOInfo();
+
     switch (m_lootState)
     {
         case GO_NOT_READY:
         {
-            switch(GetGoType())
+            switch(goInfo->type)
             {
                 case GAMEOBJECT_TYPE_TRAP:
                 {
                     // Arming Time for GAMEOBJECT_TYPE_TRAP (6)
-                    uint32 startDelay = GetGOInfo()->trap.startDelay;
+                    uint32 startDelay = goInfo->trap.startDelay;
                     if (startDelay > 0)
                         m_cooldownTime = time(NULL) + startDelay;
                     m_lootState = GO_READY;
@@ -214,6 +216,9 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                     }
                     return;
                 }
+                case GAMEOBJECT_TYPE_CHEST:
+                    if (goInfo->chest.chestRestockTime > 0)
+                        m_cooldownTime = time(NULL);
                 default:
                     m_lootState = GO_READY;                 // for other GO is same switched without delay to GO_READY
                     break;
@@ -222,7 +227,6 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
         }
         case GO_READY:
         {
-            GameObjectInfo const* goInfo = GetGOInfo();
             if (m_respawnTime > 0)                          // timer on
             {
                 if (m_respawnTime <= time(NULL))            // timer expired
@@ -246,16 +250,18 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                             m_lootState = GO_JUST_DEACTIVATED;
                             return;
                         }
+                        case GAMEOBJECT_TYPE_CHEST:
+                            // We're using the cooldown time to set the spawn time on despawnable gobjs
+                            if (goInfo->chest.chestRestockTime > 0)
+                                m_cooldownTime = time(NULL);
+                            GetMap()->Add(this);
+                            break;
                         case GAMEOBJECT_TYPE_DOOR:
                         case GAMEOBJECT_TYPE_BUTTON:
                             //we need to open doors if they are closed (add there another condition if this code breaks some usage, but it need to be here for battlegrounds)
                             if (GetGoState() != GO_STATE_READY)
                                 ResetDoorOrButton();
                             //flags in AB are type_button and we need to add them here so no break!
-                        //case GAMEOBJECT_TYPE_CHEST:
-                        //    // We're using the cooldown time to set the spawn time on despawnable gobjs
-                        //    if (goInfo->chest.chestRestockTime > 0)
-                        //        m_cooldownTime = time(NULL);
                         default:
                             if (!m_spawnedByDefault)        // despawn timer
                             {
@@ -355,17 +361,17 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                         }
                     }
                 }
-                //else if (goInfo->type == GAMEOBJECT_TYPE_CHEST)
-                //{
-                //    // If we have a chestRestockTime we want to despawn it
-                //    if (goInfo->chest.chestRestockTime > 0 && (time(NULL) - m_cooldownTime) > goInfo->chest.chestRestockTime*MINUTE*IN_MILLISECONDS)
-                //    {
-                //        uint32 despawnChance = ((time(NULL) - m_cooldownTime)/IN_MILLISECONDS) * float(goInfo->chest.chestRestockTime/100);
-                //        uint32 roll = irand(0,1000);
-                //        if (despawnChance > roll)
-                //            SetLootState(GO_JUST_DEACTIVATED);
-                //    }
-                //}
+                else if (goInfo->type == GAMEOBJECT_TYPE_CHEST)
+                {
+                    // If we have a chestRestockTime we want to despawn it
+                    if (m_cooldownTime > 0 && goInfo->chest.chestRestockTime > 0 && (time(NULL) - m_cooldownTime) > goInfo->chest.chestRestockTime*MINUTE*IN_MILLISECONDS)
+                    {
+                        float despawnChance = (time(NULL) - m_cooldownTime) * float(goInfo->chest.chestRestockTime)/100;
+                        uint32 roll = irand(0,1000);
+                        if (despawnChance > roll)
+                            SetLootState(GO_JUST_DEACTIVATED);
+                    }
+                }
                 if (uint32 max_charges = goInfo->GetCharges())
                 {
                     if (m_useTimes >= max_charges)
