@@ -3040,11 +3040,6 @@ void Spell::update(uint32 difftime)
                     m_timer -= difftime;
             }
 
-            // Check cast for non-player units
-            if( m_caster->GetTypeId() == TYPEID_UNIT && m_timer != 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat()
-                && (m_caster->hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL) || m_caster->hasUnitState(UNIT_STAT_FLEEING_MOVE)))
-                cancel();
-
             if(m_timer == 0 && !IsNextMeleeSwingSpell() && !IsAutoRepeat())
                 cast();
         } break;
@@ -4338,6 +4333,11 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                                 if (p_GameObject)
                                 {
+                                    //razorgore egg needs active check
+                                    //not sure if this has to be a global check cause which object should be able to trigger if it is despawned ???
+                                    if (p_GameObject->GetEntry() == 177807 && p_GameObject->GetRespawnTime() != 0)
+                                        break;
+
                                     // remember found target and range, next attempt will find more near target with another entry
                                     creatureScriptTarget = NULL;
                                     goScriptTarget = p_GameObject;
