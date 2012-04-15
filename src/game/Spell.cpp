@@ -4934,7 +4934,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 }
                 // Summon player not in battlegrounds
                 else if (sMapStore.LookupEntry(m_caster->GetMapId())->IsBattleGround())
-                    return SPELL_FAILED_PREVENTED_BY_MECHANIC;
+                    return SPELL_FAILED_NOT_HERE;
 
                 break;
             }
