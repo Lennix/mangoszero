@@ -261,8 +261,12 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
             }
             else
             {
-                if (pet->HasAuraType(SPELL_AURA_MOD_POSSESS) || result != SPELL_FAILED_AFFECTING_COMBAT)
+                /*if (pet->HasAuraType(SPELL_AURA_MOD_POSSESS) || result != SPELL_FAILED_AFFECTING_COMBAT)
                     Spell::SendCastResult(GetPlayer(), spellInfo, result);
+                else
+                    pet->SendPetCastFail(spellid, result);*/
+                if (Player* owner = GetPlayer())
+                    Spell::SendCastResult(owner, spellInfo, result);
                 else
                     pet->SendPetCastFail(spellid, result);
 
