@@ -13737,7 +13737,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
 
     if (isTrial() && m_Played_time[PLAYED_TIME_TOTAL] > 24*60*60)
     {
-        sLog.outError("Player #%d Trial is expired.", GUID_LOPART(guid));
+        sLog.outError("Player #%d Trial is expired.", guid);
         delete result;
         return false;
     }

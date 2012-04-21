@@ -260,9 +260,9 @@ void WorldSession::HandleAuctionSellItem(WorldPacket & recv_data)
     if (!auctionHouseEntry)
         return;
 
-    if (pl->IsTrial())
+    if (pl->isTrial())
     {
-        SendAuctionCommandResult(0, AUCTION_SELL_ITEM, AUCTION_ERR_RESTRICTED_ACCOUNT);
+        SendAuctionCommandResult(0, AUCTION_STARTED, AUCTION_ERR_RESTRICTED_ACCOUNT);
         return;
     }
 

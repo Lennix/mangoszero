@@ -932,7 +932,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 		void SetRates(float rates) { m_rates = rates; }
 		void SetRatesMax(float rates);
 
-        bool isTrial() const { return HasFlags(PLAYER_FLAGS, PLAYER_FLAGS_TRIAL); }
+        bool isTrial() const { return HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_TRIAL); }
 
         // 0 = own auction, -1 = enemy auction, 1 = goblin auction
         int GetAuctionAccessMode() const { return m_ExtraFlags & PLAYER_EXTRA_AUCTION_ENEMY ? -1 : (m_ExtraFlags & PLAYER_EXTRA_AUCTION_NEUTRAL ? 1 : 0); }

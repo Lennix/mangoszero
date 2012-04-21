@@ -100,7 +100,7 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data )
 
     Player* pl = _player;
 
-    if (pl->IsTrial())
+    if (pl->isTrial())
     {
         pl->SendMailResult(0, MAIL_SEND, MAIL_ERR_DISABLED_FOR_TRIAL_ACC);
         return;
@@ -420,7 +420,7 @@ void WorldSession::HandleMailTakeItem(WorldPacket & recv_data )
     // Trials should not take items with COD due to exploiting!
     if (pl->isTrial() && m->COD > 0)
     {
-        pl->SendMailResult(mailId, MAIL_ITEM_TAKEN, MAIL_ERR_DISABLED_FOR_TRIAL_ACC)
+        pl->SendMailResult(mailId, MAIL_ITEM_TAKEN, MAIL_ERR_DISABLED_FOR_TRIAL_ACC);
         return;
     }
 
