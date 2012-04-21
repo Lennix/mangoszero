@@ -653,10 +653,11 @@ enum EnvironmentalDamageType
 enum PlayedTimeIndex
 {
     PLAYED_TIME_TOTAL = 0,
-    PLAYED_TIME_LEVEL = 1
+    PLAYED_TIME_LEVEL = 1,
+    PLAYED_TIME_AVAILABLE = 2
 };
 
-#define MAX_PLAYED_TIME_INDEX 2
+#define MAX_PLAYED_TIME_INDEX 3
 
 // used at player loading query list preparing, and later result selection
 enum PlayerLoginQueryIndex

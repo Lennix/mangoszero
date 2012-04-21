@@ -412,6 +412,18 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
         {
             switch(m_spellInfo->Id)
             {
+                case 482:                                   // Reset (remove trial)
+                {
+                    if(!unitTarget)
+                        return;
+
+                    Player* pl = (Player*)unitTarget;
+                    if (!pl->isTrial())
+                        return;
+
+                    pl->RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_TRIAL);
+                    pl->SaveToDB();
+                }
                 case 3360:                                  // Curse of the Eye
                 {
                     if(!unitTarget)
