@@ -100,6 +100,12 @@ void WorldSession::HandleSendMail(WorldPacket & recv_data )
 
     Player* pl = _player;
 
+    if (pl->IsTrial())
+    {
+        pl->SendMailResult(0, MAIL_SEND, MAIL_ERR_DISABLED_FOR_TRIAL_ACC);
+        return;
+    }
+
     ObjectGuid rc;
     if (normalizePlayerName(receiver))
         rc = sObjectMgr.GetPlayerGuidByName(receiver);
@@ -408,6 +414,13 @@ void WorldSession::HandleMailTakeItem(WorldPacket & recv_data )
     if(!m || m->state == MAIL_STATE_DELETED || m->deliver_time > time(NULL))
     {
         pl->SendMailResult(mailId, MAIL_ITEM_TAKEN, MAIL_ERR_INTERNAL_ERROR);
+        return;
+    }
+
+    // Trials should not take items with COD due to exploiting!
+    if (pl->isTrial() && m->COD > 0)
+    {
+        pl->SendMailResult(mailId, MAIL_ITEM_TAKEN, MAIL_ERR_DISABLED_FOR_TRIAL_ACC)
         return;
     }
 

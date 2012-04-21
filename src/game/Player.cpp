@@ -13731,6 +13731,17 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
 
     _LoadIntoDataField(fields[51].GetString(), PLAYER_EXPLORED_ZONES_1, PLAYER_EXPLORED_ZONES_SIZE);
 
+    m_cinematic = fields[18].GetUInt32();
+    m_Played_time[PLAYED_TIME_TOTAL]= fields[19].GetUInt32();
+    m_Played_time[PLAYED_TIME_LEVEL]= fields[20].GetUInt32();
+
+    if (isTrial() && m_Played_time[PLAYED_TIME_TOTAL] > 24*60*60)
+    {
+        sLog.outError("Player #%d Trial is expired.", GUID_LOPART(guid));
+        delete result;
+        return false;
+    }
+
     InitDisplayIds();                                       // model, scale and model data
 
     uint32 money = fields[8].GetUInt32();
@@ -13958,10 +13969,6 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
         soberFactor = 1-time_diff/(15.0f*MINUTE);
     uint16 newDrunkenValue = uint16(soberFactor* m_drunk);
     SetDrunkValue(newDrunkenValue);
-
-    m_cinematic = fields[18].GetUInt32();
-    m_Played_time[PLAYED_TIME_TOTAL]= fields[19].GetUInt32();
-    m_Played_time[PLAYED_TIME_LEVEL]= fields[20].GetUInt32();
 
     m_resetTalentsCost = fields[24].GetUInt32();
     m_resetTalentsTime = time_t(fields[25].GetUInt64());
