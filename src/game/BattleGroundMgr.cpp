@@ -612,6 +612,8 @@ should be called from BattleGround::RemovePlayer function in some cases
 */
 void BattleGroundQueue::Update(BattleGroundTypeId bgTypeId, BattleGroundBracketId bracket_id)
 {
+	//POOLSYSTEM: m_QueuedGroups -> 72 pools -> 12 pools for each bracket -> 4 pools for each bg -> 2 pools for each team -> premade, random
+
     //ACE_Guard<ACE_Recursive_Thread_Mutex> guard(m_Lock);
     //if no players in queue - do nothing
     if( m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].empty() &&

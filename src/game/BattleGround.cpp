@@ -1145,6 +1145,35 @@ uint32 BattleGround::GetFreeSlotsForTeam(Team team) const
     return 0;
 }
 
+float BattleGround::GetGearScore(Team team)
+{
+	gearScore = 0.0;
+	int teamCount = 0;
+
+	switch (team)
+	{
+		case ALLIANCE:
+		case HORDE:
+		{
+			for(BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
+			{
+				Player *plr = sObjectMgr.GetPlayer(itr->first);
+				if (plr && plr->GetTeam() == team)
+				{	
+					gearScore += plr->GetEquipGearScore(true, true);
+					teamCount++;
+				}
+			}
+			break;
+		}
+	}
+
+	if (gearScore != 0)
+		gearScore = gearScore / teamCount;
+	
+	return gearScore;
+}
+
 bool BattleGround::HasFreeSlots() const
 {
     return GetPlayersSize() < GetMaxPlayers();
