@@ -571,6 +571,12 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPacket& recvPacket)
         return;
     }
 
+    if (GetPlayer()->isTrial() || pOther->isTrial())
+    {
+        SendTradeStatus(TRADE_STATUS_TRIAL_ACCOUNT);
+        return;
+    }
+
     if (!pOther->isAlive())
     {
         SendTradeStatus(TRADE_STATUS_TARGET_DEAD);

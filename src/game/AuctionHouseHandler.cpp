@@ -260,6 +260,12 @@ void WorldSession::HandleAuctionSellItem(WorldPacket & recv_data)
     if (!auctionHouseEntry)
         return;
 
+    if (pl->isTrial())
+    {
+        SendAuctionCommandResult(0, AUCTION_STARTED, AUCTION_ERR_RESTRICTED_ACCOUNT);
+        return;
+    }
+
     // always return pointer
     AuctionHouseObject* auctionHouse = sAuctionMgr.GetAuctionsMap(auctionHouseEntry);
 
@@ -425,6 +431,12 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket & recv_data)
     {
         // client test but possible in result lags
         SendAuctionCommandResult(auction, AUCTION_BID_PLACED, AUCTION_ERR_BID_INCREMENT);
+        return;
+    }
+
+    if (pl->isTrial())
+    {
+        SendAuctionCommandResult(auction, AUCTION_BID_PLACED, AUCTION_ERR_RESTRICTED_ACCOUNT);
         return;
     }
 

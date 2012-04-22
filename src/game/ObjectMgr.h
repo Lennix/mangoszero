@@ -479,15 +479,15 @@ class ObjectMgr
         }
         void GetPlayerClassLevelInfo(uint32 class_,uint32 level, PlayerClassLevelInfo* info) const;
 
-        PlayerInfo const* GetPlayerInfo(uint32 race, uint32 class_) const
+        PlayerInfo const* GetPlayerInfo(uint32 race, uint32 class_, uint32 charType = 0) const
         {
             if(race   >= MAX_RACES)   return NULL;
             if(class_ >= MAX_CLASSES) return NULL;
-            PlayerInfo const* info = &playerInfo[race][class_];
+            PlayerInfo const* info = &playerInfo[charType][race][class_];
             if(info->displayId_m==0 || info->displayId_f==0) return NULL;
             return info;
         }
-        void GetPlayerLevelInfo(uint32 race, uint32 class_,uint32 level, PlayerLevelInfo* info) const;
+        void GetPlayerLevelInfo(uint32 race, uint32 class_,uint32 level, PlayerLevelInfo* info, uint32 charType = 0) const;
 
         ObjectGuid GetPlayerGuidByName(std::string name) const;
         bool GetPlayerNameByGUID(ObjectGuid guid, std::string &name) const;
@@ -1095,8 +1095,8 @@ class ObjectMgr
 
         PlayerClassInfo playerClassInfo[MAX_CLASSES];
 
-        void BuildPlayerLevelInfo(uint8 race, uint8 class_, uint8 level, PlayerLevelInfo* plinfo) const;
-        PlayerInfo playerInfo[MAX_RACES][MAX_CLASSES];
+        void BuildPlayerLevelInfo(uint8 race, uint8 class_, uint8 level, PlayerLevelInfo* plinfo, uint32 charType = 0) const;
+        PlayerInfo playerInfo[MAX_CHARTYPES][MAX_RACES][MAX_CLASSES];
 
         typedef std::vector<uint32> PlayerXPperLevel;       // [level]
         PlayerXPperLevel mPlayerXPperLevel;

@@ -397,6 +397,7 @@ enum PlayerFlags
     PLAYER_FLAGS_SANCTUARY              = 0x00010000,       // player entered sanctuary
     PLAYER_FLAGS_TAXI_BENCHMARK         = 0x00020000,       // taxi benchmark mode (on/off) (2.0.1)
     PLAYER_FLAGS_PVP_TIMER              = 0x00040000,       // 3.0.2, pvp timer active (after you disable pvp manually)
+    PLAYER_FLAGS_TRIAL                  = 0x00080000,       // Trial char
 };
 
 // used in (PLAYER_FIELD_BYTES, 0) byte values
@@ -652,10 +653,11 @@ enum EnvironmentalDamageType
 enum PlayedTimeIndex
 {
     PLAYED_TIME_TOTAL = 0,
-    PLAYED_TIME_LEVEL = 1
+    PLAYED_TIME_LEVEL = 1,
+    PLAYED_TIME_AVAILABLE = 2
 };
 
-#define MAX_PLAYED_TIME_INDEX 2
+#define MAX_PLAYED_TIME_INDEX 3
 
 // used at player loading query list preparing, and later result selection
 enum PlayerLoginQueryIndex
@@ -930,6 +932,11 @@ class MANGOS_DLL_SPEC Player : public Unit
 		float GetRatesMax() const { return m_ratesMax; }
 		void SetRates(float rates) { m_rates = rates; }
 		void SetRatesMax(float rates);
+
+        bool isTrial() const { return HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_TRIAL); }
+
+        uint32 m_charType;
+        uint32 GetCharType() const { return m_charType; }
 
         // 0 = own auction, -1 = enemy auction, 1 = goblin auction
         int GetAuctionAccessMode() const { return m_ExtraFlags & PLAYER_EXTRA_AUCTION_ENEMY ? -1 : (m_ExtraFlags & PLAYER_EXTRA_AUCTION_NEUTRAL ? 1 : 0); }

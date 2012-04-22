@@ -662,6 +662,8 @@ bool Player::Create( uint32 guidlow, const std::string& name, uint8 race, uint8 
     SetRates(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
     SetRatesMax(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
 
+    m_charType = 0;
+
     // base stats and related field values
     InitStatsForLevel();
     InitTaxiNodes();
@@ -1298,6 +1300,43 @@ void Player::Update( uint32 update_diff, uint32 p_time )
         m_Played_time[PLAYED_TIME_TOTAL] += elapsed;        // Total played time
         m_Played_time[PLAYED_TIME_LEVEL] += elapsed;        // Level played time
         m_Last_tick = now;
+
+        if (isTrial())
+        {
+            int32 remaining = 0;
+            // Trial char expired
+            if (m_Played_time[PLAYED_TIME_AVAILABLE] > 0)
+            {
+                // no message received yet (send after 9,5 minutes)
+                if (m_Played_time[PLAYED_TIME_AVAILABLE] == 570)
+                {
+                    if (m_Played_time[PLAYED_TIME_TOTAL] > (24*HOUR + 20*MINUTE))
+                        ChatHandler(this).PSendSysMessage("[Trial Character] Your trial char expired. Please get a Token of Activation. This is your last chance.");
+                    else
+                        ChatHandler(this).PSendSysMessage("[Trial Character] Your trial char expired. Please get a Token of Activation.");
+
+                    std::string str = secsToTimeString(570);
+                    ChatHandler(this).PSendSysMessage("[Trial Character] Play time remaining: %s", str.c_str());
+                }
+                m_Played_time[PLAYED_TIME_AVAILABLE] -= elapsed;
+                remaining = m_Played_time[PLAYED_TIME_AVAILABLE];
+            }
+            else
+                remaining = (24*HOUR - m_Played_time[PLAYED_TIME_TOTAL]);
+
+            if (remaining > 0 &&
+                ((remaining < 5 * MINUTE && (remaining % 15) == 0) ||            // < 5 min; every 15 sec
+                (remaining < 15 * MINUTE && (remaining % MINUTE) == 0) ||       // < 15 min; every 1 min
+                (remaining < 30 * MINUTE && (remaining % (5 * MINUTE)) == 0) || // < 30 min; every 5 min
+                (remaining < 12 * HOUR && (remaining % HOUR) == 0) ||           // < 12 h; every 1 h
+                (remaining >= 12 * HOUR && (remaining % (12 * HOUR)) == 0)))     // >= 12 h; every 12 h
+            {
+                std::string str = secsToTimeString(remaining);
+                ChatHandler(this).PSendSysMessage("[Trial Character] Play time remaining: %s", str.c_str());
+            }
+            else if (remaining < 0)
+                GetSession()->KickPlayer();
+        }
     }
 
     if (m_drunk)
@@ -13731,6 +13770,10 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
 
     _LoadIntoDataField(fields[51].GetString(), PLAYER_EXPLORED_ZONES_1, PLAYER_EXPLORED_ZONES_SIZE);
 
+    m_cinematic = fields[18].GetUInt32();
+    m_Played_time[PLAYED_TIME_TOTAL]= fields[19].GetUInt32();
+    m_Played_time[PLAYED_TIME_LEVEL]= fields[20].GetUInt32();
+
     InitDisplayIds();                                       // model, scale and model data
 
     uint32 money = fields[8].GetUInt32();
@@ -13755,6 +13798,22 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
 
     SetRates(fields[55].GetFloat());
     SetRatesMax(fields[56].GetFloat());
+
+    m_charType = fields[57].GetInt32();
+
+    if (isTrial() && m_Played_time[PLAYED_TIME_TOTAL] > 24*HOUR)
+    {
+        if (m_Played_time[PLAYED_TIME_TOTAL] > (24*HOUR + 30*MINUTE))
+        {
+            sLog.outError("Player #%d Trial is expired, finally", guid);
+            delete result;
+            return false;
+        }
+        sLog.outError("Player #%d Trial is expired, giving 10 minutes to get a token", guid);
+        m_Played_time[PLAYED_TIME_AVAILABLE] = 10*MINUTE;
+    }
+    else
+        m_Played_time[PLAYED_TIME_AVAILABLE] = 0;
 
     // cleanup inventory related item value fields (its will be filled correctly in _LoadInventory)
     for(uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
@@ -13958,10 +14017,6 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
         soberFactor = 1-time_diff/(15.0f*MINUTE);
     uint16 newDrunkenValue = uint16(soberFactor* m_drunk);
     SetDrunkValue(newDrunkenValue);
-
-    m_cinematic = fields[18].GetUInt32();
-    m_Played_time[PLAYED_TIME_TOTAL]= fields[19].GetUInt32();
-    m_Played_time[PLAYED_TIME_LEVEL]= fields[20].GetUInt32();
 
     m_resetTalentsCost = fields[24].GetUInt32();
     m_resetTalentsTime = time_t(fields[25].GetUInt64());
@@ -15191,7 +15246,7 @@ void Player::SaveToDB()
         "death_expire_time, taxi_path, "
         "honor_highest_rank, honor_standing, stored_honor_rating , stored_dishonorable_kills, stored_honorable_kills, "
         "watchedFaction, drunk, health, power1, power2, power3, "
-        "power4, power5, exploredZones, equipmentCache, ammoId, actionBars, rates, ratesMax) "
+        "power4, power5, exploredZones, equipmentCache, ammoId, actionBars, rates, ratesMax, charType) "
         "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
         "?, ?, ?, ?, ?, "
         "?, ?, ?, "
@@ -15200,7 +15255,7 @@ void Player::SaveToDB()
         "?, ?, "
         "?, ?, ?, ?, ?, "
         "?, ?, ?, ?, ?, ?, "
-        "?, ?, ?, ?, ?, ?, ?,?) ");
+        "?, ?, ?, ?, ?, ?, ?,?,?) ");
 
     uberInsert.addUInt32(GetGUIDLow());
     uberInsert.addUInt32(GetSession()->GetAccountId());
@@ -15312,6 +15367,8 @@ void Player::SaveToDB()
     uberInsert.addFloat(GetRates());
 
     uberInsert.addFloat(GetRatesMax());
+
+    uberInsert.addInt32(GetCharType());
 
     uberInsert.Execute();
 
@@ -17737,7 +17794,10 @@ void Player::resetSpells()
 void Player::learnDefaultSpells()
 {
     // learn default race/class spells
-    PlayerInfo const *info = sObjectMgr.GetPlayerInfo(getRace(),getClass());
+    PlayerInfo const *info = sObjectMgr.GetPlayerInfo(getRace(),getClass(),GetCharType());
+    if (!info)
+        return;
+
     for (PlayerCreateInfoSpells::const_iterator itr = info->spell.begin(); itr!=info->spell.end(); ++itr)
     {
         uint32 tspell = *itr;

@@ -6259,7 +6259,7 @@ bool ChatHandler::HandleModifyGenderCommand(char *args)
         return false;
     }
 
-    PlayerInfo const* info = sObjectMgr.GetPlayerInfo(player->getRace(), player->getClass());
+    PlayerInfo const* info = sObjectMgr.GetPlayerInfo(player->getRace(), player->getClass(), player->GetCharType());
     if(!info)
         return false;
 

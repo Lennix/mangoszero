@@ -1050,7 +1050,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         {
             const SpellEntry *se = i->second->GetSpellProto();
             next = i; ++next;
-            if (spellProto && spellProto->Id == se->Id) // Not drop auras added by self
+            if (spellProto && spellProto->Id == se->Id || se->Id == 23018) // Not drop auras added by self and dont drop "Use Dragon Orb" on Razorgore
                 continue;
             if( se->AuraInterruptFlags & AURA_INTERRUPT_FLAG_DAMAGE )
             {
