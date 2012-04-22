@@ -126,7 +126,6 @@ namespace MaNGOS
             va_list* i_args;
     };
 
-
     class BattleGround2ChatBuilder
     {
         public:
@@ -191,7 +190,7 @@ namespace MaNGOS
             int32 i_arg1;
             int32 i_arg2;
     };
-}                                                           // namespace MaNGOS
+}															// namespace MaNGOS
 
 template<class Do>
 void BattleGround::BroadcastWorker(Do& _do)
@@ -891,6 +890,7 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool Sen
     if (itr != m_Players.end())
     {
         UpdatePlayersCountByTeam(team, true);               // -1 player
+        UpdateGearScoreInfo();
         m_Players.erase(itr);
         // check if the player was a participant of the match, or only entered through gm command (goname)
         participant = true;
@@ -1038,6 +1038,7 @@ void BattleGround::AddPlayer(Player *plr)
     m_Players[guid] = bp;
 
     UpdatePlayersCountByTeam(team, false);                  // +1 player
+    UpdateGearScoreInfo();
 
     WorldPacket data;
     sBattleGroundMgr.BuildPlayerJoinedBattleGroundPacket(&data, plr);
@@ -1145,33 +1146,36 @@ uint32 BattleGround::GetFreeSlotsForTeam(Team team) const
     return 0;
 }
 
-float BattleGround::GetGearScore(Team team)
+void BattleGround::UpdateGearScoreInfo()
 {
-	gearScore = 0.0;
-	int teamCount = 0;
+    float gearScore[2];
+    int teamCount[2];
 
-	switch (team)
-	{
-		case ALLIANCE:
-		case HORDE:
-		{
-			for(BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-			{
-				Player *plr = sObjectMgr.GetPlayer(itr->first);
-				if (plr && plr->GetTeam() == team)
-				{	
-					gearScore += plr->GetEquipGearScore(true, true);
-					teamCount++;
-				}
-			}
-			break;
-		}
-	}
+    for(BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
+    {
+        Player *plr = sObjectMgr.GetPlayer(itr->first);
+        if (plr)
+        {
+            if (plr->GetTeam() == HORDE)
+            {
+                gearScore[0] += plr->GetEquipGearScore(true, true);
+                teamCount[0]++;
+            }
+            else
+            {
+                gearScore[1] += plr->GetEquipGearScore(true, true);
+                teamCount[1]++;
+            }
+        }
+    }
 
-	if (gearScore != 0)
-		gearScore = gearScore / teamCount;
-	
-	return gearScore;
+    for (uint8 i = 0; i < 2; i++)
+    {
+        if (gearScore[i] != 0)
+            gearScore[i] = gearScore[i] / teamCount[i];
+    }
+    
+    gsInfo = BattleGroundGearScoreInfo(gearScore[0], gearScore[1]);
 }
 
 bool BattleGround::HasFreeSlots() const
@@ -1378,17 +1382,17 @@ void BattleGround::SpawnEvent(uint8 event1, uint8 event2, bool spawn)
 void BattleGround::SpawnBGObject(ObjectGuid guid, uint32 respawntime)
 {
     if(Map* map = GetBgMap())
-		if(GameObject *obj = map->GetGameObject(guid))
-		{
-			if (respawntime)
-				obj->SetLootState(GO_JUST_DEACTIVATED);
-			else
-				//we need to change state from GO_JUST_DEACTIVATED to GO_READY in case battleground is starting again
-				if (obj->getLootState() == GO_JUST_DEACTIVATED)
-					obj->SetLootState(GO_READY);
-			obj->SetRespawnTime(respawntime);
-			map->Add(obj);
-		}
+        if(GameObject *obj = map->GetGameObject(guid))
+        {
+            if (respawntime)
+                obj->SetLootState(GO_JUST_DEACTIVATED);
+            else
+                //we need to change state from GO_JUST_DEACTIVATED to GO_READY in case battleground is starting again
+                if (obj->getLootState() == GO_JUST_DEACTIVATED)
+                    obj->SetLootState(GO_READY);
+            obj->SetRespawnTime(respawntime);
+            map->Add(obj);
+        }
 }
 
 void BattleGround::SpawnBGCreature(ObjectGuid guid, uint32 respawntime)

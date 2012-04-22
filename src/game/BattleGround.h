@@ -253,6 +253,37 @@ class BattleGroundScore
         uint32 BonusHonor;
 };
 
+class BattleGroundGearScoreInfo
+{
+    public:
+        BattleGroundGearScoreInfo() : morePowerfulTeam(TEAM_NONE), gearScore_H(0), gearScore_A(0), scoreDiff(0) {}
+        BattleGroundGearScoreInfo(float gs_H, float gs_A)
+        {
+            gearScore_H = gs_H;
+            gearScore_A = gs_A;
+            if (gearScore_H > gearScore_A)
+            {
+                morePowerfulTeam = HORDE;
+                scoreDiff = gearScore_H - gearScore_A;
+            } 
+            else if (gearScore_A > gearScore_H)
+            {
+                morePowerfulTeam = ALLIANCE;
+                scoreDiff = gearScore_A - gearScore_H;
+            }
+            else
+            {
+                morePowerfulTeam = TEAM_NONE;
+                scoreDiff = 0;
+            }		
+        }
+    private:
+        Team morePowerfulTeam;
+        float gearScore_H;
+        float gearScore_A;
+        float scoreDiff;
+};
+
 /*
 This class is used to:
 1. Add player to battleground
@@ -305,6 +336,8 @@ class BattleGround
         uint32 GetBonusHonorFromKill(uint32 kills) const;
         uint8 GetGossipStatus(GossipIndex Index) { return m_gossipStatus[Index]; }
 
+        BattleGroundGearScoreInfo GetBgGearScoreInfo() { return gsInfo; }
+
         // Set methods:
         void SetName(char const* Name)      { m_Name = Name; }
         void SetTypeID(BattleGroundTypeId TypeID) { m_TypeID = TypeID; }
@@ -338,8 +371,6 @@ class BattleGround
         }
         bool HasFreeSlots() const;
         uint32 GetFreeSlotsForTeam(Team team) const;
-
-		float GetGearScore(Team team);
 
         typedef std::map<ObjectGuid, BattleGroundPlayer> BattleGroundPlayerMap;
         BattleGroundPlayerMap const& GetPlayers() const { return m_Players; }
@@ -572,9 +603,6 @@ class BattleGround
         uint32 m_MinPlayersPerTeam;
         uint32 m_MinPlayers;
 
-		/* Gearscore */
-		float gearScore;
-
         /* Start location */
         uint32 m_MapId;
         BattleGroundMap* m_Map;
@@ -585,6 +613,11 @@ class BattleGround
 
         /* Gossip Status - we will need more than one status for AV(we start with two channel) */
         uint32 m_gossipStatus[2];
+
+        /* Gearscore Info */
+        BattleGroundGearScoreInfo gsInfo;
+
+        void UpdateGearScoreInfo();
 };
 
 // helper functions for world state list fill
