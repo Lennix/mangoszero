@@ -146,7 +146,8 @@ ObjectMgr::~ObjectMgr()
 
     for (int race = 0; race < MAX_RACES; ++race)
         for (int class_ = 0; class_ < MAX_CLASSES; ++class_)
-            delete[] playerInfo[race][class_].levelInfo;
+            for (int charType = 0; charType < MAX_CHARTYPES; ++charType)
+                delete[] playerInfo[charType][race][class_].levelInfo;
 
     // free objects
     for (GroupMap::iterator itr = mGroupMap.begin(); itr != mGroupMap.end(); ++itr)
@@ -2067,8 +2068,8 @@ void ObjectMgr::LoadPlayerInfo()
 {
     // Load playercreate
     {
-        //                                                0     1      2    3     4           5           6
-        QueryResult *result = WorldDatabase.Query("SELECT race, class, map, zone, position_x, position_y, position_z, orientation FROM playercreateinfo");
+        //                                                0     1     2      3    4     5           6           7           8
+        QueryResult *result = WorldDatabase.Query("SELECT type, race, class, map, zone, position_x, position_y, position_z, orientation FROM playercreateinfo");
 
         uint32 count = 0;
 
@@ -2089,14 +2090,15 @@ void ObjectMgr::LoadPlayerInfo()
         {
             Field* fields = result->Fetch();
 
-            uint32 current_race  = fields[0].GetUInt32();
-            uint32 current_class = fields[1].GetUInt32();
-            uint32 mapId         = fields[2].GetUInt32();
-            uint32 areaId        = fields[3].GetUInt32();
-            float  positionX     = fields[4].GetFloat();
-            float  positionY     = fields[5].GetFloat();
-            float  positionZ     = fields[6].GetFloat();
-            float  orientation   = fields[7].GetFloat();
+            uint32 current_type  = fields[0].GetUInt32();
+            uint32 current_race  = fields[1].GetUInt32();
+            uint32 current_class = fields[2].GetUInt32();
+            uint32 mapId         = fields[3].GetUInt32();
+            uint32 areaId        = fields[4].GetUInt32();
+            float  positionX     = fields[5].GetFloat();
+            float  positionY     = fields[6].GetFloat();
+            float  positionZ     = fields[7].GetFloat();
+            float  orientation   = fields[8].GetFloat();
 
             ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(current_race);
             if(!rEntry || !((1 << (current_race-1)) & RACEMASK_ALL_PLAYABLE))
@@ -2125,7 +2127,7 @@ void ObjectMgr::LoadPlayerInfo()
                 continue;
             }
 
-            PlayerInfo* pInfo = &playerInfo[current_race][current_class];
+            PlayerInfo* pInfo = &playerInfo[current_type][current_race][current_class];
 
             pInfo->mapId       = mapId;
             pInfo->areaId      = areaId;
@@ -2150,8 +2152,8 @@ void ObjectMgr::LoadPlayerInfo()
 
     // Load playercreate items
     {
-        //                                                0     1      2       3
-        QueryResult *result = WorldDatabase.Query("SELECT race, class, itemid, amount FROM playercreateinfo_item");
+        //                                                0     1     2      3       4
+        QueryResult *result = WorldDatabase.Query("SELECT type, race, class, itemid, amount FROM playercreateinfo_item");
 
         uint32 count = 0;
 
@@ -2172,8 +2174,9 @@ void ObjectMgr::LoadPlayerInfo()
             {
                 Field* fields = result->Fetch();
 
-                uint32 current_race = fields[0].GetUInt32();
-                uint32 current_class = fields[1].GetUInt32();
+                uint32 current_type = fields[0].GetUInt32();
+                uint32 current_race = fields[1].GetUInt32();
+                uint32 current_class = fields[2].GetUInt32();
 
                 ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(current_race);
                 if (!rEntry || !((1 << (current_race-1)) & RACEMASK_ALL_PLAYABLE))
@@ -2189,9 +2192,9 @@ void ObjectMgr::LoadPlayerInfo()
                     continue;
                 }
 
-                PlayerInfo* pInfo = &playerInfo[current_race][current_class];
+                PlayerInfo* pInfo = &playerInfo[current_type][current_race][current_class];
 
-                uint32 item_id = fields[2].GetUInt32();
+                uint32 item_id = fields[3].GetUInt32();
 
                 if (!GetItemPrototype(item_id))
                 {
@@ -2199,7 +2202,7 @@ void ObjectMgr::LoadPlayerInfo()
                     continue;
                 }
 
-                uint32 amount  = fields[3].GetUInt32();
+                uint32 amount  = fields[4].GetUInt32();
 
                 if (!amount)
                 {
@@ -2223,8 +2226,8 @@ void ObjectMgr::LoadPlayerInfo()
 
     // Load playercreate spells
     {
-        //                                                0     1      2
-        QueryResult *result = WorldDatabase.Query("SELECT race, class, Spell FROM playercreateinfo_spell");
+        //                                                0     1     2      3
+        QueryResult *result = WorldDatabase.Query("SELECT type, race, class, Spell FROM playercreateinfo_spell");
 
         uint32 count = 0;
 
@@ -2244,8 +2247,9 @@ void ObjectMgr::LoadPlayerInfo()
             {
                 Field* fields = result->Fetch();
 
-                uint32 current_race = fields[0].GetUInt32();
-                uint32 current_class = fields[1].GetUInt32();
+                uint32 current_type = fields[0].GetUInt32();
+                uint32 current_race = fields[1].GetUInt32();
+                uint32 current_class = fields[2].GetUInt32();
 
                 ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(current_race);
                 if (!rEntry || !((1 << (current_race-1)) & RACEMASK_ALL_PLAYABLE))
@@ -2261,14 +2265,14 @@ void ObjectMgr::LoadPlayerInfo()
                     continue;
                 }
 
-                uint32 spell_id = fields[2].GetUInt32();
+                uint32 spell_id = fields[3].GetUInt32();
                 if (!sSpellStore.LookupEntry(spell_id))
                 {
                     sLog.outErrorDb("Non existing spell %u in `playercreateinfo_spell` table, ignoring.", spell_id);
                     continue;
                 }
 
-                PlayerInfo* pInfo = &playerInfo[current_race][current_class];
+                PlayerInfo* pInfo = &playerInfo[current_type][current_race][current_class];
                 pInfo->spell.push_back(spell_id);
 
                 bar.step();
@@ -2285,8 +2289,8 @@ void ObjectMgr::LoadPlayerInfo()
 
     // Load playercreate actions
     {
-        //                                                0     1      2       3       4
-        QueryResult *result = WorldDatabase.Query("SELECT race, class, button, action, type FROM playercreateinfo_action");
+        //                                                0         1     2      3       4       5
+        QueryResult *result = WorldDatabase.Query("SELECT chartype, race, class, button, action, type FROM playercreateinfo_action");
 
         uint32 count = 0;
 
@@ -2306,8 +2310,9 @@ void ObjectMgr::LoadPlayerInfo()
             {
                 Field* fields = result->Fetch();
 
-                uint32 current_race = fields[0].GetUInt32();
-                uint32 current_class = fields[1].GetUInt32();
+                uint32 current_type = fields[0].GetUInt32();
+                uint32 current_race = fields[1].GetUInt32();
+                uint32 current_class = fields[2].GetUInt32();
 
                 ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(current_race);
                 if (!rEntry || !((1 << (current_race-1)) & RACEMASK_ALL_PLAYABLE))
@@ -2323,14 +2328,14 @@ void ObjectMgr::LoadPlayerInfo()
                     continue;
                 }
 
-                uint8 action_button  = fields[2].GetUInt8();
-                uint32 action = fields[3].GetUInt32();
-                uint8 action_type = fields[4].GetUInt8();
+                uint8 action_button  = fields[3].GetUInt8();
+                uint32 action = fields[4].GetUInt32();
+                uint8 action_type = fields[5].GetUInt8();
 
                 if (!Player::IsActionButtonDataValid(action_button,action,action_type,NULL))
                     continue;
 
-                PlayerInfo* pInfo = &playerInfo[current_race][current_class];
+                PlayerInfo* pInfo = &playerInfo[current_type][current_race][current_class];
                 pInfo->action.push_back(PlayerCreateInfoAction(action_button,action,action_type));
 
                 bar.step();
@@ -2497,15 +2502,19 @@ void ObjectMgr::LoadPlayerInfo()
                 continue;
             }
 
-            PlayerInfo* pInfo = &playerInfo[current_race][current_class];
+            // class stats are type insensitive, but we make them available in all types
+            for (int current_type = 0; current_type < MAX_CHARTYPES; ++current_type)
+            {
+                PlayerInfo* pInfo = &playerInfo[current_type][current_race][current_class];
 
-            if (!pInfo->levelInfo)
-                pInfo->levelInfo = new PlayerLevelInfo[sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL)];
+                if (!pInfo->levelInfo)
+                    pInfo->levelInfo = new PlayerLevelInfo[sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL)];
 
-            PlayerLevelInfo* pLevelInfo = &pInfo->levelInfo[current_level-1];
+                PlayerLevelInfo* pLevelInfo = &pInfo->levelInfo[current_level-1];
 
-            for (int i = 0; i < MAX_STATS; ++i)
+                for (int i = 0; i < MAX_STATS; ++i)
                 pLevelInfo->stats[i] = fields[i+3].GetUInt8();
+            }
 
             bar.step();
             ++count;
@@ -2531,27 +2540,30 @@ void ObjectMgr::LoadPlayerInfo()
             if(!((1 << (class_-1)) & CLASSMASK_ALL_PLAYABLE) || !sChrClassesStore.LookupEntry(class_))
                 continue;
 
-            PlayerInfo* pInfo = &playerInfo[race][class_];
-
-            // skip non loaded combinations
-            if(!pInfo->displayId_m || !pInfo->displayId_f)
-                continue;
-
-            // fatal error if no level 1 data
-            if(!pInfo->levelInfo || pInfo->levelInfo[0].stats[0] == 0 )
+            for (int charType = 0; charType < MAX_CHARTYPES; ++charType)
             {
-                sLog.outErrorDb("Race %i Class %i Level 1 does not have stats data!",race,class_);
-                Log::WaitBeforeContinueIfNeed();
-                exit(1);
-            }
+                PlayerInfo* pInfo = &playerInfo[charType][race][class_];
 
-            // fill level gaps
-            for (uint32 level = 1; level < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL); ++level)
-            {
-                if(pInfo->levelInfo[level].stats[0] == 0)
+                // skip non loaded combinations
+                if(!pInfo->displayId_m || !pInfo->displayId_f)
+                    continue;
+
+                // fatal error if no level 1 data
+                if(!pInfo->levelInfo || pInfo->levelInfo[0].stats[0] == 0 )
                 {
-                    sLog.outErrorDb("Race %i Class %i Level %i does not have stats data. Using stats data of level %i.",race,class_,level+1, level);
-                    pInfo->levelInfo[level] = pInfo->levelInfo[level-1];
+                    sLog.outErrorDb("Race %i Class %i Level 1 does not have stats data!",race,class_);
+                    Log::WaitBeforeContinueIfNeed();
+                    exit(1);
+                }
+
+                // fill level gaps
+                for (uint32 level = 1; level < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL); ++level)
+                {
+                    if(pInfo->levelInfo[level].stats[0] == 0)
+                    {
+                        sLog.outErrorDb("Race %i Class %i Level %i does not have stats data. Using stats data of level %i.",race,class_,level+1, level);
+                        pInfo->levelInfo[level] = pInfo->levelInfo[level-1];
+                    }
                 }
             }
         }
@@ -2860,12 +2872,12 @@ void ObjectMgr::GetPlayerClassLevelInfo(uint32 class_, uint32 level, PlayerClass
     *info = pInfo->levelInfo[level-1];
 }
 
-void ObjectMgr::GetPlayerLevelInfo(uint32 race, uint32 class_, uint32 level, PlayerLevelInfo* info) const
+void ObjectMgr::GetPlayerLevelInfo(uint32 race, uint32 class_, uint32 level, PlayerLevelInfo* info, uint32 charType) const
 {
     if(level < 1 || race   >= MAX_RACES || class_ >= MAX_CLASSES)
         return;
 
-    PlayerInfo const* pInfo = &playerInfo[race][class_];
+    PlayerInfo const* pInfo = &playerInfo[charType][race][class_];
     if(pInfo->displayId_m==0 || pInfo->displayId_f==0)
         return;
 
@@ -2875,10 +2887,10 @@ void ObjectMgr::GetPlayerLevelInfo(uint32 race, uint32 class_, uint32 level, Pla
         BuildPlayerLevelInfo(race,class_,level,info);
 }
 
-void ObjectMgr::BuildPlayerLevelInfo(uint8 race, uint8 _class, uint8 level, PlayerLevelInfo* info) const
+void ObjectMgr::BuildPlayerLevelInfo(uint8 race, uint8 _class, uint8 level, PlayerLevelInfo* info, uint32 charType) const
 {
     // base data (last known level)
-    *info = playerInfo[race][_class].levelInfo[sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL)-1];
+    *info = playerInfo[charType][race][_class].levelInfo[sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL)-1];
 
     for(int lvl = sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL)-1; lvl < level; ++lvl)
     {

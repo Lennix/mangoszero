@@ -662,6 +662,8 @@ bool Player::Create( uint32 guidlow, const std::string& name, uint8 race, uint8 
     SetRates(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
     SetRatesMax(sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
 
+    m_charType = 0;
+
     // base stats and related field values
     InitStatsForLevel();
     InitTaxiNodes();
@@ -13797,6 +13799,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
     SetRates(fields[55].GetFloat());
     SetRatesMax(fields[56].GetFloat());
 
+    m_charType = fields[57].GetInt32();
+
     if (isTrial() && m_Played_time[PLAYED_TIME_TOTAL] > 24*HOUR)
     {
         if (m_Played_time[PLAYED_TIME_TOTAL] > (24*HOUR + 30*MINUTE))
@@ -15242,7 +15246,7 @@ void Player::SaveToDB()
         "death_expire_time, taxi_path, "
         "honor_highest_rank, honor_standing, stored_honor_rating , stored_dishonorable_kills, stored_honorable_kills, "
         "watchedFaction, drunk, health, power1, power2, power3, "
-        "power4, power5, exploredZones, equipmentCache, ammoId, actionBars, rates, ratesMax) "
+        "power4, power5, exploredZones, equipmentCache, ammoId, actionBars, rates, ratesMax, charType) "
         "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
         "?, ?, ?, ?, ?, "
         "?, ?, ?, "
@@ -15251,7 +15255,7 @@ void Player::SaveToDB()
         "?, ?, "
         "?, ?, ?, ?, ?, "
         "?, ?, ?, ?, ?, ?, "
-        "?, ?, ?, ?, ?, ?, ?,?) ");
+        "?, ?, ?, ?, ?, ?, ?,?,?) ");
 
     uberInsert.addUInt32(GetGUIDLow());
     uberInsert.addUInt32(GetSession()->GetAccountId());
@@ -15363,6 +15367,8 @@ void Player::SaveToDB()
     uberInsert.addFloat(GetRates());
 
     uberInsert.addFloat(GetRatesMax());
+
+    uberInsert.addInt32(GetCharType());
 
     uberInsert.Execute();
 
@@ -17788,7 +17794,10 @@ void Player::resetSpells()
 void Player::learnDefaultSpells()
 {
     // learn default race/class spells
-    PlayerInfo const *info = sObjectMgr.GetPlayerInfo(getRace(),getClass());
+    PlayerInfo const *info = sObjectMgr.GetPlayerInfo(getRace(),getClass(),GetCharType());
+    if (!info)
+        return;
+
     for (PlayerCreateInfoSpells::const_iterator itr = info->spell.begin(); itr!=info->spell.end(); ++itr)
     {
         uint32 tspell = *itr;
