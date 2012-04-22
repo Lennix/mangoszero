@@ -339,6 +339,8 @@ class BattleGround
         bool HasFreeSlots() const;
         uint32 GetFreeSlotsForTeam(Team team) const;
 
+		float GetGearScore(Team team);
+
         typedef std::map<ObjectGuid, BattleGroundPlayer> BattleGroundPlayerMap;
         BattleGroundPlayerMap const& GetPlayers() const { return m_Players; }
         uint32 GetPlayersSize() const { return m_Players.size(); }
@@ -569,6 +571,9 @@ class BattleGround
         uint32 m_MaxPlayers;
         uint32 m_MinPlayersPerTeam;
         uint32 m_MinPlayers;
+
+		/* Gearscore */
+		float gearScore;
 
         /* Start location */
         uint32 m_MapId;
