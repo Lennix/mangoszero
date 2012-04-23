@@ -19599,9 +19599,9 @@ void Player::UpgradeCharacter(uint32 charType)
         return;
     }
 
-    //for (int i = 0; i < PLAYER_SLOTS_COUNT; ++i)
-    //    m_items[i] = NULL;
-    TeleportTo(info->mapId, info->positionX,info->positionY,info->positionZ, info->orientation);
+    // teleport nur auf live realm (in die Hauptstädte)
+    if (sWorld.getConfig(CONFIG_UINT32_CUSTOM_SERVER_TYPE) == 0)
+        TeleportTo(info->mapId, info->positionX,info->positionY,info->positionZ, info->orientation);
 
     // set starting level
     switch (charType)
