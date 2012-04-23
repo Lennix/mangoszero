@@ -19588,3 +19588,97 @@ void Player::_fillGearScoreData(Item* item, GearScoreVec* gearScore, uint32& two
             break;
     }
 }
+
+void Player::UpgradeCharacter(uint32 charType)
+{
+    m_charType = charType;
+    PlayerInfo const* info = sObjectMgr.GetPlayerInfo(getRace(), getClass(), GetCharType());
+    if(!info)
+    {
+        sLog.outError("Player have incorrect race/class pair. Can't be loaded.");
+        return;
+    }
+
+    //for (int i = 0; i < PLAYER_SLOTS_COUNT; ++i)
+    //    m_items[i] = NULL;
+    TeleportTo(info->mapId, info->positionX,info->positionY,info->positionZ, info->orientation);
+
+    // set starting level
+    switch (charType)
+    {
+        case 1:
+              GiveLevel(60);
+              break;
+    }
+    InitTalentForLevel();
+    SetUInt32Value(PLAYER_XP,0);
+
+    //ModifyMoney(10000);
+
+    // base stats and related field values
+    /*InitStatsForLevel();
+    InitTaxiNodes();
+    InitTalentForLevel();
+    InitPrimaryProfessions();                               // to max set before any spell added*/
+
+    // apply original stats mods before spell loading or item equipment that call before equip _RemoveStatsMods()
+    UpdateMaxHealth();                                      // Update max Health (for add bonus from stamina)
+    SetHealth(GetMaxHealth());
+
+    if (getPowerType() == POWER_MANA)
+    {
+        UpdateMaxPower(POWER_MANA);                         // Update max Mana (for add bonus from intellect)
+        SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
+    }
+
+    // original spells
+    learnDefaultSpells();
+
+    // original action bar
+    for (PlayerCreateInfoActions::const_iterator action_itr = info->action.begin(); action_itr != info->action.end(); ++action_itr)
+        addActionButton(action_itr->button,action_itr->action,action_itr->type);
+
+    // items
+    for (PlayerCreateInfoItems::const_iterator item_id_itr = info->item.begin(); item_id_itr != info->item.end(); ++item_id_itr)
+        StoreNewItemInBestSlots(item_id_itr->item_id, item_id_itr->item_amount);
+
+    // bags and main-hand weapon must equipped at this moment
+    // now second pass for not equipped (offhand weapon/shield if it attempt equipped before main-hand weapon)
+    // or ammo not equipped in special bag
+    for (int i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; ++i)
+    {
+        if (Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
+        {
+            uint16 eDest;
+            // equip offhand weapon/shield if it attempt equipped before main-hand weapon
+            InventoryResult msg = CanEquipItem(NULL_SLOT, eDest, pItem, false);
+            if (msg == EQUIP_ERR_OK)
+            {
+                RemoveItem(INVENTORY_SLOT_BAG_0, i, true);
+                EquipItem(eDest, pItem, true);
+            }
+            // move other items to more appropriate slots (ammo not equipped in special bag)
+            else
+            {
+                ItemPosCountVec sDest;
+                msg = CanStoreItem(NULL_BAG, NULL_SLOT, sDest, pItem, false);
+                if (msg == EQUIP_ERR_OK)
+                {
+                    RemoveItem(INVENTORY_SLOT_BAG_0, i,true);
+                    pItem = StoreItem( sDest, pItem, true);
+                }
+
+                // if  this is ammo then use it
+                msg = CanUseAmmo(pItem->GetEntry());
+                if (msg == EQUIP_ERR_OK)
+                    SetAmmo(pItem->GetEntry());
+            }
+        }
+    }
+    // all item positions resolved
+
+    // Save
+    SaveToDB();
+
+    return;
+}

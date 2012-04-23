@@ -938,6 +938,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint32 m_charType;
         uint32 GetCharType() const { return m_charType; }
 
+        void UpgradeCharacter(uint32 charType);
+
         // 0 = own auction, -1 = enemy auction, 1 = goblin auction
         int GetAuctionAccessMode() const { return m_ExtraFlags & PLAYER_EXTRA_AUCTION_ENEMY ? -1 : (m_ExtraFlags & PLAYER_EXTRA_AUCTION_NEUTRAL ? 1 : 0); }
         void SetAuctionAccessMode(int state)
