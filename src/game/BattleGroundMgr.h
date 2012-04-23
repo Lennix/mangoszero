@@ -53,6 +53,7 @@ struct GroupQueueInfo                                       // stores informatio
     uint32  JoinTime;                                       // time when group was added
     uint32  RemoveInviteTime;                               // time when we will remove invite for players in group
     uint32  IsInvitedToBGInstanceGUID;                      // was invited to certain BG
+    float GroupGearScore;                                   // gearscore of the group
 };
 
 enum BattleGroundQueueGroupTypes

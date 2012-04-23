@@ -147,6 +147,7 @@ GroupQueueInfo * BattleGroundQueue::AddGroup(Player *leader, Group* grp, BattleG
     ginfo->JoinTime                  = WorldTimer::getMSTime();
     ginfo->RemoveInviteTime          = 0;
     ginfo->GroupTeam                 = leader->GetTeam();
+    ginfo->GroupGearScore            = 0.0f;
 
     ginfo->Players.clear();
 
@@ -167,20 +168,26 @@ GroupQueueInfo * BattleGroundQueue::AddGroup(Player *leader, Group* grp, BattleG
         //ACE_Guard<ACE_Recursive_Thread_Mutex> guard(m_Lock);
         if (grp)
         {
+            float grpGearScoreHolder = 0.0f;
+            int grpSize = 0;
             for(GroupReference *itr = grp->GetFirstMember(); itr != NULL; itr = itr->next())
             {
                 Player *member = itr->getSource();
                 if(!member)
                     continue;   // this should never happen
+                grpGearScoreHolder += member->GetEquipGearScore(true, true);
+                grpSize++;
                 PlayerQueueInfo& pl_info = m_QueuedPlayers[member->GetObjectGuid()];
                 pl_info.LastOnlineTime   = lastOnlineTime;
                 pl_info.GroupInfo        = ginfo;
                 // add the pinfo to ginfo's list
                 ginfo->Players[member->GetObjectGuid()]  = &pl_info;
             }
+            ginfo->GroupGearScore = grpGearScoreHolder / grpSize;
         }
         else
         {
+            ginfo->GroupGearScore = leader->GetEquipGearScore(true, true);
             PlayerQueueInfo& pl_info = m_QueuedPlayers[leader->GetObjectGuid()];
             pl_info.LastOnlineTime   = lastOnlineTime;
             pl_info.GroupInfo        = ginfo;

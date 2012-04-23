@@ -1048,6 +1048,20 @@ void BattleGround::AddPlayer(Player *plr)
     PlayerAddedToBGCheckIfBGIsRunning(plr);
     AddOrSetPlayerToCorrectBgGroup(plr, guid, team);
 
+    //delete other queue
+    /*
+    for (int i=0; i < PLAYER_MAX_BATTLEGROUND_QUEUES; ++i)
+    {
+        if(BattleGroundQueueTypeId bgQueueTypeId = plr->GetBattleGroundQueueTypeId(i+1))
+        {
+            if (this->GetTypeID() != bgQueueTypeId)
+            {
+                plr->RemoveBattleGroundQueueId(bgQueueTypeId);
+                sBattleGroundMgr.m_BattleGroundQueues[ bgQueueTypeId ].RemovePlayer(plr->GetObjectGuid(), true);
+            }
+        }
+    }*/
+
     // Log
     DETAIL_LOG("BATTLEGROUND: Player %s joined the battle.", plr->GetName());
 }
@@ -1148,8 +1162,8 @@ uint32 BattleGround::GetFreeSlotsForTeam(Team team) const
 
 void BattleGround::UpdateGearScoreInfo()
 {
-    float gearScore[2];
-    int teamCount[2];
+    float gearScore[2] = {0.0f, 0.0f};
+    int teamCount[2] = {0, 0};
 
     for(BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
     {
