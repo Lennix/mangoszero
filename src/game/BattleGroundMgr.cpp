@@ -429,6 +429,49 @@ bool BattleGroundQueue::InviteGroupToBG(GroupQueueInfo * ginfo, BattleGround * b
     return false;
 }
 
+BattleGroundQueue::GroupsQueueType BattleGroundQueue::GetPlayerFitToRunningBG(BattleGround* bg, GroupsQueueType playerPool)
+{
+    if (!playerPool.empty())
+    {
+        GroupsQueueType sortedQueue = playerPool;
+        GroupsQueueType::const_iterator getPoolFaction = sortedQueue.begin();
+        BattleGroundGearScoreInfo gsInfo = bg->GetBgGearScoreInfo();
+        float scoreCenter = 0.0f;
+
+        //we want to approximate at the enemy gearscore to keep the balance between the teams
+        if ((*getPoolFaction)->GroupTeam == HORDE)
+            scoreCenter = gsInfo.gearScore_A;
+        else
+            scoreCenter = gsInfo.gearScore_H;
+
+        struct sortToBGScore : public std::binary_function<const float, const float, bool>
+        {
+            const float scoreCenter;
+            sortToBGScore(const float gearScore) : scoreCenter(gearScore) {};
+
+            bool operator() (const GroupQueueInfo* first, const GroupQueueInfo* second)
+            {
+                //if a player is longer than 10 minutes in queue the system will try to find a bg as soon as possible for him
+                if (10*MINUTE*IN_MILLISECONDS < WorldTimer::getMSTimeDiff(first->JoinTime, WorldTimer::getMSTime()))
+                    return true;
+
+                float firstDiff = scoreCenter - first->GroupGearScore;
+                float secondDiff = scoreCenter - second->GroupGearScore;
+
+                //otherwise all player with a waittime < 10 minutes are sorted by gearscore
+                return ((abs(firstDiff)) < (abs(secondDiff)));        
+            }
+        };
+
+        //sort pool
+        sortedQueue.sort(sortToBGScore(scoreCenter));
+
+        return sortedQueue;
+    }
+
+    return playerPool;
+}
+
 /*
 This function is inviting players to already running battlegrounds
 Invitation type is based on config file
@@ -438,19 +481,21 @@ void BattleGroundQueue::FillPlayersToBG(BattleGround* bg, BattleGroundBracketId 
 {
     int32 hordeFree = bg->GetFreeSlotsForTeam(HORDE);
     int32 aliFree   = bg->GetFreeSlotsForTeam(ALLIANCE);
-    BattleGroundGearScoreInfo gsInfo = bg->GetBgGearScoreInfo();
 
+    //get sorted player pool (waittime, gearscore)
+    GroupsQueueType playerPoolAlliance = GetPlayerFitToRunningBG(bg, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE]);
     //iterator for iterating through bg queue
-    GroupsQueueType::const_iterator Ali_itr = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE].begin();
+    GroupsQueueType::const_iterator Ali_itr = playerPoolAlliance.begin();
     //count of groups in queue - used to stop cycles
-    uint32 aliCount = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE].size();
+    uint32 aliCount = playerPoolAlliance.size();
     //index to queue which group is current
     uint32 aliIndex = 0;
     for (; aliIndex < aliCount && m_SelectionPools[BG_TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree); aliIndex++)
         ++Ali_itr;
     //the same thing for horde
-    GroupsQueueType::const_iterator Horde_itr = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE].begin();
-    uint32 hordeCount = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE].size();
+    GroupsQueueType playerPoolHorde = GetPlayerFitToRunningBG(bg, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE]);
+    GroupsQueueType::const_iterator Horde_itr = playerPoolHorde.begin();
+    uint32 hordeCount = playerPoolHorde.size();
     uint32 hordeIndex = 0;
     for (; hordeIndex < hordeCount && m_SelectionPools[BG_TEAM_HORDE].AddGroup((*Horde_itr), hordeFree); hordeIndex++)
         ++Horde_itr;

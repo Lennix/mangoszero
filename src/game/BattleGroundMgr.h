@@ -95,6 +95,8 @@ class BattleGroundQueue
         //we need constant add to begin and constant remove / add from the end, therefore deque suits our problem well
         typedef std::list<GroupQueueInfo*> GroupsQueueType;
 
+        GroupsQueueType GetPlayerFitToRunningBG(BattleGround* bg, GroupsQueueType playerPool);
+
         /*
         This two dimensional array is used to store All queued groups
         First dimension specifies the bgTypeId
