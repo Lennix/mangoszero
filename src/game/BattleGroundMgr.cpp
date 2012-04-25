@@ -133,6 +133,18 @@ bool BattleGroundQueue::SelectionPool::AddGroup(GroupQueueInfo *ginfo, uint32 de
     return false;
 }
 
+//returns the gearScore of a SelectionPool
+float BattleGroundQueue::SelectionPool::GetSelectionPoolGearScore()
+{
+    float gearScore = 0.0f;
+
+    for(GroupsQueueType::const_iterator citr = SelectedGroups.begin(); citr != SelectedGroups.end(); ++citr)
+        gearScore += (*citr)->GroupGearScore;
+
+    gearScore = (gearScore / SelectedGroups.size());
+    return gearScore;
+}
+
 /*********************************************************/
 /***               BATTLEGROUND QUEUES                 ***/
 /*********************************************************/
@@ -458,21 +470,12 @@ BattleGroundQueue::GroupsQueueType BattleGroundQueue::ArrangePlayerForNewBG(Grou
     return playerPool;
 }
 
-//sort playerpool for running bgs
-BattleGroundQueue::GroupsQueueType BattleGroundQueue::GetPlayerFitToRunningBG(BattleGround* bg, GroupsQueueType playerPool)
+//approximate player at the given score for a specific bg
+BattleGroundQueue::GroupsQueueType BattleGroundQueue::GetPlayerFitToGivenGearScore(float scoreCenter, GroupsQueueType playerPool)
 {
     if (!playerPool.empty())
     {
         GroupsQueueType sortedQueue = playerPool;
-        GroupsQueueType::const_iterator getPoolFaction = sortedQueue.begin();
-        BattleGroundGearScoreInfo gsInfo = bg->GetBgGearScoreInfo();
-        float scoreCenter = 0.0f;
-
-        //we want to approximate at the enemy gearscore to keep the balance between the teams
-        if ((*getPoolFaction)->GroupTeam == HORDE)
-            scoreCenter = gsInfo.gearScore_A;
-        else
-            scoreCenter = gsInfo.gearScore_H;
 
         struct sortToBGScore : public std::binary_function<const float, const float, bool>
         {
@@ -512,8 +515,12 @@ void BattleGroundQueue::FillPlayersToBG(BattleGround* bg, BattleGroundBracketId 
     int32 hordeFree = bg->GetFreeSlotsForTeam(HORDE);
     int32 aliFree   = bg->GetFreeSlotsForTeam(ALLIANCE);
 
+    float scoreCenter = 0.0f;
+    BattleGroundGearScoreInfo bgScoreInfo = bg->GetBgGearScoreInfo();
+    //We want to approximate at the enemy gearScore as close as possible
+    scoreCenter = bgScoreInfo.gearScore_H;
     //get sorted player pool (waittime, gearscore)
-    GroupsQueueType playerPoolAlliance = GetPlayerFitToRunningBG(bg, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE]);
+    GroupsQueueType playerPoolAlliance = GetPlayerFitToGivenGearScore(scoreCenter, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE]);
     //iterator for iterating through bg queue
     GroupsQueueType::const_iterator Ali_itr = playerPoolAlliance.begin();
     //count of groups in queue - used to stop cycles
@@ -523,7 +530,8 @@ void BattleGroundQueue::FillPlayersToBG(BattleGround* bg, BattleGroundBracketId 
     for (; aliIndex < aliCount && m_SelectionPools[BG_TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree); aliIndex++)
         ++Ali_itr;
     //the same thing for horde
-    GroupsQueueType playerPoolHorde = GetPlayerFitToRunningBG(bg, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE]);
+    scoreCenter = bgScoreInfo.gearScore_A;
+    GroupsQueueType playerPoolHorde = GetPlayerFitToGivenGearScore(scoreCenter, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE]);
     GroupsQueueType::const_iterator Horde_itr = playerPoolHorde.begin();
     uint32 hordeCount = playerPoolHorde.size();
     uint32 hordeIndex = 0;
@@ -612,13 +620,17 @@ bool BattleGroundQueue::CheckPremadeMatch(BattleGroundBracketId bracket_id, uint
         {
             m_SelectionPools[BG_TEAM_ALLIANCE].AddGroup((*ali_group), MaxPlayersPerTeam);
             m_SelectionPools[BG_TEAM_HORDE].AddGroup((*horde_group), MaxPlayersPerTeam);
-            //TODO: we need gearscore calculation for normal pools aproximate to the premade gearscore
             //add groups/players from normal queue to size of bigger group
             uint32 maxPlayers = std::max(m_SelectionPools[BG_TEAM_ALLIANCE].GetPlayerCount(), m_SelectionPools[BG_TEAM_HORDE].GetPlayerCount());
             GroupsQueueType::const_iterator itr;
+            float scoreCenter[2] = {0.0f, 0.0f};
             for(uint32 i = 0; i < BG_TEAMS_COUNT; i++)
             {
-                for(itr = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i].begin(); itr != m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i].end(); ++itr)
+                //approximate at the enemy gearscore: for example: alliance: we will look for alliance normal player which are as close as possible at the horde selectionPool gearscore
+                scoreCenter[i] = m_SelectionPools[BG_TEAM_HORDE - i].GetSelectionPoolGearScore();
+                //get sorted pool of normal player who fit to the premade group
+                GroupsQueueType normalPlayerPool = GetPlayerFitToGivenGearScore(scoreCenter[i], m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i]);
+                for(itr = normalPlayerPool.begin(); itr != normalPlayerPool.end(); ++itr)
                 {
                     //if itr can join BG and player count is less that maxPlayers, then add group to selectionpool
                     if (!(*itr)->IsInvitedToBGInstanceGUID && !m_SelectionPools[i].AddGroup((*itr), maxPlayers))
@@ -629,7 +641,6 @@ bool BattleGroundQueue::CheckPremadeMatch(BattleGroundBracketId bracket_id, uint
             return true;
         }
     }
-    //TODO: check gearscore of premade group and move them to normal pool with same gearscore
     // now check if we can move group from Premade queue to normal queue (timer has expired) or group size lowered!!
     // this could be 2 cycles but i'm checking only first team in queue - it can cause problem -
     // if first is invited to BG and seconds timer expired, but we can ignore it, because players have only 80 seconds to click to enter bg
@@ -643,6 +654,7 @@ bool BattleGroundQueue::CheckPremadeMatch(BattleGroundBracketId bracket_id, uint
             if (!(*itr)->IsInvitedToBGInstanceGUID && ((*itr)->JoinTime < time_before || (*itr)->Players.size() < MinPlayersPerTeam))
             {
                 //we must insert group to normal queue and erase pointer from premade queue
+                //gearscore matchmaking will be handled in normal queue
                 m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i].push_front((*itr));
                 m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE + i].erase(itr);
             }

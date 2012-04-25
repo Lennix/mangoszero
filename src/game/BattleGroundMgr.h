@@ -99,7 +99,7 @@ class BattleGroundQueue
         GroupsQueueType ArrangePlayerForNewBG(GroupsQueueType playerPool);
 
         //sort playerpool for running bgs
-        GroupsQueueType GetPlayerFitToRunningBG(BattleGround* bg, GroupsQueueType playerPool);
+        GroupsQueueType GetPlayerFitToGivenGearScore(float scoreCenter, GroupsQueueType playerPool);
 
         /*
         This two dimensional array is used to store All queued groups
@@ -119,6 +119,7 @@ class BattleGroundQueue
             void Init();
             bool AddGroup(GroupQueueInfo *ginfo, uint32 desiredCount);
             bool KickGroup(uint32 size);
+            float BattleGroundQueue::SelectionPool::GetSelectionPoolGearScore();
             uint32 GetPlayerCount() const {return PlayerCount;}
         public:
             GroupsQueueType SelectedGroups;
