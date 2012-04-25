@@ -95,6 +95,10 @@ class BattleGroundQueue
         //we need constant add to begin and constant remove / add from the end, therefore deque suits our problem well
         typedef std::list<GroupQueueInfo*> GroupsQueueType;
 
+        //sort playerpool for new bgs
+        GroupsQueueType ArrangePlayerForNewBG(GroupsQueueType playerPool);
+
+        //sort playerpool for running bgs
         GroupsQueueType GetPlayerFitToRunningBG(BattleGround* bg, GroupsQueueType playerPool);
 
         /*
