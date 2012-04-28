@@ -95,6 +95,12 @@ class BattleGroundQueue
         //we need constant add to begin and constant remove / add from the end, therefore deque suits our problem well
         typedef std::list<GroupQueueInfo*> GroupsQueueType;
 
+        //sort playerpool for new bgs
+        GroupsQueueType ArrangePlayerForNewBG(GroupsQueueType playerPool);
+
+        //sort playerpool for running bgs
+        GroupsQueueType GetPlayerFitToGivenGearScore(float scoreCenter, GroupsQueueType playerPool);
+
         /*
         This two dimensional array is used to store All queued groups
         First dimension specifies the bgTypeId
@@ -113,6 +119,7 @@ class BattleGroundQueue
             void Init();
             bool AddGroup(GroupQueueInfo *ginfo, uint32 desiredCount);
             bool KickGroup(uint32 size);
+            float BattleGroundQueue::SelectionPool::GetSelectionPoolGearScore();
             uint32 GetPlayerCount() const {return PlayerCount;}
         public:
             GroupsQueueType SelectedGroups;

@@ -277,7 +277,6 @@ class BattleGroundGearScoreInfo
                 scoreDiff = 0;
             }		
         }
-    private:
         Team morePowerfulTeam;
         float gearScore_H;
         float gearScore_A;

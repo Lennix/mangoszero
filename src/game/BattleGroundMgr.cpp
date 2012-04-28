@@ -133,6 +133,18 @@ bool BattleGroundQueue::SelectionPool::AddGroup(GroupQueueInfo *ginfo, uint32 de
     return false;
 }
 
+//returns the gearScore of a SelectionPool
+float BattleGroundQueue::SelectionPool::GetSelectionPoolGearScore()
+{
+    float gearScore = 0.0f;
+
+    for(GroupsQueueType::const_iterator citr = SelectedGroups.begin(); citr != SelectedGroups.end(); ++citr)
+        gearScore += (*citr)->GroupGearScore;
+
+    gearScore = (gearScore / SelectedGroups.size());
+    return gearScore;
+}
+
 /*********************************************************/
 /***               BATTLEGROUND QUEUES                 ***/
 /*********************************************************/
@@ -429,6 +441,70 @@ bool BattleGroundQueue::InviteGroupToBG(GroupQueueInfo * ginfo, BattleGround * b
     return false;
 }
 
+//sort playerpool for new bgs
+BattleGroundQueue::GroupsQueueType BattleGroundQueue::ArrangePlayerForNewBG(GroupsQueueType playerPool)
+{
+    if (!playerPool.empty())
+    {
+        GroupsQueueType sortedQueue = playerPool;
+
+        struct sortPoolScore
+        {
+            bool operator () (const GroupQueueInfo* first, const GroupQueueInfo* second)
+            {
+                //if a player/group is longer than 10 minutes in queue the system will try to find a bg as soon as possible for him
+                if (10*MINUTE*IN_MILLISECONDS < WorldTimer::getMSTimeDiff(first->JoinTime, WorldTimer::getMSTime()))
+                    return true;
+
+                //otherwise we sort the player/groups with the lowest gearscore to the beginning
+                return ((first->GroupGearScore) < (second->GroupGearScore));
+            }
+        };
+
+        //sort pool
+        sortedQueue.sort(sortPoolScore());
+
+        return sortedQueue;
+    }
+
+    return playerPool;
+}
+
+//approximate player at the given score for a specific bg
+BattleGroundQueue::GroupsQueueType BattleGroundQueue::GetPlayerFitToGivenGearScore(float scoreCenter, GroupsQueueType playerPool)
+{
+    if (!playerPool.empty())
+    {
+        GroupsQueueType sortedQueue = playerPool;
+
+        struct sortToBGScore : public std::binary_function<const float, const float, bool>
+        {
+            const float scoreCenter;
+            sortToBGScore(const float gearScore) : scoreCenter(gearScore) {};
+
+            bool operator() (const GroupQueueInfo* first, const GroupQueueInfo* second)
+            {
+                //if a player/group is longer than 10 minutes in queue the system will try to find a bg as soon as possible for him
+                if (10*MINUTE*IN_MILLISECONDS < WorldTimer::getMSTimeDiff(first->JoinTime, WorldTimer::getMSTime()))
+                    return true;
+
+                float firstDiff = scoreCenter - first->GroupGearScore;
+                float secondDiff = scoreCenter - second->GroupGearScore;
+
+                //otherwise all player with a waittime < 10 minutes are sorted by gearscore
+                return ((abs(firstDiff)) < (abs(secondDiff)));        
+            }
+        };
+
+        //sort pool
+        sortedQueue.sort(sortToBGScore(scoreCenter));
+
+        return sortedQueue;
+    }
+
+    return playerPool;
+}
+
 /*
 This function is inviting players to already running battlegrounds
 Invitation type is based on config file
@@ -438,19 +514,26 @@ void BattleGroundQueue::FillPlayersToBG(BattleGround* bg, BattleGroundBracketId 
 {
     int32 hordeFree = bg->GetFreeSlotsForTeam(HORDE);
     int32 aliFree   = bg->GetFreeSlotsForTeam(ALLIANCE);
-    BattleGroundGearScoreInfo gsInfo = bg->GetBgGearScoreInfo();
 
+    float scoreCenter = 0.0f;
+    BattleGroundGearScoreInfo bgScoreInfo = bg->GetBgGearScoreInfo();
+    //We want to approximate at the enemy gearScore as close as possible
+    scoreCenter = bgScoreInfo.gearScore_H;
+    //get sorted player pool (waittime, gearscore)
+    GroupsQueueType playerPoolAlliance = GetPlayerFitToGivenGearScore(scoreCenter, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE]);
     //iterator for iterating through bg queue
-    GroupsQueueType::const_iterator Ali_itr = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE].begin();
+    GroupsQueueType::const_iterator Ali_itr = playerPoolAlliance.begin();
     //count of groups in queue - used to stop cycles
-    uint32 aliCount = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE].size();
+    uint32 aliCount = playerPoolAlliance.size();
     //index to queue which group is current
     uint32 aliIndex = 0;
     for (; aliIndex < aliCount && m_SelectionPools[BG_TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree); aliIndex++)
         ++Ali_itr;
     //the same thing for horde
-    GroupsQueueType::const_iterator Horde_itr = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE].begin();
-    uint32 hordeCount = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE].size();
+    scoreCenter = bgScoreInfo.gearScore_A;
+    GroupsQueueType playerPoolHorde = GetPlayerFitToGivenGearScore(scoreCenter, m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE]);
+    GroupsQueueType::const_iterator Horde_itr = playerPoolHorde.begin();
+    uint32 hordeCount = playerPoolHorde.size();
     uint32 hordeIndex = 0;
     for (; hordeIndex < hordeCount && m_SelectionPools[BG_TEAM_HORDE].AddGroup((*Horde_itr), hordeFree); hordeIndex++)
         ++Horde_itr;
@@ -518,6 +601,11 @@ bool BattleGroundQueue::CheckPremadeMatch(BattleGroundBracketId bracket_id, uint
     //check match
     if (!m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].empty() && !m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].empty())
     {
+        //sort premade pools global
+        //we sort global here cause it makes no sense to sort the whole pool for each bg signup completly new! after the first sort is proceeded we only have to sort the new groups who has signup
+        m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE] = ArrangePlayerForNewBG(m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE]);
+        m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE] = ArrangePlayerForNewBG(m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE]);
+
         //start premade match
         //if groups aren't invited
         GroupsQueueType::const_iterator ali_group, horde_group;
@@ -535,9 +623,14 @@ bool BattleGroundQueue::CheckPremadeMatch(BattleGroundBracketId bracket_id, uint
             //add groups/players from normal queue to size of bigger group
             uint32 maxPlayers = std::max(m_SelectionPools[BG_TEAM_ALLIANCE].GetPlayerCount(), m_SelectionPools[BG_TEAM_HORDE].GetPlayerCount());
             GroupsQueueType::const_iterator itr;
+            float scoreCenter[2] = {0.0f, 0.0f};
             for(uint32 i = 0; i < BG_TEAMS_COUNT; i++)
             {
-                for(itr = m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i].begin(); itr != m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i].end(); ++itr)
+                //approximate at the enemy gearscore: for example: alliance: we will look for alliance normal player which are as close as possible at the horde selectionPool gearscore
+                scoreCenter[i] = m_SelectionPools[BG_TEAM_HORDE - i].GetSelectionPoolGearScore();
+                //get sorted pool of normal player who fit to the premade group
+                GroupsQueueType normalPlayerPool = GetPlayerFitToGivenGearScore(scoreCenter[i], m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i]);
+                for(itr = normalPlayerPool.begin(); itr != normalPlayerPool.end(); ++itr)
                 {
                     //if itr can join BG and player count is less that maxPlayers, then add group to selectionpool
                     if (!(*itr)->IsInvitedToBGInstanceGUID && !m_SelectionPools[i].AddGroup((*itr), maxPlayers))
@@ -561,6 +654,7 @@ bool BattleGroundQueue::CheckPremadeMatch(BattleGroundBracketId bracket_id, uint
             if (!(*itr)->IsInvitedToBGInstanceGUID && ((*itr)->JoinTime < time_before || (*itr)->Players.size() < MinPlayersPerTeam))
             {
                 //we must insert group to normal queue and erase pointer from premade queue
+                //gearscore matchmaking will be handled in normal queue
                 m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE + i].push_front((*itr));
                 m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE + i].erase(itr);
             }
@@ -630,6 +724,10 @@ void BattleGroundQueue::Update(BattleGroundTypeId bgTypeId, BattleGroundBracketI
         m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE].empty() )
         return;
 
+      ////////////////////////
+     /////  RUNNING BG  /////
+    ////////////////////////
+
     //battleground with free slot for player should be always in the beggining of the queue
     // maybe it would be better to create bgfreeslotqueue for each bracket_id
     BGFreeSlotQueueType::iterator itr, next;
@@ -665,6 +763,10 @@ void BattleGroundQueue::Update(BattleGroundTypeId bgTypeId, BattleGroundBracketI
         }
     }
 
+      ////////////////////
+     /////  NEW BG  /////
+    ////////////////////
+
     // finished iterating through the bgs with free slots, maybe we need to create a new bg
 
     BattleGround * bg_template = sBattleGroundMgr.GetBattleGroundTemplate(bgTypeId);
@@ -683,6 +785,10 @@ void BattleGroundQueue::Update(BattleGroundTypeId bgTypeId, BattleGroundBracketI
     m_SelectionPools[BG_TEAM_HORDE].Init();
 
     {
+          ///////////////////////////
+         /////  PREMADE MATCH  /////
+        ///////////////////////////
+
         //check if there is premade against premade match
         if (CheckPremadeMatch(bracket_id, MinPlayersPerTeam, MaxPlayersPerTeam))
         {
@@ -705,8 +811,16 @@ void BattleGroundQueue::Update(BattleGroundTypeId bgTypeId, BattleGroundBracketI
         }
     }
 
-    // now check if there are in queues enough players to start new game of (normal battleground)
     {
+          //////////////////////////
+         /////  NORMAL MATCH  /////
+        //////////////////////////
+
+        //sort normal pools global
+        //we sort global here cause it makes no sense to sort the whole pool for each bg signup completly new! after the first sort is proceeded we only have to sort the new player who has signup
+        m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE] = ArrangePlayerForNewBG(m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_ALLIANCE]);
+        m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE] = ArrangePlayerForNewBG(m_QueuedGroups[bracket_id][BG_QUEUE_NORMAL_HORDE]);
+
         // if there are enough players in pools, start new battleground or non rated arena
         if (CheckNormalMatch(bracket_id, MinPlayersPerTeam, MaxPlayersPerTeam))
         {
