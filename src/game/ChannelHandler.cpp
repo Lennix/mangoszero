@@ -35,7 +35,7 @@ void WorldSession::HandleJoinChannelOpcode(WorldPacket& recvPacket)
     recvPacket >> pass;
 
     // Bei GMs beide managers
-    if(_player->GetSession()->GetSecurity() > SEC_MODERATOR)
+    if(_player->GetSession()->GetSecurity() >= SEC_MODERATOR)
     {
         if(ChannelMgr* cMgr = channelMgr(ALLIANCE))
             if(Channel *chn = cMgr->GetJoinChannel(channelname, channel_id))

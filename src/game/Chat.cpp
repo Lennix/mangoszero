@@ -818,7 +818,7 @@ bool ChatHandler::HasLowerSecurityAccount(WorldSession* target, uint32 target_ac
     AccountTypes target_sec;
 
     // ignore only for non-players for non strong checks (when allow apply command at least to same sec level)
-    if (GetAccessLevel() > SEC_PLAYER && !strong && !sWorld.getConfig(CONFIG_BOOL_GM_LOWER_SECURITY))
+    if (GetAccessLevel() >= SEC_GAMEMASTER && !strong && !sWorld.getConfig(CONFIG_BOOL_GM_LOWER_SECURITY))
         return false;
 
     if (target)
@@ -1137,7 +1137,7 @@ void ChatHandler::ExecuteCommand(const char* text)
             SetSentErrorMessage(false);
             if ((this->*(command->Handler))((char*)text))   // text content destroyed at call
             {
-                if (command->SecurityLevel > SEC_PLAYER)
+                if (command->SecurityLevel >= SEC_MODERATOR)
                     LogCommand(fullcmd.c_str());
             }
             // some commands have custom error messages. Don't send the default one in these cases.

@@ -238,7 +238,7 @@ World::AddSession_ (WorldSession* s)
     if(decrease_session)
         --Sessions;
 
-    if (pLimit > 0 && Sessions >= pLimit && s->GetSecurity () == SEC_PLAYER )
+    if (pLimit > 0 && Sessions >= pLimit && s->GetSecurity () < SEC_MODERATOR )
     {
         AddQueuedSession(s);
         UpdateMaxSessionCounters();

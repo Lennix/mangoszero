@@ -195,13 +195,13 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
             Player *player = sObjectMgr.GetPlayer(to.c_str());
             uint32 tSecurity = GetSecurity();
             uint32 pSecurity = player ? player->GetSession()->GetSecurity() : SEC_PLAYER;
-            if (!player || (tSecurity == SEC_PLAYER && pSecurity > SEC_PLAYER && !player->isAcceptWhispers()))
+            if (!player || (tSecurity < SEC_MODERATOR && pSecurity >= SEC_MODERATOR && !player->isAcceptWhispers()))
             {
                 SendPlayerNotFoundNotice(to);
                 return;
             }
 
-            if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT) && tSecurity == SEC_PLAYER && pSecurity == SEC_PLAYER )
+            if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT) && tSecurity < SEC_MODERATOR && pSecurity < SEC_MODERATOR )
             {
                 if (GetPlayer()->GetTeam() != player->GetTeam())
                 {
@@ -427,7 +427,7 @@ void WorldSession::HandleMessagechatOpcode( WorldPacket & recv_data )
                 break;
 
             // Bei GMs beide managers
-            if(_player->GetSession()->GetSecurity() > SEC_MODERATOR)
+            if(_player->GetSession()->GetSecurity() >= SEC_MODERATOR)
             {
                 if(ChannelMgr* cMgr = channelMgr(ALLIANCE))
                     if(Channel *chn = cMgr->GetChannel(channel, _player))

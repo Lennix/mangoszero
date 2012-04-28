@@ -186,7 +186,7 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
 
     WorldPacket data(SMSG_CHAR_CREATE, 1);                  // returned with diff.values in all cases
 
-    if(GetSecurity() == SEC_PLAYER)
+    if(GetSecurity() < SEC_GAMEMASTER)
     {
         if(uint32 mask = sWorld.getConfig(CONFIG_UINT32_CHARACTERS_CREATING_DISABLED))
         {
@@ -237,7 +237,7 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
         return;
     }
 
-    if (GetSecurity() == SEC_PLAYER && sObjectMgr.IsReservedName(name))
+    if (GetSecurity() < SEC_GAMEMASTER && sObjectMgr.IsReservedName(name))
     {
         data << (uint8)CHAR_NAME_RESERVED;
         SendPacket( &data );
@@ -282,7 +282,7 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
         }
     }
 
-    bool AllowTwoSideAccounts = !sWorld.IsPvPRealm() || sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_ACCOUNTS) || GetSecurity() > SEC_PLAYER;
+    bool AllowTwoSideAccounts = !sWorld.IsPvPRealm() || sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_ACCOUNTS) || GetSecurity() >= SEC_GAMEMASTER;
     CinematicsSkipMode skipCinematics = CinematicsSkipMode(sWorld.getConfig(CONFIG_UINT32_SKIP_CINEMATICS));
 
     bool have_same_race = false;
@@ -762,7 +762,7 @@ void WorldSession::HandleCharRenameOpcode(WorldPacket& recv_data)
     }
 
     // check name limitations
-    if (GetSecurity() == SEC_PLAYER && sObjectMgr.IsReservedName(newname))
+    if (GetSecurity() < SEC_GAMEMASTER && sObjectMgr.IsReservedName(newname))
     {
         WorldPacket data(SMSG_CHAR_RENAME, 1);
         data << uint8(CHAR_NAME_RESERVED);

@@ -149,7 +149,7 @@ void WorldSession::HandleWhoOpcode( WorldPacket & recv_data )
     {
         Player* pl = itr->second;
 
-        if (security == SEC_PLAYER)
+        if (security < SEC_MODERATOR)
         {
             // player can see member of other team only if CONFIG_BOOL_ALLOW_TWO_SIDE_WHO_LIST
             if (pl->GetTeam() != team && !allowTwoSideWhoList )

@@ -863,7 +863,7 @@ int WorldSocket::HandlePing (WorldPacket& recvPacket)
             {
                 ACE_GUARD_RETURN (LockType, Guard, m_SessionLock, -1);
 
-                if (m_Session && m_Session->GetSecurity () == SEC_PLAYER)
+                if (m_Session && m_Session->GetSecurity () < SEC_GAMEMASTER)
                 {
                     sLog.outError  ("WorldSocket::HandlePing: Player kicked for "
                                     "overspeeded pings address = %s",

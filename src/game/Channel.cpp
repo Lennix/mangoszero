@@ -447,7 +447,7 @@ void Channel::List(Player* player)
 
             // PLAYER can't see MODERATOR, GAME MASTER, ADMINISTRATOR characters
             // MODERATOR, GAME MASTER, ADMINISTRATOR can see all
-            if (plr && (player->GetSession()->GetSecurity() > SEC_PLAYER || plr->GetSession()->GetSecurity() <= gmLevelInWhoList) &&
+            if (plr && (player->GetSession()->GetSecurity() >= SEC_GAMEMASTER || plr->GetSession()->GetSecurity() <= gmLevelInWhoList) &&
                 plr->IsVisibleGloballyFor(player))
             {
                 data << ObjectGuid(i->first);

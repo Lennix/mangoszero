@@ -377,7 +377,7 @@ Player::Player (WorldSession *session): Unit(), m_mover(this), m_camera(this), m
         SetAcceptTicket(true);
 
     // players always accept
-    if(GetSession()->GetSecurity() == SEC_PLAYER)
+    if(GetSession()->GetSecurity() < SEC_GAMEMASTER)
         SetAcceptWhispers(true);
 
     m_comboPoints = 0;
@@ -646,7 +646,7 @@ bool Player::Create( uint32 guidlow, const std::string& name, uint8 race, uint8 
     SetUInt32Value( PLAYER_GUILD_TIMESTAMP, 0 );
 
     // set starting level
-    if (GetSession()->GetSecurity() >= SEC_MODERATOR)
+    if (GetSession()->GetSecurity() >= SEC_GAMEMASTER)
         SetUInt32Value (UNIT_FIELD_LEVEL, sWorld.getConfig(CONFIG_UINT32_START_GM_LEVEL));
     else
         SetUInt32Value (UNIT_FIELD_LEVEL, sWorld.getConfig(CONFIG_UINT32_START_PLAYER_LEVEL));
@@ -13745,7 +13745,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
 
     // check name limitations
     if (ObjectMgr::CheckPlayerName(m_name) != CHAR_NAME_SUCCESS ||
-        (GetSession()->GetSecurity() == SEC_PLAYER && sObjectMgr.IsReservedName(m_name)))
+        (GetSession()->GetSecurity() < SEC_GAMEMASTER && sObjectMgr.IsReservedName(m_name)))
     {
         delete result;
         CharacterDatabase.PExecute("UPDATE characters SET at_login = at_login | '%u' WHERE guid ='%u'",
@@ -14205,7 +14205,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder *holder )
     delete result;
 
     // GM state
-    if(GetSession()->GetSecurity() > SEC_PLAYER)
+    if(GetSession()->GetSecurity() >= SEC_GAMEMASTER)
     {
         switch(sWorld.getConfig(CONFIG_UINT32_GM_LOGIN_STATE))
         {
@@ -15950,7 +15950,7 @@ void Player::outDebugStatsValues() const
 void Player::UpdateSpeakTime()
 {
     // ignore chat spam protection for GMs in any mode
-    if(GetSession()->GetSecurity() > SEC_PLAYER)
+    if(GetSession()->GetSecurity() >= SEC_MODERATOR)
         return;
 
     time_t current = time (NULL);
@@ -17430,7 +17430,7 @@ bool Player::IsVisibleGloballyFor( Player* u ) const
         return true;
 
     // GMs are visible for higher gms (or players are visible for gms)
-    if (u->GetSession()->GetSecurity() > SEC_PLAYER)
+    if (u->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
         return GetSession()->GetSecurity() <= u->GetSession()->GetSecurity();
 
     // non faction visibility non-breakable for non-GMs

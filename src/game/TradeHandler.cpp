@@ -148,7 +148,7 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
             {
                 // logging
                 DEBUG_LOG("partner storing: %s", myItems[i]->GetGuidStr().c_str());
-                if (_player->GetSession()->GetSecurity() > SEC_PLAYER && sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE))
+                if (_player->GetSession()->GetSecurity() >= SEC_GAMEMASTER && sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE))
                 {
                     sLog.outCommand(_player->GetSession()->GetAccountId(),"GM %s (Account: %u) trade: %s (Entry: %d Count: %u) to player: %s (Account: %u)",
                         _player->GetName(), _player->GetSession()->GetAccountId(),
@@ -164,7 +164,7 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
             {
                 // logging
                 DEBUG_LOG("player storing: %s", hisItems[i]->GetGuidStr().c_str());
-                if (trader->GetSession()->GetSecurity() > SEC_PLAYER && sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE))
+                if (trader->GetSession()->GetSecurity() >= SEC_GAMASTER && sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE))
                 {
                     sLog.outCommand(trader->GetSession()->GetAccountId(),"GM %s (Account: %u) trade: %s (Entry: %d Count: %u) to player: %s (Account: %u)",
                         trader->GetName(), trader->GetSession()->GetAccountId(),

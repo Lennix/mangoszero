@@ -658,6 +658,7 @@ void WorldSession::HandlePetCastSpellOpcode(WorldPacket& recvPacket)
 
     Spell *spell = new Spell(pet, spellInfo, false);
     spell->m_targets = targets;
+    spell->prepare(&(spell->m_targets));
 
     SpellCastResult result = spell->CheckPetCast(NULL);
     if (result == SPELL_CAST_OK)
@@ -674,12 +675,13 @@ void WorldSession::HandlePetCastSpellOpcode(WorldPacket& recvPacket)
             else
                 pet->SendPetAIReaction();
         }
-
-        spell->prepare(&(spell->m_targets));
     }
     else
     {
-        pet->SendPetCastFail(spellid, result);
+        if (Player* owner = GetPlayer())
+            Spell::SendCastResult(owner, spellInfo, result);
+        else
+            pet->SendPetCastFail(spellid, result);
         if (!pet->HasSpellCooldown(spellid))
             GetPlayer()->SendClearCooldown(spellid, pet);
 

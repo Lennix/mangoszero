@@ -149,7 +149,7 @@ bool ChatHandler::HandleSaveCommand(char* /*args*/)
     Player *player=m_session->GetPlayer();
 
     // save GM account without delay and output message (testing, etc)
-    if(GetAccessLevel() > SEC_PLAYER)
+    if(GetAccessLevel() >= SEC_GAMEMASTER)
     {
         player->SaveToDB();
         SendSysMessage(LANG_PLAYER_SAVED);
@@ -174,7 +174,7 @@ bool ChatHandler::HandleGMListIngameCommand(char* /*args*/)
         for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
         {
             AccountTypes itr_sec = itr->second->GetSession()->GetSecurity();
-            if ((itr->second->isGameMaster() || (itr_sec > SEC_PLAYER && itr_sec <= (AccountTypes)sWorld.getConfig(CONFIG_UINT32_GM_LEVEL_IN_GM_LIST))) &&
+            if ((itr->second->isGameMaster() || (itr_sec >= SEC_MODERATOR && itr_sec <= (AccountTypes)sWorld.getConfig(CONFIG_UINT32_GM_LEVEL_IN_GM_LIST))) &&
                 (!m_session || itr->second->IsVisibleGloballyFor(m_session->GetPlayer())))
                 names.push_back(std::make_pair<std::string, bool>(GetNameLink(itr->second), itr->second->isAcceptWhispers()));
         }
