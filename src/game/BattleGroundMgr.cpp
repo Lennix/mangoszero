@@ -441,6 +441,16 @@ bool BattleGroundQueue::InviteGroupToBG(GroupQueueInfo * ginfo, BattleGround * b
     return false;
 }
 
+bool sortGearScoreInPool (const GroupQueueInfo* first, const GroupQueueInfo* second)
+{
+    //if a player/group is longer than 10 minutes in queue the system will try to find a bg as soon as possible for him
+    if (10*MINUTE*IN_MILLISECONDS < WorldTimer::getMSTimeDiff(first->JoinTime, WorldTimer::getMSTime()))
+        return true;
+
+    //otherwise we sort the player/groups with the lowest gearscore to the beginning
+    return ((first->GroupGearScore) < (second->GroupGearScore));
+}
+
 //sort playerpool for new bgs
 BattleGroundQueue::GroupsQueueType BattleGroundQueue::ArrangePlayerForNewBG(GroupsQueueType playerPool)
 {
@@ -448,21 +458,8 @@ BattleGroundQueue::GroupsQueueType BattleGroundQueue::ArrangePlayerForNewBG(Grou
     {
         GroupsQueueType sortedQueue = playerPool;
 
-        struct sortPoolScore
-        {
-            bool operator () (const GroupQueueInfo* first, const GroupQueueInfo* second)
-            {
-                //if a player/group is longer than 10 minutes in queue the system will try to find a bg as soon as possible for him
-                if (10*MINUTE*IN_MILLISECONDS < WorldTimer::getMSTimeDiff(first->JoinTime, WorldTimer::getMSTime()))
-                    return true;
-
-                //otherwise we sort the player/groups with the lowest gearscore to the beginning
-                return ((first->GroupGearScore) < (second->GroupGearScore));
-            }
-        };
-
         //sort pool
-        sortedQueue.sort(sortPoolScore());
+        sortedQueue.sort(sortGearScoreInPool);
 
         return sortedQueue;
     }
@@ -470,31 +467,31 @@ BattleGroundQueue::GroupsQueueType BattleGroundQueue::ArrangePlayerForNewBG(Grou
     return playerPool;
 }
 
+struct sortToBGScore : public std::binary_function<const float, const float, bool>
+{
+    const float scoreCenter;
+    sortToBGScore(const float gearScore) : scoreCenter(gearScore) {};
+
+    bool operator() (const GroupQueueInfo* first, const GroupQueueInfo* second) const
+    {
+        //if a player/group is longer than 10 minutes in queue the system will try to find a bg as soon as possible for him
+        if (10*MINUTE*IN_MILLISECONDS < WorldTimer::getMSTimeDiff(first->JoinTime, WorldTimer::getMSTime()))
+            return true;
+
+        float firstDiff = scoreCenter - first->GroupGearScore;
+        float secondDiff = scoreCenter - second->GroupGearScore;
+
+        //otherwise all player with a waittime < 10 minutes are sorted by gearscore
+        return ((abs(firstDiff)) < (abs(secondDiff)));        
+    }
+};
+
 //approximate player at the given score for a specific bg
 BattleGroundQueue::GroupsQueueType BattleGroundQueue::GetPlayerFitToGivenGearScore(float scoreCenter, GroupsQueueType playerPool)
 {
     if (!playerPool.empty())
     {
         GroupsQueueType sortedQueue = playerPool;
-
-        struct sortToBGScore : public std::binary_function<const float, const float, bool>
-        {
-            const float scoreCenter;
-            sortToBGScore(const float gearScore) : scoreCenter(gearScore) {};
-
-            bool operator() (const GroupQueueInfo* first, const GroupQueueInfo* second)
-            {
-                //if a player/group is longer than 10 minutes in queue the system will try to find a bg as soon as possible for him
-                if (10*MINUTE*IN_MILLISECONDS < WorldTimer::getMSTimeDiff(first->JoinTime, WorldTimer::getMSTime()))
-                    return true;
-
-                float firstDiff = scoreCenter - first->GroupGearScore;
-                float secondDiff = scoreCenter - second->GroupGearScore;
-
-                //otherwise all player with a waittime < 10 minutes are sorted by gearscore
-                return ((abs(firstDiff)) < (abs(secondDiff)));        
-            }
-        };
 
         //sort pool
         sortedQueue.sort(sortToBGScore(scoreCenter));
