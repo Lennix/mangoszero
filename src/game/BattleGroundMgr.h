@@ -119,7 +119,7 @@ class BattleGroundQueue
             void Init();
             bool AddGroup(GroupQueueInfo *ginfo, uint32 desiredCount);
             bool KickGroup(uint32 size);
-            float BattleGroundQueue::SelectionPool::GetSelectionPoolGearScore();
+            float GetSelectionPoolGearScore();
             uint32 GetPlayerCount() const {return PlayerCount;}
         public:
             GroupsQueueType SelectedGroups;
