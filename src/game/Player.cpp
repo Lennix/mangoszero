@@ -19682,3 +19682,69 @@ void Player::UpgradeCharacter(uint32 charType)
 
     return;
 }
+
+void Player::CreateTeam(uint32 type)
+{
+    Group* pGroup = GetGroup();
+    if (pGroup)
+    {
+        if (GetObjectGuid() != pGroup->GetLeaderGuid())
+        {
+            ChatHandler(this).PSendSysMessage("[Team Creator] You need to be group leader to create a team.");
+            return;
+        }
+        uint32 count = pGroup->GetMembersCount();
+        switch (type)
+        {
+            case 1: // Wsg 10x10
+                if (count < 10)
+                {
+                    ChatHandler(this).PSendSysMessage("[Team Creator] You need at least 10 group members for Warsong 10v10.");
+                    return;
+                }
+                else if (count > 12)
+                {
+                    ChatHandler(this).PSendSysMessage("[Team Creator] You may have at most 12 group members for Warsong 10v10.");
+                    return;
+                }
+                break;
+            case 2: // Arathi 15x15
+                if (count < 15)
+                {
+                    ChatHandler(this).PSendSysMessage("[Team Creator] You need at least 15 group members for Arathi 15v15.");
+                    return;
+                }
+                else if (count > 18)
+                {
+                    ChatHandler(this).PSendSysMessage("[Team Creator] You may have at most 18 group members for Warsong 15v15.");
+                    return;
+                }
+                break;
+            case 3: // Wsg 5x5
+                if (count < 5)
+                {
+                    ChatHandler(this).PSendSysMessage("[Team Creator] You need at least 5 group members for Warsong 5v5.");
+                    return;
+                }
+                else if (count > 7)
+                {
+                    ChatHandler(this).PSendSysMessage("[Team Creator] You may have at most 7 group members for Warsong 5v5.");
+                    return;
+                }
+                break;
+            default: // faulty type
+                ChatHandler(this).PSendSysMessage("[Team Creator] Something went horribly wrong.");
+                return;
+        }
+        std::ostringstream members;
+        for (GroupReference *itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
+        {
+            if (Player* member = itr->getSource())
+                members << member->GetObjectGuid() << ",";
+        }
+        CharacterDatabase.PExecute("INSERT INTO team (type, leader, members) VALUES ('%u', '%u', '%s');", type, pGroup->GetLeaderGuid(), members.str().c_str());
+        ChatHandler(this).PSendSysMessage("[Team Creator] Your team has been successfully created. Please login on http://mc-wow.eu to manage your team.");
+    }
+    else
+        ChatHandler(this).PSendSysMessage("[Team Creator] Please invite your team mates into group first.");
+}
