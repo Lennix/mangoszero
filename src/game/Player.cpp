@@ -4532,7 +4532,12 @@ void Player::RepopAtGraveyard()
     // if no grave found, stay at the current location
     // and don't show spirit healer location
     if(ClosestGrave)
+    {
         TeleportTo(ClosestGrave->map_id, ClosestGrave->x, ClosestGrave->y, ClosestGrave->z, GetOrientation());
+        //we handle "waiting to resurrect" here, so every dead player will get this buff if he will be repoped at the graveyard!
+        if (this->isDead() && GetBattleGround())
+            this->CastSpell(this, 2584, true);
+    }
 }
 
 void Player::JoinedChannel(Channel *c)
