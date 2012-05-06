@@ -1975,7 +1975,12 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             FillAreaTargets(targetUnitMap, radius, PUSH_SELF_CENTER, SPELL_TARGETS_FRIENDLY, GetCastingObject());
             break;
         case TARGET_ALL_FRIENDLY_UNITS_IN_AREA:
-            FillAreaTargets(targetUnitMap, radius, PUSH_DEST_CENTER, SPELL_TARGETS_FRIENDLY);
+            SpellTargets sTarget;
+            //22439 = mark of detonation: this spell is a debuff and thats the problem, 
+            //our core use friendly units by taking the originalCaster and not by taking the affected debuff unit, 
+            //therefore we have to affect hostile units by using mark of detonation
+            m_spellInfo->Id == 22439 ? sTarget = SPELL_TARGETS_HOSTILE : sTarget = SPELL_TARGETS_FRIENDLY;
+            FillAreaTargets(targetUnitMap, radius, PUSH_DEST_CENTER, sTarget);
             break;
         // TARGET_SINGLE_PARTY means that the spells can only be casted on a party member and not on the caster (some seals, fire shield from imp, etc..)
         case TARGET_SINGLE_PARTY:
