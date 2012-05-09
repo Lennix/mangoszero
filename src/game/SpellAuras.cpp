@@ -1393,7 +1393,18 @@ void Aura::TriggerSpell()
             triggerCaster->CastSpell(triggerTargetObject->GetPositionX(), triggerTargetObject->GetPositionY(), triggerTargetObject->GetPositionZ(),
                 triggeredSpellInfo, true, NULL, this, casterGUID);
         else
+        {
             triggerCaster->CastSpell(triggerTarget, triggeredSpellInfo, true, NULL, this, casterGUID);
+
+            //burning adrenaline triggers explosion if 23619 will kill the player with the next auratick
+            if (triggeredSpellInfo->Id == 23619)
+            {
+                uint32 health = (triggerTarget->GetMaxHealth() - ((triggerTarget->GetMaxHealth() * 5) / 100));
+                if (health <= 200)
+                    //we handle explosion spell at unit method DealDamage
+                    triggerTarget->DealDamage(triggerTarget, 200, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
+            }
+        }
     }
     else
     {

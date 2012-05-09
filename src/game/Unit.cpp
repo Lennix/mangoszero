@@ -771,6 +771,16 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         if (spellProto && spellProto->Id == 603 && roll_chance_f(5.0f))
             pVictim->CastSpell(pVictim, 18662, true, NULL, NULL, GetObjectGuid());
 
+        // burning adrenalin triggers explosion 
+        // animation is atm missing: i did a few test and it seems that the animation only triggers if the unit who cast the spell is alive for more than 2 seconds
+        if (pVictim->HasAura(23619))
+        {
+            //explosion
+            pVictim->CastSpell(pVictim, 23478, true, NULL, NULL, GetObjectGuid());
+            //we have to do this here because the trigger spell 23619 will revive unit on death
+            pVictim->RemoveAllAurasOnDeath();
+        }
+
         // find player: owner of controlled `this` or `this` itself maybe
         // for loot will be sued only if group_tap==NULL
         Player *player_tap = GetCharmerOrOwnerPlayerOrPlayerItself();
