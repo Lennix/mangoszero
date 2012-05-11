@@ -976,8 +976,6 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
                 {
                     if (!NeedsComboPoints(m_spellInfo))
                         caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
-                    else
-                        ((Player*)m_caster)->ClearComboPoints();
                     break;
                 }
                 case SPELLFAMILY_DRUID:
@@ -990,8 +988,6 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
                         {
                             if (!NeedsComboPoints(m_spellInfo))
                                 caster->ModifyPower(POWER_ENERGY, (int32)((CalculatePowerCost(m_spellInfo, caster, this, m_CastItem))*0.8f));
-                            else
-                                ((Player*)m_caster)->ClearComboPoints(); 
                             break;
                         }
                     }
