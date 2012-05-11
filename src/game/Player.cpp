@@ -16511,6 +16511,10 @@ void Player::RemoveSpellMods(Spell const* spell)
             SpellModifier *mod = *itr;
             ++itr;
 
+            //moonfire wont remove nature's grace
+            if (mod->spellId == 16886 && spell->m_spellInfo->SpellIconID == 225)
+                continue;
+
             if (mod && mod->charges == -1 && (mod->lastAffected == spell || mod->lastAffected==NULL))
             {
                 RemoveAurasDueToSpell(mod->spellId);
