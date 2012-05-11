@@ -3595,6 +3595,11 @@ bool Unit::CanStackAura(SpellAuraHolder *holder)
 
     switch (aurSpellInfo->SpellFamilyName)
     {
+        case SPELLFAMILY_PRIEST:
+            //mind flay
+            if (aurSpellInfo->SpellFamilyFlags & 0x0000000000800000)
+                return true;
+            break;
         case SPELLFAMILY_WARLOCK:
             // Drain soul
             if (aurSpellInfo->SpellFamilyFlags & 0x4000)
