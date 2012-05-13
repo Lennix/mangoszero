@@ -8673,8 +8673,8 @@ uint32 createProcExtendMask(SpellNonMeleeDamage *damageInfo, SpellMissInfo missC
 void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag, uint32 procExtra, WeaponAttackType attType, SpellEntry const * procSpell, uint32 damage )
 {
     //moonfire wont remove nature's grace
-    if (HasAura(16886) && procSpell->SpellIconID == 225)
-        return;
+    //if (HasAura(16886) && procSpell->SpellIconID == 225)
+    //    return;
 
     // For melee/ranged based attack need update skills and set some Aura states
     if (procFlag & MELEE_BASED_TRIGGER_MASK)
