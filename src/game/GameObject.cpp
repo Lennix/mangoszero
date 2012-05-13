@@ -322,12 +322,25 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                         //Trap Faction Calculation
                         if (goInfo->faction != 0)
                         {
-                            //if we have a faction get unfriendly targets to trigger the trap
-                            MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, radius);
-                            MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
-                            Cell::VisitGridObjects(this, checker, radius);
-                            if (!ok)
-                                Cell::VisitWorldObjects(this, checker, radius);
+                            //hunter traps
+                            if (owner)
+                            {
+                                MaNGOS::AnyUnfriendlyUnitToOwnerInObjectRangeCheck u_check(this, owner, radius);
+                                MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitToOwnerInObjectRangeCheck> checker(ok, u_check);
+                                Cell::VisitGridObjects(this, checker, radius);
+                                if (!ok)
+                                    Cell::VisitWorldObjects(this, checker, radius);
+                            }
+                            //other traps
+                            else
+                            {
+                                //if we have a faction get unfriendly targets to trigger the trap
+                                MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck u_check(this, radius);
+                                MaNGOS::UnitSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> checker(ok, u_check);
+                                Cell::VisitGridObjects(this, checker, radius);
+                                if (!ok)
+                                    Cell::VisitWorldObjects(this, checker, radius);
+                            }
                         }
                         else
                         {

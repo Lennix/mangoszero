@@ -754,6 +754,25 @@ namespace MaNGOS
             float i_range;
     };
 
+    class AnyUnfriendlyUnitToOwnerInObjectRangeCheck
+    {
+        public:
+            AnyUnfriendlyUnitToOwnerInObjectRangeCheck(WorldObject const* obj, Unit const* funit, float range) : i_obj(obj), i_funit(funit), i_range(range) {}
+            WorldObject const& GetFocusObject() const { return *i_obj; }
+            bool operator()(Unit* u)
+            {
+                if(u->isAlive() && i_obj->IsWithinDistInMap(u, i_range) && !i_funit->IsFriendlyTo(u))
+                    return true;
+                 else
+
+                    return false;
+            }
+        private:
+            WorldObject const* i_obj;
+            Unit const* i_funit;
+            float i_range;
+     };
+
     class AnyUnfriendlyVisibleUnitInObjectRangeCheck
     {
         public:
