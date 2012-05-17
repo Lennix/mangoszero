@@ -4129,8 +4129,7 @@ void Player::BuildPlayerRepop()
     if(GetCorpse())
     {
         sLog.outError("BuildPlayerRepop: player %s(%d) already has a corpse", GetName(), GetGUIDLow());
-        //MANGOS_ASSERT(false);
-        return; // No assert just return
+        MANGOS_ASSERT(false);
     }
 
     // create a corpse and place it at the player's location
