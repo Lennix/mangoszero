@@ -2001,6 +2001,9 @@ bool Creature::IsOutOfThreatArea(Unit* pVictim) const
     if (!pVictim->isInAccessablePlaceFor(this))
         return true;
 
+    if(!((Unit*) this)->GetMotionMaster()->operator->()->IsReachable())
+        return true;
+
     float AttackDist = GetAttackDistance(pVictim);
     float ThreatRadius = sWorld.getConfig(CONFIG_FLOAT_THREAT_RADIUS);
 
