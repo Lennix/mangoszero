@@ -27,6 +27,7 @@
 #include "Item.h"
 #include "UpdateData.h"
 #include "Chat.h"
+#include "World.h"
 
 void WorldSession::HandleSplitItemOpcode( WorldPacket & recv_data )
 {
@@ -897,6 +898,9 @@ void WorldSession::HandleBuyBankSlotOpcode(WorldPacket& recvPacket)
     }
 
     uint32 price = slotEntry->price;
+
+    if (sWorld.getConfig(CONFIG_BOOL_DISABLE_COSTS))
+        price = 0;
 
     if (_player->GetMoney() < price)
     {

@@ -1836,6 +1836,9 @@ uint32 Pet::resetTalentsCost() const
 {
     uint32 days = uint32(sWorld.GetGameTime() - m_resetTalentsTime)/DAY;
 
+    if (sWorld.getConfig(CONFIG_BOOL_DISABLE_COSTS))
+        return 0;
+
     // The first time reset costs 10 silver; after 1 day cost is reset to 10 silver
     if(m_resetTalentsCost < 10*SILVER || days > 0)
         return 10*SILVER;

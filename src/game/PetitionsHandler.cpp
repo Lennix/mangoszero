@@ -88,6 +88,8 @@ void WorldSession::HandlePetitionBuyOpcode(WorldPacket & recv_data)
 
     uint32 charterid = GUILD_CHARTER;
     uint32 cost = GUILD_CHARTER_COST;
+    if (sWorld.getConfig(CONFIG_BOOL_DISABLE_COSTS))
+        cost = 0;
 
     if (sGuildMgr.GetGuildByName(name))
     {

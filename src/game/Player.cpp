@@ -3412,6 +3412,9 @@ void Player::_SaveSpellCooldowns()
 
 uint32 Player::resetTalentsCost() const
 {
+    if (sWorld.getConfig(CONFIG_BOOL_DISABLE_COSTS))
+        return 0;
+
     // The first time reset costs 1 gold
     if(m_resetTalentsCost < 1*GOLD)
         return 1*GOLD;
@@ -6084,7 +6087,7 @@ bool Player::RewardHonor(Unit *uVictim,uint32 groupsize)
     {
         Player *pVictim = (Player *)uVictim;
 
-        if( GetTeam() == pVictim->GetTeam() )
+        if( GetTeam() == pVictim->GetTeam() && !IsFFAPvP() )
             return false;
 
         if( isHonorOrXPTarget(pVictim) )
@@ -6110,6 +6113,19 @@ bool Player::RewardHonor(Unit *uVictim,uint32 groupsize)
             // Dimishing return
             float coeff = total_kills >= 4 ? 0.0f : 1.0f - float(total_kills / 4);
             honor *= coeff;
+
+            int gold = sWorld.getConfig(CONFIG_UINT32_PVP_REWARD_GOLD);
+            if (gold > 0)
+            {
+                if (groupsize)
+                    gold /= groupsize;
+
+                // Dimishing return
+                float gold_coeff = total_kills >= 10 ? 0.0f : 1.0f - float(total_kills / 10);
+                gold *= gold_coeff;
+
+                ModifyMoney(gold);
+            }
 
             AddHonorCP(honor,HONORABLE,pVictim->GetGUIDLow(),TYPEID_PLAYER);
             return true;
@@ -16799,6 +16815,9 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
 
     if (npc)
         totalcost = (uint32)ceil(totalcost*GetReputationPriceDiscount(npc));
+
+    if (sWorld.getConfig(CONFIG_BOOL_DISABLE_COSTS))
+        totalcost = 0;
 
     if(money < totalcost)
     {
