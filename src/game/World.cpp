@@ -833,7 +833,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_PVP_REWARD_GOLD, "PvPRewardGold", 0);
     sLog.outString("WORLD: gold reward on PvP kill: %d", getConfig(CONFIG_UINT32_PVP_REWARD_GOLD));
 
-    setConfig(CONFIG_BOOL_DISABLE_COSTS, "DisableCosts", 0);
+    setConfig(CONFIG_BOOL_DISABLE_COSTS, "DisableCosts", false);
     sLog.outString("WORLD: NPC costs %sabled", getConfig(CONFIG_BOOL_DISABLE_COSTS) ? "dis" : "en");
 }
 
