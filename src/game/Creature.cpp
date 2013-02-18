@@ -2001,7 +2001,7 @@ bool Creature::IsOutOfThreatArea(Unit* pVictim) const
     if (!pVictim->isInAccessablePlaceFor(this))
         return true;
 
-    if(!((Unit*) this)->GetMotionMaster()->operator->()->IsReachable())
+    if(((Unit*)this)->GetMotionMaster() && !((Unit*)this)->GetMotionMaster()->operator->()->IsReachable())
         return true;
 
     float AttackDist = GetAttackDistance(pVictim);
