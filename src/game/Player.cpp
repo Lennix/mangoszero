@@ -6108,10 +6108,10 @@ bool Player::RewardHonor(Unit *uVictim,uint32 groupsize)
 
             // Diminishing return @25% (pre 1.12 formula, 1.12: 10%)
             uint32 today = sWorld.GetDateToday();
-            int total_kills  = CalculateTotalKills(pVictim,today,today);
+            uint32 total_kills = CalculateTotalKills(pVictim,today,today);
 
             // Dimishing return
-            float coeff = total_kills >= 4 ? 0.0f : 1.0f - float(total_kills / 4);
+            float coeff = total_kills >= 4 ? 0.0f : 1.0f - (total_kills * 0.25f);
             honor *= coeff;
 
             int gold = sWorld.getConfig(CONFIG_UINT32_PVP_REWARD_GOLD);
@@ -6121,10 +6121,21 @@ bool Player::RewardHonor(Unit *uVictim,uint32 groupsize)
                     gold /= groupsize;
 
                 // Dimishing return
-                float gold_coeff = total_kills >= 10 ? 0.0f : 1.0f - float(total_kills / 10);
-                gold *= gold_coeff;
+                if (total_kills > 0)
+                    gold -= total_kills * (gold / 10);
+                else if (total_kills >= 10)
+                    gold = 0;
 
-                ModifyMoney(gold);
+                if (gold > 0)
+                {
+                    ModifyMoney(gold);
+                    if (gold >= 10000)
+                        ChatHandler(this).PSendSysMessage("You've been awarded %dg for killing %s", gold/10000, pVictim->GetName());
+                    else if (gold >= 100)
+                        ChatHandler(this).PSendSysMessage("You've been awarded %ds for killing %s", gold/100, pVictim->GetName());
+                    else
+                        ChatHandler(this).PSendSysMessage("You've been awarded %dc for killing %s", gold, pVictim->GetName());
+                }
             }
 
             AddHonorCP(honor,HONORABLE,pVictim->GetGUIDLow(),TYPEID_PLAYER);
